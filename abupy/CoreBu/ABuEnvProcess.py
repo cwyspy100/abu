@@ -75,6 +75,12 @@ class AbuEnvProcess(object):
                 setattr(self, '{}_{}'.format(module_name, sig), module.__dict__[sig])
 
     # noinspection PyMethodMayBeStatic
+    # REVIEW: 2023/3/28 上午10:39
+    # REVIEW:
+    #  这段代码定义了一个 register_module() 方法，用于注册需要拷贝内存的模块。在多进程编程中，
+    #  多个进程可能需要访问同一个模块或对象，为了避免数据共享导致的竞争和不一致性问题，通常需要将这些模块或对象拷贝一份到每个进程的内存中，
+    #  使它们在各自的内存空间中运行。
+
     def register_module(self):
         """
         注册需要拷贝内存的模块，不要全局模块注册，否则很多交叉引用，也不要做为类变量存储否则多进程传递pickle时会出错
@@ -98,6 +104,13 @@ class AbuEnvProcess(object):
                 ABuSlippageBuyMean, ABuSlippageSellBase, ABuSlippageBuyBase, ABuUmpMainBase, ABuUmpEdgeBase,
                 ABuMLFeature, ABuUmpManager, ABuTLSimilar, ABuPickTimeWorker,
                 ABuFactorCloseAtrNStop, ABuMarket, ABuFactorPreAtrNStop, ABuPickSimilarNTop]
+    # REVIEW: 2023/3/28 上午10:55
+    # REVIEW:
+    #  这是一个Python类中的一个方法，用于将主进程中的某些设置拷贝到子进程中。该方法通过迭代需要拷贝内存设置的模块，
+    #  找出模块中以"g_"或"g"开头的类变量，即不是方法的变量，将其值拷贝到子进程的对应模块的内存中。
+    #  具体实现过程为，首先通过register_module方法迭代需要拷贝内存设置的模块，然后使用filter函数将类变量中以"g_"或"g"开头的不是方法的变量筛选出来，
+    #  接着根据模块名和类变量名组合成变量名，使用getattr方法获取主进程中该变量的值，最后将值拷贝到子进程对应模块的内存中。
+    #  该方法通常是作为一个装饰器的一部分，被其他方法调用，而不是直接在外部使用。它的作用是将主进程中的设置传递给子进程，以确保子进程能够正确地继承这些设置并在子进程中运行。
 
     def copy_process_env(self):
         """为子进程拷贝主进程中的设置执行，在add_process_env_sig装饰器中调用，外部不应主动使用"""

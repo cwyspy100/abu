@@ -146,11 +146,19 @@ def kline_pd(symbol, data_mode, n_folds=2, start=None, end=None, save=True):
         # 本地的pd.DataFrame金融时间序列的最后一个个日期 int类型
         df_req_end = 0
 
+        # REVIEW: 2023/3/28 下午5:40
+        # REVIEW:
+        #  1、不是强制从网络获取数据，就从本地数据尝试读取
+
         if ABuEnv.g_data_fetch_mode != EMarketDataFetchMode.E_DATA_FETCH_FORCE_NET:
             # 如果env中设置并非强制从网络获取数据，就从本地数据尝试读取df, df_req_start
             df, df_req_start, df_req_end = load_kline_df(temp_symbol.value)
         # 确定env中设置是否强制从本地缓存读取数据
         force_local = (ABuEnv.g_data_fetch_mode == EMarketDataFetchMode.E_DATA_FETCH_FORCE_LOCAL)
+
+        # REVIEW: 2023/3/28 下午5:41
+        # REVIEW:
+        #  2、force_local 强制从本地，本地没有数据直接返回
 
         if force_local and df is None:
             # 如果强制本地且df是空，直接返回
@@ -167,6 +175,10 @@ def kline_pd(symbol, data_mode, n_folds=2, start=None, end=None, save=True):
         # 根据n_folds，start，end计算需要请求的start，end
         end, end_int, df_end_int, start, start_int, df_start_int = _calc_start_end_date(df, force_local, n_folds, start,
                                                                                         end)
+        # REVIEW: 2023/3/28 下午5:43
+        # REVIEW:
+        #  3、强制从网络获取数据
+
         save_kl_key = (temp_symbol, start_int, end_int)
         if ABuEnv.g_data_fetch_mode == EMarketDataFetchMode.E_DATA_FETCH_FORCE_NET:
             # 如果是强制走网络，直接请求使用load_kline_df_net

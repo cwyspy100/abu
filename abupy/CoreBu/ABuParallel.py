@@ -84,7 +84,14 @@ else:
             if self.n_jobs <= 0:
                 # 主要为了适配 n_jobs = -1，joblib中启动cpu个数个进程并行执行
                 self.n_jobs = ABuEnv.g_cpu_cnt
-
+            
+            # REVIEW: 2023/3/28 下午1:49  
+            # REVIEW:
+            #  这段代码使用 concurrent.futures.ProcessPoolExecutor() 创建一个进程池，并使用 max_workers 参数指定最大工作进程数。然后，
+            #  对于 iterable 中的每个元素（假设是 (function, args, kwargs) 的元组），创建一个 concurrent.futures.Future 对象，
+            #  使用 pool.submit() 方法将函数调用提交给进程池进行异步执行，并返回一个 Future 对象。然后，使用 future_result.add_done_callback()
+            #  方法为 Future 对象注册一个回调函数 when_done()，以在函数执行完成时处理结果。
+            
             if self.n_jobs == 1:
                 # 如果只开一个进程，那么只在主进程(或当前运行的子进程)里运行，方便pdb debug且与joblib运行方式保持一致
                 for jb in iterable:

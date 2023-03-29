@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
 
 
-    # buy_factors = [{'xd':60, 'class':AbuFactorBuyBreak1},{'xd':60, 'class':AbuFactorBuyBreak1}]
-    # benmark = AbuBenchmark()
-    # captial = AbuCapital(1000000, benmark)
-    # orders_pd, action_pd, _= ABuPickTimeExecute.do_symbols_with_same_factors(['usTSLA'], benmark, captial, buy_factors, None, captial, show=True)
+    buy_factors = [{'xd':60, 'class':AbuFactorBuyBreak1},{'xd':60, 'class':AbuFactorBuyBreak1}]
+    benmark = AbuBenchmark()
+    captial = AbuCapital(1000000, benmark)
+    orders_pd, action_pd, _= ABuPickTimeExecute.do_symbols_with_same_factors(['usTSLA'], benmark, captial, buy_factors, None, captial, show=True)

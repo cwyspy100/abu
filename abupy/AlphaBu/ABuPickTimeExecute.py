@@ -97,7 +97,15 @@ def do_symbols_with_same_factors(target_symbols, benchmark, buy_factors, sell_fa
     """
     if kl_pd_manager is None:
         kl_pd_manager = AbuKLManager(benchmark, capital)
-
+    
+    # REVIEW: 2023/3/29 下午6:32  
+    # REVIEW:
+    #  1、该函数的功能是将目标股票列表中的每个股票应用相同的买入卖出因子进行择时，得到每个股票的交易订单和操作记录，并将它们连接起来返回。
+    #  函数的输入参数包括 p_buy_factors 和 p_sell_factors，分别表示买入因子和卖出因子；kl_pd_manager，表示一个 KLManager 对象，
+    #  用于获取每个股票的 K 线数据；target_symbols，表示要择时的目标股票列表；capital，表示资金总量；benchmark，表示业绩基准；
+    #  back_target_symbols，表示备用的目标股票列表，用于在择时结果错误或没有订单生成的情况下进行补位；func_factors，表示一个可调用的函数，
+    #  用于在择时过程中嵌入可变因子；show 和 show_progress，表示是否显示择时过程中的绘图和进度条。
+    
     def _batch_symbols_with_same_factors(p_buy_factors, p_sell_factors):
         r_orders_pd = None
         r_action_pd = None
@@ -121,7 +129,11 @@ def do_symbols_with_same_factors(target_symbols, benchmark, buy_factors, sell_fa
                 except Exception as e:
                     logging.exception(e)
                     continue
-
+                
+                # REVIEW: 2023/3/29 下午6:36
+                # REVIEW:
+                #  1、back_target_symbols，表示备用的目标股票列表，用于在择时结果错误或没有订单生成的情况下进行补位；
+                
                 if ret is None and back_target_symbols is not None:
                     # 择时结果错误或者没有order生成的情况下，如果有补位序列，择从序列中pop出一个，进行补位
                     if fit_error is not None and fit_error == EFitError.NO_ORDER_GEN:
