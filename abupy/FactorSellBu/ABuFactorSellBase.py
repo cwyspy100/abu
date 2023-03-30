@@ -70,7 +70,7 @@ class AbuFactorSellBase(six.with_metaclass(ABCMeta, AbuParamBase)):
 
     __repr__ = __str__
 
-    def read_fit_day(self, today, orders):
+    def  read_fit_day(self, today, orders):
         """
         在择时worker对象中做日交易的函数，亦可以理解为盘前的一些决策事件处理，
         内部会调用子类实现的fit_day函数

@@ -61,6 +61,11 @@ class AbuBenchmark(PickleStateMixin):
         self.start = start
         self.end = end
         self.n_folds = n_folds
+
+        # REVIEW: 2023/3/30 上午10:32
+        # REVIEW:
+        #  why：这里需要基准数据？
+
         # 基准获取数据使用data_mode=EMarketDataSplitMode.E_DATA_SPLIT_SE，即不需要对齐其它，只需要按照时间切割
         self.kl_pd = ABuSymbolPd.make_kl_df(benchmark, data_mode=EMarketDataSplitMode.E_DATA_SPLIT_SE,
                                             n_folds=n_folds,

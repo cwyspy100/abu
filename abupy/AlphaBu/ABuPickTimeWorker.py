@@ -117,6 +117,13 @@ class AbuPickTimeWorker(AbuPickTimeWorkBase):
                 # 如果买入因子没有被封锁执行任务
                 buy_factor.fit_month(today)
 
+
+    # REVIEW: 2023/3/30 下午1:46
+    # REVIEW:   这是一个按照天执行的任务，
+    #  为什么_task_attached_sell执行过，还要执行卖出因子，是否一个单子会执行两次卖出？不会有两次卖出，因为卖出的状态不是keep，会被拦截，
+    #  为什么需要两次？
+
+
     def _day_task(self, today):
         """
         日任务：迭代买入卖出因子序列进行择时
@@ -139,6 +146,13 @@ class AbuPickTimeWorker(AbuPickTimeWorkBase):
                 order = buy_factor.read_fit_day(today)
                 if order and order.order_deal:
                     self.orders.append(order)
+    
+    # REVIEW: 2023/3/30 下午1:41  
+    # REVIEW:   该方法的作用是根据给定的买入因子，对该因子所对应的所有订单进行择时卖出。具体步骤如下：
+    #  首先，使用 filter() 函数筛选出当前买入因子所对应的所有订单。具体地，使用 lambda 表达式筛选出 buy_factor_class 属性等于当前买入因子类名的订单。
+    #  如果当前买入因子没有对应的订单，直接跳过。
+    #  否则，对于当前买入因子的每个择时卖出因子，调用相应的方法进行择时卖出。
+    #  具体地，根据 how 参数的值，选择调用 read_fit_day()、fit_week() 或 fit_month() 方法。
 
     def _task_attached_sell(self, today, how):
         """专属择时买入因子的择时卖出因子任务：日任务择时卖出因子， 周任务择时卖出因子，月任务择时卖出因子"""
