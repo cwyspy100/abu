@@ -54,7 +54,7 @@ def get_hk_data(symbol):
         print('symbol  {}'.format(data_tail))
 
 
-def test_buy_break(symbols):
+def buy_break(symbols):
     buy_factors = [{'xd': 60, 'class': AbuFactorBuyBreak}, {'xd': 40, 'class': AbuFactorBuyBreak}]
     benchmark = AbuBenchmark(n_folds=4)
     capital = AbuCapital(1000000, benchmark)
@@ -63,7 +63,7 @@ def test_buy_break(symbols):
     print('orders_pd {}'.format(orders_pd.tail()))
 
 
-def test_buy_sell_break(symbols):
+def buy_sell_break(symbols):
     buy_factors = [{'xd': 60, 'class': AbuFactorBuyBreak}, {'xd': 40, 'class': AbuFactorBuyBreak}]
     sell_factors = [{'xd': 120, 'class': AbuFactorSellBreak}]
     benchmark = AbuBenchmark(n_folds=4)
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     # # 获取腾讯的最近的数据
     # get_hk_data('hk00700')
     # # 获取美团的最近的数据
-    # get_hk_data('hk03690')
+    get_hk_data('hk03690')
     # get_hk_data('hk01024')
     # get_hk_data('hk02618')
     # get_hk_data('hk01810')
@@ -94,4 +94,4 @@ if __name__ == '__main__':
     # symbols = ['usTSLA']
     # abupy.env.enable_example_env_ipython()
     # test_buy_break(symbols)
-    test_buy_sell_break(symbols)
+    # buy_sell_break(symbols)
