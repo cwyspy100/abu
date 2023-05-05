@@ -104,3 +104,5 @@ if __name__ == '__main__':
     # buy_sell_atr_nstop(symbols)
     # buy_sell_pre_atr_nstop(symbols)
     buy_sell_close_atr_nstop(symbols)
+
+
