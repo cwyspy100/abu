@@ -196,7 +196,7 @@ g_project_kl_df_data_example = os.path.join(_p_dir, 'RomDataBu/csv')
 """
 chrome 驱动
 """
-g_crawl_chrome_driver = None
+g_crawl_chrome_driver = "D:\chromedriver_win32\chromedriver.exe"
 
 
 # ＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊ CrawlBu start ＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊

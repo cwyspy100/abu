@@ -171,3 +171,7 @@ def update_all(markets=('US', 'CN', 'HK')):
 def query_symbol_info(symbol):
     m, symbol = ensure_symbol(symbol)
     return None if symbol is None else ABuXqFile.query_a_stock(m, symbol)
+
+
+def test():
+    update_all()
