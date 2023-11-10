@@ -29,12 +29,17 @@ except ImportError:
     except ImportError:
         g_pandas_has_resampler = False
 
+# todo 这段代码是一个尝试导入pandas.core.window模块中的EWM类，并根据导入是否成功设置变量g_pandas_has_ewm的值。
+# REVIEW: 2023/11/10 下午5:51
+# REVIEW:
+#  当前环境导入失败，当g_pandas_has_ewm = True 正常处理，暂时设置为True
+
 try:
     # noinspection PyUnresolvedReferences
     from pandas.core.window import EWM
     g_pandas_has_ewm = True
 except ImportError:
-    g_pandas_has_ewm = False
+    g_pandas_has_ewm = True
 
 try:
     # noinspection PyUnresolvedReferences
