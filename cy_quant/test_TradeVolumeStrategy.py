@@ -1,7 +1,6 @@
 import pandas as pd
 import unittest
 from TradeVolumeStrategy import TradeVolumeStrategy
-import abupy 
 
 
 class TestTradeVolumeStrategy(unittest.TestCase):

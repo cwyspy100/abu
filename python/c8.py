@@ -59,14 +59,14 @@ def sample_811():
     kl_pd_manager = AbuKLManager(benchmark, capital)
     # 获取TSLA的交易数据
     kl_pd = kl_pd_manager.get_pick_time_kl_pd('usTSLA')
-    abu_worker = AbuPickTimeWorker(capital, kl_pd, benchmark, buy_factors, None)
-    abu_worker.fit()
-
-    orders_pd, action_pd, _ = ABuTradeProxy.trade_summary(abu_worker.orders, kl_pd, draw=True)
-
-    ABuTradeExecute.apply_action_to_capital(capital, action_pd, kl_pd_manager)
-    capital.capital_pd.capital_blance.plot()
-    plt.show()
+    # abu_worker = AbuPickTimeWorker(capital, kl_pd, benchmark, buy_factors, None)
+    # abu_worker.fit()
+    #
+    # orders_pd, action_pd, _ = ABuTradeProxy.trade_summary(abu_worker.orders, kl_pd, draw=True)
+    #
+    # ABuTradeExecute.apply_action_to_capital(capital, action_pd, kl_pd_manager)
+    # capital.capital_pd.capital_blance.plot()
+    # plt.show()
 
 
 def sample_812():
