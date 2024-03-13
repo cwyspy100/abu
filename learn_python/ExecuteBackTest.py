@@ -1,38 +1,24 @@
 # -*- encoding:utf-8 -*-
 from __future__ import print_function
-import matplotlib.pyplot as plt
-import seaborn as sns
-import numpy as np
-import pandas as pd
+
 import warnings
 
 # noinspection PyUnresolvedReferences
 import abu_local_env
+import seaborn as sns
 
 import abupy
-from abupy import AbuFactorBuyBreak
-from abupy import AbuFactorSellBreak
-from abupy import AbuFactorAtrNStop
-from abupy import AbuFactorPreAtrNStop
-from abupy import AbuFactorCloseAtrNStop
-from abupy import AbuBenchmark
-from abupy import AbuPickTimeWorker
-from abupy import AbuCapital
-from abupy import AbuKLManager
-from abupy import ABuTradeProxy
-from abupy import ABuTradeExecute
 from abupy import ABuPickTimeExecute
+from abupy import AbuBenchmark
+from abupy import AbuCapital
+from abupy import AbuFactorAtrNStop
+from abupy import AbuFactorCloseAtrNStop
+from abupy import AbuFactorPreAtrNStop
+from abupy import AbuFactorSellBreak
 from abupy import AbuMetricsBase
-from abupy import ABuMarket
-from abupy import AbuPickTimeMaster
-from abupy import ABuRegUtil
-from abupy import AbuPickRegressAngMinMax
-from abupy import AbuPickStockWorker
-from abupy import ABuPickStockExecute
-from abupy import AbuPickStockPriceMinMax
-from abupy import AbuPickStockMaster
+from abupy import AbuFactorBuyXD, AbuFactorBuyXDBK
 
-from learn_python.ABuFactorBuyThreeVolume import ABuFactorBuyThreeVolume
+from learn_python.ABuFactorHaiGuiBuyBreak import ABuFactorHaiGuiBuyBreak
 
 warnings.filterwarnings('ignore')
 sns.set_context(rc={'figure.figsize': (14, 7)})
@@ -56,8 +42,9 @@ def execute_test(show=True):
     sell_factor4 = {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5}
     # 四个卖出因子同时生效，组成sell_factors
     sell_factors = [sell_factor1, sell_factor2, sell_factor3, sell_factor4]
+
     # buy_factors 60日向上突破，42日向上突破两个因子
-    buy_factors = [{'xd': 60, 'class': ABuFactorBuyThreeVolume}]
+    buy_factors = [{'xd': 42, 'class': ABuFactorHaiGuiBuyBreak},{'xd': 60, 'class': ABuFactorHaiGuiBuyBreak}]
     benchmark = AbuBenchmark()
 
     capital = AbuCapital(1000000, benchmark)

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from .ABuFactorBuyBase import AbuFactorBuyBase, AbuFactorBuyXD, AbuFactorBuyTD, BuyCallMixin, BuyPutMixin
-from .ABuFactorBuyBreak import AbuFactorBuyBreak, AbuFactorBuyPutBreak
+from .ABuFactorBuyBreak import AbuFactorBuyBreak, AbuFactorBuyPutBreak, AbuFactorBuyXDBK
 from .ABuFactorBuyWD import AbuFactorBuyWD
 from .ABuFactorBuyDemo import AbuSDBreak, AbuTwoDayBuy, AbuWeekMonthBuy, AbuFactorBuyBreakUmpDemo
 from .ABuFactorBuyDemo import AbuFactorBuyBreakReocrdHitDemo, AbuFactorBuyBreakHitPredictDemo
@@ -26,5 +26,6 @@ __all__ = [
     'AbuDoubleMaBuy',
     'AbuUpDownTrend',
     'AbuDownUpTrend',
-    'AbuUpDownGolden'
+    'AbuUpDownGolden',
+    'AbuFactorBuyXDBK'
 ]

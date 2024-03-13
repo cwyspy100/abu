@@ -38,7 +38,8 @@ class ABuFactorBuyThreeVolume(AbuFactorBuyBase, BuyCallMixin):
         if self.today_ind < self.xd - 1:
             return None
 
-        # 今天的收盘价格达到xd天内最高价格则符合买入条件
+        # 今天的成交量达到xd天内成交量平均数的三倍则符合买入条件
+        print("result : {}".format(self.kl_pd.volume[self.today_ind - self.xd + 1:self.today_ind + 1].mean() * 3))
         if today.volume >= self.kl_pd.volume[self.today_ind - self.xd + 1:self.today_ind + 1].mean() * 3:
             # 把突破新高参数赋值skip_days，这里也可以考虑make_buy_order确定是否买单成立，但是如果停盘太长时间等也不好
             self.skip_days = self.xd
