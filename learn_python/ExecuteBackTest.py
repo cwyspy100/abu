@@ -17,6 +17,7 @@ from abupy import AbuFactorPreAtrNStop
 from abupy import AbuFactorSellBreak
 from abupy import AbuMetricsBase
 from abupy import AbuFactorBuyXD, AbuFactorBuyXDBK
+from abupy import AbuDoubleMaBuy
 
 from learn_python.ABuFactorHaiGuiBuyBreak import ABuFactorHaiGuiBuyBreak
 
@@ -44,7 +45,7 @@ def execute_test(show=True):
     sell_factors = [sell_factor1, sell_factor2, sell_factor3, sell_factor4]
 
     # buy_factors 60日向上突破，42日向上突破两个因子
-    buy_factors = [{'xd': 42, 'class': ABuFactorHaiGuiBuyBreak},{'xd': 60, 'class': ABuFactorHaiGuiBuyBreak}]
+    buy_factors = [{'xd': 42, 'class': AbuDoubleMaBuy}]
     benchmark = AbuBenchmark()
 
     capital = AbuCapital(1000000, benchmark)

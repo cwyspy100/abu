@@ -108,6 +108,10 @@ class AbuWeekMonthBuy(AbuFactorBuyBase, BuyCallMixin):
         """
         :param today: 当前驱动的交易日金融时间序列数据
         """
+        # cy
+        # 第一个部分是 self.is_buy_month and today.exec_month。这个部分检查两个条件是否同时满足：self.is_buy_month 是否为真，以及 today.exec_month 是否为真
+        # 第二个部分是 not self.is_buy_month and today.exec_week。这个部分检查两个条件是否同时满足：self.is_buy_month 是否为假，以及 today.exec_week 是否为真
+        # 意思为： 整个条件语句的意思是：如果当前是购买月份并且今天是执行月份，或者当前不是购买月份并且今天是执行周，那么执行后续的代码块
         if self.is_buy_month and today.exec_month or not self.is_buy_month and today.exec_week:
             # 没有用到今天的任何数据，直接今天买入
             return self.buy_today()
@@ -137,7 +141,7 @@ class AbuFactorBuyBreakUmpDemo(AbuFactorBuyBreak):
             return True
         return False
 
-
+# todo 不明白这个类的作用
 class AbuFactorBuyBreakReocrdHitDemo(AbuFactorBuyBreak):
     """示例让裁判自己学习怎么配合，自己做出最正确的判断"""
 
@@ -206,7 +210,7 @@ class AbuFactorBuyBreakHitPredictDemo(AbuFactorBuyBreak):
             return True
         return False
 
-
+# todo 不明白这个类的作用
 class AbuBTCDayBuy(AbuFactorBuyBase, BuyCallMixin):
     """
         比特币日交易策略：
