@@ -24,6 +24,8 @@ from abupy import abu, ABuProgress, AbuMetricsBase, EMarketTargetType, nd
 
 from learn_python.ABuFactorHaiGuiBuyBreak import ABuFactorHaiGuiBuyBreak
 from learn_python.ABuFactorBuyDMNew import AbuDoubleMaBuyNew
+from abupy.IndicatorBu.ABuNDMa import calc_ma_from_prices
+from abupy.UtilBu import ABuRegUtil
 
 warnings.filterwarnings('ignore')
 sns.set_context(rc={'figure.figsize': (14, 7)})
@@ -34,7 +36,63 @@ abupy.env.disable_example_env_ipython()
 
 def get_data():
     futu_data = ABuSymbolPd.make_kl_df('usFUTU')
-    print(futu_data.tail())
+    slow_line_120 = calc_ma_from_prices(futu_data.close, 120, min_periods=1)
+    slow_line_60 = calc_ma_from_prices(futu_data.close, 60, min_periods=1)
+    slow_line_30 = calc_ma_from_prices(futu_data.close, 30, min_periods=1)
+    slow_line_20 = calc_ma_from_prices(futu_data.close, 20, min_periods=1)
+    slow_line_10 = calc_ma_from_prices(futu_data.close, 10, min_periods=1)
+
+    slow_line_5 = calc_ma_from_prices(futu_data.close, 5, min_periods=1)
+    # futu_data['5-day MA'] = futu_data['close'].rolling(window=5).mean()
+
+    xd = 10
+    row_count = futu_data.shape[0]
+    for index in range(row_count):
+        if index < xd:
+            continue
+        # xd_kl_120 = slow_line_120[index - xd + 1:index + 1]
+        # slow_line = calc_ma_from_prices(xd_kl_120, xd, min_periods=1)
+        # # 计算走势角度
+        # ang_120 = ABuRegUtil.calc_regress_deg(slow_line, show=False)
+        #
+        # xd_kl_60 = slow_line_60[index - 60 + 1:index + 1]
+        # slow_line1 = calc_ma_from_prices(xd_kl_60, 60, min_periods=1)
+        # # 计算走势角度
+        # ang_60 = ABuRegUtil.calc_regress_deg(slow_line1, show=False)
+        #
+        # xd_kl_30 = slow_line_30[index - 30 + 1:index + 1]
+        # slow_line2 = calc_ma_from_prices(xd_kl_30, 30, min_periods=1)
+        # # 计算走势角度
+        # ang_30 = ABuRegUtil.calc_regress_deg(slow_line2, show=False)
+        #
+        # xd_kl_20 = slow_line_20[index - 20 + 1:index + 1]
+        # slow_line3 = calc_ma_from_prices(xd_kl_20, 20, min_periods=1)
+        # # 计算走势角度
+        # ang_20 = ABuRegUtil.calc_regress_deg(slow_line3, show=False)
+
+        xd_kl_10 = slow_line_10[index - 10 + 1:index + 1]
+        slow_line3 = calc_ma_from_prices(xd_kl_10, 10, min_periods=1)
+        # 计算走势角度
+        ang10 = ABuRegUtil.calc_regress_deg(slow_line3, show=False)
+
+        xd_kl_5 = slow_line_5[index - 5 + 1:index + 1]
+        slow_line4 = calc_ma_from_prices(xd_kl_5, 5, min_periods=1)
+        # 计算走势角度
+        ang5 = ABuRegUtil.calc_regress_deg(slow_line4, show=False)
+
+
+
+        # if ang_120 > 10:
+        print("----------------------{}")
+        # print("角度120：{}".format(ang_120))
+        # print("角度60：{}".format(ang_60))
+        # print("角度30：{}".format(ang_30))
+        # print("角度20：{}".format(ang_20))
+        print("角度10：{}".format(ang10))
+        print("角度5：{}".format(ang5))
+
+
+
 
 
 def execute_test(show=True):
@@ -42,7 +100,7 @@ def execute_test(show=True):
     cash = 1000000
 
     # 使用沙盒内的美股做为回测目标
-    us_choice_symbols = ['usTSLA']
+    us_choice_symbols = ['usFUTU']
 
     # us_choice_symbols = ['usFUTU', 'usTSLA', 'usNOAH', 'usSFUN', 'usBIDU', 'usAAPL',
     #                      'usGOOG', 'usWUBA', 'usVIPS']
@@ -88,7 +146,7 @@ def execute_test(show=True):
     metrics.plot_order_returns_cmp()
     metrics.plot_sharp_volatility_cmp()
 
-    tsla_orders = abu_result_tuple.orders_pd[abu_result_tuple.orders_pd.symbol == 'usTSLA']
+    tsla_orders = abu_result_tuple.orders_pd[abu_result_tuple.orders_pd.symbol == 'usFUTU']
 
     print(tsla_orders)
 
@@ -158,7 +216,7 @@ def execute_test_new_1(show=True):
     cash = 1000000
 
     # 使用沙盒内的美股做为回测目标
-    us_choice_symbols = ['usTSLA']
+    us_choice_symbols = ['usFUTU']
 
     # us_choice_symbols = ['usFUTU', 'usTSLA', 'usNOAH', 'usSFUN', 'usBIDU', 'usAAPL',
     #                      'usGOOG', 'usWUBA', 'usVIPS']
@@ -205,7 +263,7 @@ def execute_test_new_1(show=True):
     metrics.plot_order_returns_cmp()
     metrics.plot_sharp_volatility_cmp()
 
-    tsla_orders = abu_result_tuple.orders_pd[abu_result_tuple.orders_pd.symbol == 'usTSLA']
+    tsla_orders = abu_result_tuple.orders_pd[abu_result_tuple.orders_pd.symbol == 'usFUTU']
 
     print(tsla_orders)
 
