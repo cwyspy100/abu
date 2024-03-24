@@ -1,6 +1,8 @@
 # -*- encoding:utf-8 -*-
 """
     买入择时示例因子：动态自适应双均线策略
+    这个使用慢均线的昨天，前天，打前天的数据对比进行选择买入。
+
 """
 
 from __future__ import absolute_import
@@ -22,6 +24,7 @@ __weixin__ = 'abu_quant'
 
 # noinspection PyAttributeOutsideInit
 from abupy.UtilBu import ABuRegUtil
+
 
 
 class AbuDoubleMaBuyNew(AbuFactorBuyXD, BuyCallMixin):
@@ -228,24 +231,3 @@ class AbuDoubleMaBuyNew(AbuFactorBuyXD, BuyCallMixin):
             if num2 > num1 and num2 > num3:
                 return self.buy_tomorrow()
         return None
-
-
-
-        # # 价格和慢速均线的距离开始变小，则2天后买入，不使用快均线
-        # if len(fast_line) >= 2 and len(slow_line) >= 2:
-        #     # 今天的快线值
-        #     fast_today = fast_line[-1]
-        #     # 昨天的快线值
-        #     fast_yesterday = fast_line[-2]
-        #     # 今天的慢线值
-        #     slow_today = slow_line[-1]
-        #     # 昨天的慢线值
-        #     slow_yesterday = slow_line[-2]
-        #
-        #     if slow_yesterday >= fast_yesterday and fast_today > slow_today:
-        #         # 快线上穿慢线, 形成买入金叉，使用了今天收盘价格，明天买入
-        #         return self.buy_tomorrow()
-
-    """可以选择是否覆盖AbuFactorBuyXD中的buy_tomorrow来增大交易频率，默认基类中self.skip_days = self.xd降低了频率"""
-    # def buy_tomorrow(self):
-    #     return self.make_buy_order(self.today_ind)

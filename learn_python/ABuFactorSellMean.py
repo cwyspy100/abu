@@ -5,9 +5,10 @@ from __future__ import division
 
 from abupy import AbuFactorSellBase, AbuFactorBuyXD, BuyCallMixin, BuyPutMixin,ESupportDirection
 
+'''
+通过均值，比如120天的均线，今天的金额小于120均线数值就卖出，对应有卖出
 
-
-
+'''
 class AbuFactorSellMean(AbuFactorSellBase):
     """示例向下突破卖出择时因子"""
 

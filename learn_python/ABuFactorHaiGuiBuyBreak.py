@@ -18,7 +18,7 @@ class ABuFactorHaiGuiBuyBreak(AbuFactorBuyBase, BuyCallMixin):
 
     def fit_day(self, today):
         """
-        针对每一个交易日拟合买入交易策略，寻找向上突破买入机会
+        针对每一个交易日拟合买入交易策略，寻找向上突破买入机会，当今天的收盘价  是最近N天中收盘价中的最大值，买入
         :param today: 当前驱动的交易日金融时间序列数据
         :return:
         """

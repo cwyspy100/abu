@@ -17,6 +17,7 @@ abupy.env.enable_example_env_ipython()
 class ABuFactorBuyThreeVolume(AbuFactorBuyBase, BuyCallMixin):
     """
         拟合三倍成交量买入示例类
+        今天的成交量是一定时间成交量的平均值的3倍作为买入条件。
     """
 
     def _init_self(self, **kwargs):

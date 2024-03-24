@@ -1,5 +1,8 @@
 
+'''
+通过均值，比如120天的均线，今天的金额大于120均线数值就买入，对应有卖出
 
+'''
 
 
 from __future__ import absolute_import
@@ -32,10 +35,13 @@ class AbuFactorBuyMean(AbuFactorBuyBase, BuyCallMixin):
         if self.today_ind < self.xd - 1:
             return None
 
+        price = self.kl_pd.close[self.today_ind - self.xd + 1:self.today_ind + 1].mean()
+        print("-----------------------------------------today {} price {}".format(today.date, price))
+
         # 今天的收盘价格达到xd天内最高价格则符合买入条件
         if today.close >= self.kl_pd.close[self.today_ind - self.xd + 1:self.today_ind + 1].mean():
             # 把突破新高参数赋值skip_days，这里也可以考虑make_buy_order确定是否买单成立，但是如果停盘太长时间等也不好
-            self.skip_days = self.xd
+            # self.skip_days = self.xd
             # 生成买入订单, 由于使用了今天的收盘价格做为策略信号判断，所以信号发出后，只能明天买
             return self.buy_tomorrow()
         return None
