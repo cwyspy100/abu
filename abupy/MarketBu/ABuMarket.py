@@ -91,7 +91,10 @@ def split_k_market(k_split, market_symbols=None, market=None):
 
     # 计算每一个子序列的承载的symbol个数，即eg：100 ／ 5 ＝ 20
     sub_symbols_cnt = int(len(market_symbols) / k_split)
+
+    # note group_adjacent 函数将 a 分成了多个长度为 k 的组，每组中的元素在 a 中是连续的。如果 a 的长度不是 k 的倍数，那么最后一组可能包含少于 k 个元素。
     group_adjacent = lambda a, k: zip(*([iter(a)] * k))
+    
     # 使用lambda函数group_adjacent将market_symbols切割子序列，每个子系列sub_symbols_cnt个
     symbols = list(group_adjacent(market_symbols, sub_symbols_cnt))
     # 将不能整除的余数symbol个再放进去

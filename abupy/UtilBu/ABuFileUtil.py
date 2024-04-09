@@ -355,6 +355,7 @@ def dump_df_csv(file_name, df):
     if df is not None:
         # TODO 为效率，不应该在函数内部ensure_dir，确保使用dump_df_csv需要在外部ensure_dir
         ensure_dir(file_name)
+        # note columns=df.columns 参数表示要写入的列。在这里，我们选择了 DataFrame 的所有列。index=True 参数表示是否将 DataFrame 的索引也写入到 CSV 文件中。在这里，我们选择了写入索引。
         df.to_csv(file_name, columns=df.columns, index=True, encoding='utf-8')
 
 

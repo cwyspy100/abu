@@ -34,6 +34,7 @@ US_STOCK_LIST = 'https://xueqiu.com/stock/cata/stocklist.json?' \
 
 LOGIN_URL = 'https://xueqiu.com/user/login'
 
+
 # 雪球url中type值
 TYPE_INFO = {
     0: 'us_stock',  # 美股(不包含中国区)

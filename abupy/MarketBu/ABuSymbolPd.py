@@ -211,6 +211,7 @@ def kl_df_dict_parallel(symbols, data_mode=ABuEnv.EMarketDataSplitMode.E_DATA_SP
         with ThreadPoolExecutor(max_workers=n_jobs) as pool:
             k_use_map = True
             if k_use_map:
+                # note pool.map(parallel_func, parallel_symbols) 这行代码的作用是将 parallel_func 函数应用到 parallel_symbols 的每个元素上。
                 df_dicts = list(pool.map(parallel_func, parallel_symbols))
             else:
                 futures = [pool.submit(parallel_func, symbols) for symbols in parallel_symbols]
@@ -225,6 +226,7 @@ def kl_df_dict_parallel(symbols, data_mode=ABuEnv.EMarketDataSplitMode.E_DATA_SP
         # 统一进行批量保存
         h5s_fn = ABuEnv.g_project_kl_df_data if ABuEnv.g_data_cache_type == EDataCacheType.E_DATA_CACHE_HDF5 else None
 
+        # note 当 h5_fn 参数为 None 时，wrapper 函数不会调用 __start_batch_h5s 和 __end_batch_h5s，而是直接调用 func
         @batch_h5s(h5s_fn)
         def _batch_save():
             for df_dict in df_dicts:

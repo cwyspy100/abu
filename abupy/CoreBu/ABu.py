@@ -3,6 +3,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+# note 这行代码是 Python 的一个特性，它用于在 Python 2.x 版本中启用 Python 3.x 版本的某些功能。__future__ 模块是一个特殊的模块，它包含了对 Python 未来版本语言特性的定义。
+
 import logging
 
 from ..AlphaBu.ABuPickStockMaster import AbuPickStockMaster

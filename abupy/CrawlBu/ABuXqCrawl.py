@@ -80,7 +80,10 @@ def crawl_stock_code(markets=('CN', 'HK', 'US')):
                 urls['HK'] = nav[market_nav][first_menu]
             if first_menu in [u'美股一览'] and 'US' in markets:
                 urls['US'] = nav[market_nav][first_menu]
-
+    # note Parallel 是一个类，它封装了 ProcessPoolExecutor 来执行并行任务。在这个例子中，Parallel(n_jobs=-1) 
+    # 创建了一个 Parallel 对象，n_jobs=-1 表示并行启动的进程数为 CPU 的核心数。然后，这个 Parallel 对象被调用，传入的参数是一个生成器表达式，这个生成器表达式生成了一系列的任务。
+    # delayed 是一个函数，它用来延迟函数的执行。在这个例子中，delayed(__crawl_stock_parallel)(m, urls[m]) 创建了一个被延迟执行的任务，这个任务的函数是 __crawl_stock_parallel，参数是 m 和 urls[m]
+    # 生成器表达式 delayed(__crawl_stock_parallel)(m, urls[m]) for m in urls 生成了一系列的被延迟执行的任务，每个任务都是调用 __crawl_stock_parallel 函数，参数是 m 和 urls[m]
     Parallel(n_jobs=-1)(delayed(__crawl_stock_parallel)(m, urls[m]) for m in urls)
 
 
@@ -160,7 +163,10 @@ def ensure_symbol(symbol):
     logging.error('没有找到{}相关的股票'.format(symbol))
     return market, None
 
+"""
+更新所有编码
 
+"""
 def update_all(markets=('US', 'CN', 'HK')):
     crawl_stock_code(markets)
     crawl_stock_info(markets)
@@ -171,3 +177,6 @@ def update_all(markets=('US', 'CN', 'HK')):
 def query_symbol_info(symbol):
     m, symbol = ensure_symbol(symbol)
     return None if symbol is None else ABuXqFile.query_a_stock(m, symbol)
+
+if __name__ == '__main__':
+    update_all()

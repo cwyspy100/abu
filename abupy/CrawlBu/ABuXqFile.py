@@ -152,9 +152,17 @@ def fix_xq_columns_name():
     """
     for m in ('US', 'CN', 'HK'):
         stock_df = pd.read_csv(map_stock_list_rom(m), dtype=str)
+
+        # note stock_df.columns.difference(columns_map.keys()) 返回一个新的 Index，这个 Index 包含 stock_df.columns 中的元素，
+        # 但不包含 columns_map.keys() 中的元素。换句话说，这个新的 Index 包含 stock_df 中的列名，这些列名不在 columns_map 的键中。
         unnecessary_columns = stock_df.columns.difference(columns_map.keys())
+
+        # note 集合交集运算符 & 返回两个集合的交集，也就是同时在两个集合中的元素。在这里，stock_df.columns 和 columns_map.keys() 
+        # 都可以被看作是集合，所以 stock_df.columns & columns_map.keys() 返回一个新的 Index，这个 Index 包含同时在 stock_df.columns 和 columns_map.keys() 中的元素。
         columns_intersection = stock_df.columns & columns_map.keys()
         del_columns(stock_df, unnecessary_columns)
 
+        # note c: columns_map[c] for c in columns_intersection rename 方法接受一个字典作为参数，字典的键是旧的列名，值是新的列名。这里使用字典推导式创建了一个新的字典，
+        # 字典的键是 columns_intersection 中的列名，值是 columns_map 中对应的值。
         stock_df.rename(columns={c: columns_map[c] for c in columns_intersection}, inplace=True)
         stock_df.to_csv(map_stock_list_rom(m), index=True, encoding='utf-8')
