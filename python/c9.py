@@ -18,6 +18,7 @@ from abupy import AbuFactorPreAtrNStop
 from abupy import AbuFactorCloseAtrNStop
 # run_loop_back等一些常用且最外层的方法定义在abu中
 from abupy import abu
+from abupy import AbuBenchmark, AbuPickStockMaster, AbuCapital, AbuPickRegressAngMinMax, EMarketTargetType, AbuPickStockByMean
 
 warnings.filterwarnings('ignore')
 sns.set_context(rc={'figure.figsize': (14, 7)})
@@ -328,7 +329,7 @@ def sample_94_1():
     abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
     abupy.env.g_data_cache_type = EDataCacheType.E_DATA_CACHE_CSV
     # 首选这里预下载市场中所有股票的6年数据(做5年回测，需要预先下载6年数据)
-    abu.run_kl_update(start='2011-08-08', end='2017-08-08', market=EMarketTargetType.E_MARKET_TARGET_US)
+    abu.run_kl_update(start='2023-02-01', end='2024-04-09', market=EMarketTargetType.E_MARKET_TARGET_CN)
 
 
 def sample_94_2(from_cache=False):
@@ -462,6 +463,49 @@ def sample_94_4(from_cache=False):
     # 如果不需要与基准进行对比，最简单的方式是使用plot_order_returns_cmp
     metrics_test.plot_order_returns_cmp()
 
+
+def sample_94_5(from_cache=False):
+    """
+    9.4_5 使用最新的数据测试选股, mac pro顶配大概下面跑了4个小时
+    :return:
+    """
+    # 关闭沙盒数据环境
+    abupy.env.disable_example_env_ipython()
+    abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_CN
+
+    from abupy import EMarketDataFetchMode
+    # 因为sample_94_1下载了预先数据，使用缓存，设置E_DATA_FETCH_FORCE_LOCAL
+    abupy.env.g_data_fetch_mode = EMarketDataFetchMode.E_DATA_FETCH_FORCE_LOCAL
+
+    # 回测生成买入时刻特征
+    abupy.env.g_enable_ml_feature = True
+    # 回测将symbols切割分为训练集数据和测试集数据
+    abupy.env.g_enable_train_test_split = True
+    # 下面设置回测时切割训练集，测试集使用的切割比例参数，默认为10，即切割为10份，9份做为训练，1份做为测试，
+    # 由于美股股票数量多，所以切割分为4份，3份做为训练集，1份做为测试集
+    abupy.env.g_split_tt_n_folds = 4
+    read_cash = 100000
+    benchmark = AbuBenchmark(n_folds=1)
+    # 资金类初始化
+    capital = AbuCapital(read_cash, benchmark)
+
+    # stock_pickers = [{'class': AbuPickRegressAngMinMax,
+    #                   'threshold_ang_min': 0.0, 'threshold_ang_max': 10.0,
+    #                   'reversed': False}]
+
+    stock_pickers = [{'class': AbuPickRegressAngMinMax,
+                      'threshold_ang_min': 0.0}, {'class':AbuPickStockByMean}]
+
+    choice_symbols = AbuPickStockMaster.do_pick_stock_with_process(capital, benchmark,
+                                                                   stock_pickers,
+                                                                   n_process_pick_stock=2)
+
+    print(choice_symbols)
+
+
+
+
+
 """
     其它市场的回测, A股市场回测全局设置
 
@@ -469,7 +513,7 @@ def sample_94_4(from_cache=False):
 """
 
 if __name__ == "__main__":
-    sample_91()
+    # sample_91()
     # sample_922()
     # sample_931()
     # sample_932()
@@ -485,3 +529,4 @@ if __name__ == "__main__":
     # sample_94_3(from_cache=True)
     # sample_94_4()
     # sample_94_4(from_cache=True)
+    sample_94_5()
