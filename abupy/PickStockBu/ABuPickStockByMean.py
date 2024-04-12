@@ -37,9 +37,11 @@ class AbuPickStockByMean(AbuPickStockBase):
         kl_pd['MA_xd'] = kl_pd['close'].rolling(window=self.mean_xd).mean()
         last_ma = kl_pd['MA_xd'].iloc[-1]
         last_price = kl_pd['close'].iloc[-1]
+        before_last_ma = kl_pd['MA_xd'].iloc[-2]
+        before_last_price = kl_pd['close'].iloc[-2]
 
-        if (last_price > last_ma):
-            print("last_price {} minus last_ma {} value :{}".format(last_price, last_ma, last_price - last_ma))
+        if (last_price > last_ma and before_last_ma > before_last_price):
+            print("target_symobol {} last_price {} minus last_ma {} value :{}".format(target_symbol, last_price, last_ma, last_price - last_ma))
             return True
 
         # if kl_pd.close.max() < self.threshold_price_max and kl_pd.close.min() > self.threshold_price_min:

@@ -125,7 +125,9 @@ class AbuKLManager(object):
         """
 
         # 从设置的择时benchmark中取第一个日期即为选股时段最后一个日期
-        end = ABuDateUtil.timestamp_to_str(self.benchmark.kl_pd.index[0])
+        # end = ABuDateUtil.timestamp_to_str(self.benchmark.kl_pd.index[0])
+        # cy change 使用benchmark 的最后一天来作为进行选股时段最后一个日期
+        end = ABuDateUtil.timestamp_to_str(self.benchmark.kl_pd.index[-1])
 
         if xd == ABuEnv.g_market_trade_year:
             # 一般都是默认的1年，不需要使用begin_date提高效率
