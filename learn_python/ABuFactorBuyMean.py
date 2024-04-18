@@ -36,7 +36,6 @@ class AbuFactorBuyMean(AbuFactorBuyBase, BuyCallMixin):
             return None
 
         price = self.kl_pd.close[self.today_ind - self.xd + 1:self.today_ind + 1].mean()
-        print("-----------------------------------------today {} price {}".format(today.date, price))
 
         # 今天的收盘价格达到xd天内最高价格则符合买入条件
         if today.close >= self.kl_pd.close[self.today_ind - self.xd + 1:self.today_ind + 1].mean():
