@@ -123,6 +123,7 @@ class AbuPickTimeWorker(AbuPickTimeWorkBase):
         :param today: 今日的交易数据
         :return:
         """
+        # todo cy？为什么两次执行sell_factors?
         # 优先执行买入择时因子专属卖出择时因子，不受买入因子是否被锁的影响
         self._task_attached_sell(today, how='day')
 
@@ -239,6 +240,9 @@ class AbuPickTimeWorker(AbuPickTimeWorkBase):
             """
             self.kl_pd['month_task'] = np.where(self.kl_pd.shift(-1)['date'] - self.kl_pd['date'] > 60, 1, 0)
         # 通过pandas apply进行交易日递进择时
+        # apply方法接收一个函数作为参数（在这个例子中是一个lambda函数），这个函数会被应用到DataFrame的每一列上
+        # （默认情况下，如果你想要应用到每一行，可以通过设置axis=1参数来实现）。这个函数应该接收一个Series
+        # （代表DataFrame的一列或一行）并返回一个值，这个值会被用来构建新的Series
         self.kl_pd.apply(self._task_loop, axis=1)
 
         if self.task_pg is not None:

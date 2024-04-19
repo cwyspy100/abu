@@ -271,6 +271,8 @@ class AbuFactorBuyBase(six.with_metaclass(ABCMeta, AbuParamBase)):
         :param today: 当前驱动的交易日金融时间序列数据
         :return: 生成的交易订单AbuOrder对象
         """
+        # todo 为什么需要跳过几天，当买入之后一定天数跳过，比如120日曲线之上买入，之后的120天不处理
+        # 这个数值可以在子类的实现中设置。
         if self.skip_days > 0:
             self.skip_days -= 1
             return None

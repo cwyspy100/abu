@@ -32,11 +32,13 @@ from abupy import ABuPickStockExecute
 from abupy import AbuPickStockPriceMinMax
 from abupy import AbuPickStockMaster
 
+from learn_python.ABuFactorBuyMean import AbuFactorBuyMean
+
 warnings.filterwarnings('ignore')
 sns.set_context(rc={'figure.figsize': (14, 7)})
 # 使用沙盒数据，目的是和书中一样的数据环境
 abupy.env.enable_example_env_ipython()
-
+abupy.env.disable_example_env_ipython()
 
 """
     第八章 量化系统——开发
@@ -58,15 +60,15 @@ def sample_811():
     capital = AbuCapital(1000000, benchmark)
     kl_pd_manager = AbuKLManager(benchmark, capital)
     # 获取TSLA的交易数据
-    kl_pd = kl_pd_manager.get_pick_time_kl_pd('usTSLA')
-    # abu_worker = AbuPickTimeWorker(capital, kl_pd, benchmark, buy_factors, None)
-    # abu_worker.fit()
-    #
-    # orders_pd, action_pd, _ = ABuTradeProxy.trade_summary(abu_worker.orders, kl_pd, draw=True)
-    #
-    # ABuTradeExecute.apply_action_to_capital(capital, action_pd, kl_pd_manager)
-    # capital.capital_pd.capital_blance.plot()
-    # plt.show()
+    kl_pd = kl_pd_manager.get_pick_time_kl_pd('usFUTU')
+    abu_worker = AbuPickTimeWorker(capital, kl_pd, benchmark, buy_factors, None)
+    abu_worker.fit()
+
+    orders_pd, action_pd, _ = ABuTradeProxy.trade_summary(abu_worker.orders, kl_pd, draw=True)
+
+    ABuTradeExecute.apply_action_to_capital(capital, action_pd, kl_pd_manager)
+    capital.capital_pd.capital_blance.plot()
+    plt.show()
 
 
 def sample_812():
@@ -85,13 +87,25 @@ def sample_812():
     # 四个卖出因子同时生效，组成sell_factors
     sell_factors = [sell_factor1, sell_factor2, sell_factor3, sell_factor4]
     # buy_factors 60日向上突破，42日向上突破两个因子
-    buy_factors = [{'xd': 60, 'class': AbuFactorBuyBreak},
-                   {'xd': 42, 'class': AbuFactorBuyBreak}]
+    # buy_factors = [{'xd': 60, 'class': AbuFactorBuyBreak},
+    #                {'xd': 42, 'class': AbuFactorBuyBreak}]
+    buy_factors = [{'xd':120, 'class':AbuFactorBuyMean}]
     benchmark = AbuBenchmark()
 
     capital = AbuCapital(1000000, benchmark)
     orders_pd, action_pd, _ = ABuPickTimeExecute.do_symbols_with_same_factors(
-        ['usTSLA'], benchmark, buy_factors, sell_factors, capital, show=True)
+        ['usFUTU'], benchmark, buy_factors, sell_factors, capital, show=True)
+
+    # ABuTradeExecute.apply_action_to_capital(capital, action_pd, benchmark)
+    # capital.capital_pd.capital_blance.plot()
+    # plt.show()
+    metrics = AbuMetricsBase(orders_pd, action_pd, capital, benchmark)
+    metrics.fit_metrics()
+    print('orders_pd[:10]:\n', orders_pd[:].filter(
+        ['symbol', 'buy_price', 'buy_cnt', 'buy_factor', 'buy_pos', 'sell_date', 'sell_type_extra', 'sell_type',
+         'profit']))
+    print('action_pd[:10]:\n', action_pd[:])
+    metrics.plot_returns_cmp(only_show_returns=True)
 
 
 def sample_813():
@@ -108,7 +122,7 @@ def sample_813():
     class AbuSlippageBuyMean2(AbuSlippageBuyBase):
         def fit_price(self):
             if (self.kl_pd_buy.open / self.kl_pd_buy.pre_close) < (
-                        1 - g_open_down_rate):
+                    1 - g_open_down_rate):
                 # 开盘下跌K_OPEN_DOWN_RATE以上，单子失效
                 print(self.factor_name + 'open down threshold')
                 return np.inf
@@ -390,8 +404,8 @@ def sample_823():
 
 
 if __name__ == "__main__":
-    sample_811()
-    # sample_812()
+    # sample_811()
+    sample_812()
     # sample_813()
     # sample_814()
     # sample_815()
