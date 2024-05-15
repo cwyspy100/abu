@@ -14,10 +14,10 @@ from abupy import ABuRegUtil
 
 
 def update_all_a_data():
-    abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
+    abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_sn_us
     abupy.env.g_data_cache_type = EDataCacheType.E_DATA_CACHE_CSV
-    abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_CN
-    abu.run_kl_update(market=EMarketTargetType.E_MARKET_TARGET_CN, n_jobs=4)
+    abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_US
+    abu.run_kl_update(market=EMarketTargetType.E_MARKET_TARGET_US, n_jobs=8)
 
 
 
@@ -26,7 +26,7 @@ def pick_stock_in_A_stock():
     abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
     abupy.env.disable_example_env_ipython()
     abupy.env.g_data_fetch_mode = EMarketDataFetchMode.E_DATA_FETCH_FORCE_LOCAL
-    abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_CN
+    abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_US
 
     # 关闭沙盒后，首先基准要从非沙盒环境换取，否则数据对不齐，无法正常运行
     choice_symbols = ABuMarket.all_symbol()
@@ -64,6 +64,6 @@ if __name__ == '__main__':
     # 1、更新所有数据
     # update_all_a_data()
     # 2、使用本地数据进行选股
-    pick_stock_in_A_stock()
+    # pick_stock_in_A_stock()
     # 3、验证结果
-    # check_stock_in_A_stock("sh600449")
+    check_stock_in_A_stock("usTWOU")
