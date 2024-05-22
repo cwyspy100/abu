@@ -9,19 +9,23 @@ import math
 import logging
 
 from os import path
+# import os
+# import sys
+# sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from abupy.CrawlBu import ABuXqFile
-from ..CoreBu.ABuEnvProcess import add_process_env_sig
-from ..CrawlBu.ABuXqFile import map_stock_list
-from .ABuXqCrawlImp import StockInfoListBrower, StockListCrawlBrower
-from .ABuXqCrawlImp import NavHQCrawlBrower
+# from ..CoreBu.ABuEnvProcess import add_process_env_sig
+from abupy.CoreBu.ABuEnvProcess import add_process_env_sig
+from abupy.CrawlBu.ABuXqFile import map_stock_list
+from abupy.CrawlBu.ABuXqCrawlImp import StockInfoListBrower, StockListCrawlBrower
+from abupy.CrawlBu.ABuXqCrawlImp import NavHQCrawlBrower
 
-from ..CoreBu.ABuEnv import g_project_rom_data_dir
-from ..CoreBu.ABuParallel import Parallel, delayed
-from ..UtilBu import ABuDTUtil
+from abupy.CoreBu.ABuEnv import g_project_rom_data_dir
+from abupy.CoreBu.ABuParallel import Parallel, delayed
+from abupy.UtilBu import ABuDTUtil
 
 # noinspection PyUnresolvedReferences
-from ..CoreBu.ABuFixes import map, reduce, filter
+from abupy.CoreBu.ABuFixes import map, reduce, filter
 
 __author__ = '小青蛙'
 __weixin__ = 'abu_quant'

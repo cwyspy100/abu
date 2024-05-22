@@ -7,6 +7,7 @@ from __future__ import absolute_import
 from __future__ import division
 
 from .ABuPickStockBase import AbuPickStockBase, reversed_result
+from ..UtilBu import ABuRegUtil
 import numpy as np
 
 __author__ = '阿布'
@@ -40,7 +41,13 @@ class AbuPickStockByMean(AbuPickStockBase):
         before_last_ma = kl_pd['MA_xd'].iloc[-2]
         before_last_price = kl_pd['close'].iloc[-2]
 
-        if (last_price > last_ma and before_last_ma > before_last_price):
+        deg = ABuRegUtil.calc_regress_deg(kl_pd[-10:].close, show=False)
+
+        # if (last_price > last_ma):
+        #     print("target_symobol {} last_price {} minus last_ma {} value :{}".format(target_symbol, last_price, last_ma, last_price - last_ma))
+        #     return True
+
+        if (last_price > last_ma and before_last_ma > before_last_price and deg > 0):
             print("target_symobol {} last_price {} minus last_ma {} value :{}".format(target_symbol, last_price, last_ma, last_price - last_ma))
             return True
 
