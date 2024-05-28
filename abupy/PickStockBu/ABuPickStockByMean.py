@@ -16,6 +16,7 @@ __weixin__ = 'abu_quant'
 
 class AbuPickStockByMean(AbuPickStockBase):
     """价格选股因子示例类，通过价格刚大于120日均线值"""
+
     def _init_self(self, **kwargs):
         """通过kwargs设置选股价格边际条件，配置因子参数"""
 
@@ -40,15 +41,18 @@ class AbuPickStockByMean(AbuPickStockBase):
         last_price = kl_pd['close'].iloc[-1]
         before_last_ma = kl_pd['MA_xd'].iloc[-2]
         before_last_price = kl_pd['close'].iloc[-2]
+        before_last_ma_1 = kl_pd['MA_xd'].iloc[-3]
+        before_last_price_1 = kl_pd['close'].iloc[-3]
 
-        deg = ABuRegUtil.calc_regress_deg(kl_pd[-10:].close, show=False)
+        before_change = before_last_price / before_last_price_1 - 1
+        last_change = last_price / before_last_price - 1
 
-        # if (last_price > last_ma):
-        #     print("target_symobol {} last_price {} minus last_ma {} value :{}".format(target_symbol, last_price, last_ma, last_price - last_ma))
-        #     return True
+        # deg = ABuRegUtil.calc_regress_deg(kl_pd[-10:].close, show=False)
 
-        if (last_price > last_ma and before_last_ma > before_last_price and deg > 0):
-            print("target_symobol {} last_price {} minus last_ma {} value :{}".format(target_symbol, last_price, last_ma, last_price - last_ma))
+        if (last_price > last_ma and before_last_ma > before_last_price and before_change > 0 and last_change > 0):
+            print(
+                "target_symobol {} last_price {} minus last_ma {} value :{}".format(target_symbol, last_price, last_ma,
+                                                                                    last_price - last_ma))
             return True
 
         # if kl_pd.close.max() < self.threshold_price_max and kl_pd.close.min() > self.threshold_price_min:

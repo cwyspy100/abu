@@ -19,7 +19,7 @@ def update_all_a_data():
     abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
     abupy.env.g_data_cache_type = EDataCacheType.E_DATA_CACHE_CSV
     abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_CN
-    abu.run_kl_update(n_folds=1, market=EMarketTargetType.E_MARKET_TARGET_CN, n_jobs=8)
+    abu.run_kl_update(start='2024-05-20', end='2024-05-23', market=EMarketTargetType.E_MARKET_TARGET_CN, n_jobs=8)
 
 
 def pick_stock_in_A_stock():
