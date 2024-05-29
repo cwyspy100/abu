@@ -1,7 +1,6 @@
 # -*- encoding:utf-8 -*-
 # """成交量选股模块开发"""
 
-import abu_local_env
 import abupy
 from abc import abstractmethod
 from abupy.CoreBu import ABuEnv

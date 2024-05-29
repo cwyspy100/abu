@@ -1,0 +1,7 @@
+,buy_date,buy_price,buy_cnt,buy_factor,symbol,buy_pos,buy_type_str,expect_direction,sell_type_extra,sell_date,sell_price,sell_type,ml_features,key,profit,result,profit_cg,profit_cg_hunder,keep_days
+2024-02-28,20240228,49.0,2400.0,AbuFactorBuyBreak:60,002230,AbuAtrPosition,call,1.0,AbuFactorCloseAtrNStop:close_atr_n=1.5,20240326,48.535,loss,,180,-1116.0,-1,-0.009489795918367346,-0.9489795918367346,27
+2024-02-28,20240228,49.0,2400.0,AbuFactorBuyBreak:42,002230,AbuAtrPosition,call,1.0,AbuFactorCloseAtrNStop:close_atr_n=1.5,20240326,48.535,loss,,180,-1116.0,-1,-0.009489795918367346,-0.9489795918367346,27
+2024-02-28,20240228,49.0,2400.0,AbuFactorBuyMean:120,002230,AbuAtrPosition,call,1.0,AbuFactorCloseAtrNStop:close_atr_n=1.5,20240326,48.535,loss,,180,-1116.0,-1,-0.009489795918367346,-0.9489795918367346,27
+2024-03-14,20240314,50.230000000000004,2700.0,AbuFactorBuyMean:120,002230,AbuAtrPosition,call,1.0,AbuFactorSellMean:120,20240328,48.135000000000005,loss,,191,-5656.5,-1,-0.04170814254429624,-4.170814254429624,14
+2024-03-29,20240329,48.68,2400.0,AbuFactorBuyMean:120,002230,AbuAtrPosition,call,1.0,AbuFactorSellMean:120,20240411,46.635,loss,,202,-4908.0,-1,-0.04200903861955629,-4.200903861955629,13
+2024-04-18,20240418,46.525,3400.0,AbuFactorBuyMean:120,002230,AbuAtrPosition,call,1.0,AbuFactorSellMean:120,20240422,43.43,loss,,214,-10523.0,-1,-0.06652337452982268,-6.652337452982268,4
