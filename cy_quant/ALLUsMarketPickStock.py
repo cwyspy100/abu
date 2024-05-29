@@ -6,9 +6,9 @@ from abupy import ABuMarket
 from abupy import AbuBenchmark
 from abupy import AbuCapital
 from abupy import AbuKLManager
-from abupy import AbuPickRegressAngMinMax
+from abupy import AbuPickRegressAngMinMax, AbuPickStockPriceMinMax, AbuPickStockByMean
 from abupy import AbuPickStockWorker
-from abupy import EMarketSourceType, EDataCacheType, EMarketTargetType,EMarketDataFetchMode
+from abupy import EMarketSourceType, EDataCacheType, EMarketTargetType, EMarketDataFetchMode
 from abupy import abu
 from abupy import ABuRegUtil
 
@@ -17,8 +17,7 @@ def update_all_a_data():
     abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_sn_us
     abupy.env.g_data_cache_type = EDataCacheType.E_DATA_CACHE_CSV
     abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_US
-    abu.run_kl_update(market=EMarketTargetType.E_MARKET_TARGET_US, n_jobs=8)
-
+    abu.run_kl_update(n_folds=1, market=EMarketTargetType.E_MARKET_TARGET_US, n_jobs=8)
 
 
 def pick_stock_in_A_stock():
@@ -34,8 +33,13 @@ def pick_stock_in_A_stock():
     # choice_symbols = {"sh600119"}
 
     # 选股条件threshold_ang_min=0.0, 即要求股票走势为向上上升趋势
-    stock_pickers = [{'class': AbuPickRegressAngMinMax,
-                      'threshold_ang_min': 15.0, 'xd':10, 'reversed': False}]
+    # stock_pickers = [{'class': AbuPickRegressAngMinMax,
+    #                   'threshold_ang_min': 5.0, 'xd': 10, 'reversed': False}]
+    stock_pickers = [
+        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 5.0, 'xd': 10, 'reversed': False},
+        {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 500, 'reversed': False},
+        {'class': AbuPickStockByMean, 'mean_xd': 120},
+    ]
 
     benchmark = AbuBenchmark()
     capital = AbuCapital(1000000, benchmark)
@@ -46,6 +50,7 @@ def pick_stock_in_A_stock():
     stock_pick.fit()
     # 打印最后的选股结果
     print('stock_pick.choice_symbols:', stock_pick.choice_symbols)
+
 
 def check_stock_in_A_stock(symbol):
     """

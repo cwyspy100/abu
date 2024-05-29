@@ -19,7 +19,7 @@ def update_all_a_data():
     abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
     abupy.env.g_data_cache_type = EDataCacheType.E_DATA_CACHE_CSV
     abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_CN
-    abu.run_kl_update(start='2024-05-20', end='2024-05-23', market=EMarketTargetType.E_MARKET_TARGET_CN, n_jobs=8)
+    abu.run_kl_update(n_folds=1, market=EMarketTargetType.E_MARKET_TARGET_CN, n_jobs=8)
 
 
 def pick_stock_in_A_stock():
@@ -36,7 +36,7 @@ def pick_stock_in_A_stock():
 
     # 选股条件threshold_ang_min=0.0, 即要求股票走势为向上上升趋势
     stock_pickers = [
-        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 10.0, 'xd': 10, 'reversed': False},
+        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 5.0, 'xd': 10, 'reversed': False},
         {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 500,   'reversed': False},
         # {'class': AbuPickStockByMean, 'mean_xd': 120},
                      ]
@@ -68,7 +68,7 @@ def pick_stock_in_A_stock_mean():
 
     # 选股条件threshold_ang_min=0.0, 即要求股票走势为向上上升趋势
     stock_pickers = [
-        # {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 10.0, 'xd': 10, 'reversed': False},
+        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 5.0, 'xd': 10, 'reversed': False},
         {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 500,  'reversed': False},
         {'class': AbuPickStockByMean, 'mean_xd': 120},
     ]
@@ -111,7 +111,7 @@ def check_stock_in_A_stock(symbol):
 if __name__ == '__main__':
     # 1、更新所有数据
     start_time = time.time()
-    # update_all_a_data()
+    update_all_a_data()
 
     # 2、使用本地数据进行选股
     # pick_stock_in_A_stock()
