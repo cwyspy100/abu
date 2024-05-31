@@ -20,7 +20,7 @@ from abupy import abu, EMarketTargetType, AbuMetricsBase, ABuMarketDrawing, ABuP
 
 # abupy量化环境设置为A股
 abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_US
-abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
+abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_sn_us
 from abupy import slippage
 
 from learn_python.ABuFactorBuyMean import AbuFactorBuyMean
@@ -41,10 +41,10 @@ def execute_stock_us_back_test():
     # choice_symbols = ['002230', '300104', '300059', '601766', '600085', '600036', '600809', '000002', '002594',
     #                   '002739']
 
-    # choice_symbols = ['300104']
     choice_symbols_pd = pd.read_csv('../todolist/stock_us_pool.csv')
     choice_symbols =  choice_symbols_pd['symbol']
     print("choice_symbols:{}".format(choice_symbols))
+    # choice_symbols = ['usGOOG']
 
     # 设置初始资金数
     read_cash = 1000000
