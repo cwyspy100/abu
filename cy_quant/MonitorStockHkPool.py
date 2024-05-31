@@ -19,7 +19,7 @@ from abupy import AbuFactorAtrNStop, AbuFactorPreAtrNStop, AbuFactorCloseAtrNSto
 from abupy import abu, EMarketTargetType, AbuMetricsBase, ABuMarketDrawing, ABuProgress, ABuSymbolPd, EMarketSourceType
 
 # abupy量化环境设置为A股
-abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_CN
+abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_HK
 abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
 from abupy import slippage
 
@@ -36,14 +36,15 @@ slippage.ssb.g_enable_limit_down = True
 slippage.ssb.g_pre_limit_down_rate = 0
 
 
-def execute_stock_a_back_test():
+def execute_stock_us_back_test():
     # 择时股票池
     # choice_symbols = ['002230', '300104', '300059', '601766', '600085', '600036', '600809', '000002', '002594',
     #                   '002739']
 
     # choice_symbols = ['300104']
-    choice_symbols_pd = pd.read_csv('../todolist/stock_a_pool.csv')
-    choice_symbols = choice_symbols_pd['symbol']
+    choice_symbols_pd = pd.read_csv('../todolist/stock_hk_pool.csv')
+    choice_symbols =  choice_symbols_pd['symbol']
+    print("choice_symbols:{}".format(choice_symbols))
 
     # 设置初始资金数
     read_cash = 1000000
@@ -74,7 +75,7 @@ def execute_stock_a_back_test():
     AbuMetricsBase.show_general(*abu_result_tuple, only_show_returns=True)
 
     orders_pd = abu_result_tuple.orders_pd
-    orders_pd.to_csv('../todolist/stock_a_orders.csv')
+    orders_pd.to_csv('../todolist/stock_hk_orders.csv')
 
     save_backtest_result(metrics)
 
@@ -110,11 +111,11 @@ def save_backtest_result(metrics):
     result.append(result12)
     result.append(result13)
     string = "\n"
-    with open('../todolist/stock_a_pool_backtest.txt', 'w', encoding='utf-8') as f:
+    with open('../todolist/stock_hk_pool_backtest.txt', 'w', encoding='utf-8') as f:
         f.write(string.join(result))
 
 
 if __name__ == "__main__":
-    execute_stock_a_back_test()
+    execute_stock_us_back_test()
     # stock_a_pd = pd.read_csv('stock_a_pool.csv')
     # print(stock_a_pd['symbol'])
