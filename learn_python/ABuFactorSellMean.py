@@ -30,7 +30,12 @@ class AbuFactorSellMean(AbuFactorSellBase):
         :param today: 当前驱动的交易日金融时间序列数据
         :param orders: 买入择时策略中生成的订单序列
         """
+
+        self.kl_pd['EMA120'] = self.kl_pd['close'].ewm(span=self.xd, adjust=False).mean()
+
+        # 今天的收盘价格达到xd天内最高价格则符合买入条件
+        if today.close <= self.kl_pd['EMA120'].iloc[self.today_ind]:
         # 今天的收盘价格达到xd天内最低价格则符合条件
-        if today.close <= self.kl_pd.close[self.today_ind - self.xd + 1:self.today_ind + 1].mean():
+        # if today.close <= self.kl_pd.close[self.today_ind - self.xd + 1:self.today_ind + 1].mean():
             for order in orders:
                 self.sell_tomorrow(order)
