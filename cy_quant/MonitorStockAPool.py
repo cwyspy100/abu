@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 # # 使用insert 0即只使用github，避免交叉使用了pip安装的abupy，导致的版本不一致问题
 # sys.path.insert(0, os.path.abspath('../'))
 import abupy
+import datetime
 
 # 使用沙盒数据，目的是和书中一样的数据环境
 # abupy.env.enable_example_env_ipython()
@@ -51,7 +52,7 @@ def execute_stock_a_back_test():
     # 买入因子依然延用向上突破因子
     buy_factors = [
         # {'xd': 60, 'class': AbuFactorBuyBreak},
-        # {'xd': 42, 'class': AbuFactorBuyBreak},
+        {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 60, 'class': AbuDoubleMaBuy},
         {'xd': 20, 'class': AbuFactorBuyMean}]
 
@@ -76,6 +77,8 @@ def execute_stock_a_back_test():
 
     orders_pd = abu_result_tuple.orders_pd
     orders_pd.to_csv('../todolist/stock_a_orders.csv')
+    actions_pd = abu_result_tuple.action_pd
+    actions_pd.to_csv('../todolist/stock_a_actions.csv')
 
     save_backtest_result(metrics)
 
@@ -97,7 +100,8 @@ def save_backtest_result(metrics):
     result11 = '策略买入成交比例:{:.4f}%'.format(metrics.buy_deal_rate * 100)
     result12 = '策略资金利用率比例:{:.4f}%'.format(metrics.cash_utilization * 100)
     result13 = '策略共执行{}个交易日'.format(metrics.num_trading_days)
-    result.append("-------------20240603非动态爽均线----------------")
+    today = datetime.date.today()
+    result.append("------------" + str(today) + "-------------非动态均线----------------")
     result.append(result1)
     result.append(result2)
     result.append(result3)

@@ -11,11 +11,12 @@ import matplotlib.pyplot as plt
 # # 使用insert 0即只使用github，避免交叉使用了pip安装的abupy，导致的版本不一致问题
 # sys.path.insert(0, os.path.abspath('../'))
 import abupy
+import datetime
 
 # 使用沙盒数据，目的是和书中一样的数据环境
 # abupy.env.enable_example_env_ipython()
 abupy.env.disable_example_env_ipython()
-from abupy import AbuFactorAtrNStop, AbuFactorPreAtrNStop, AbuFactorCloseAtrNStop, AbuFactorBuyBreak, AbuDoubleMaBuy
+from abupy import AbuFactorAtrNStop, AbuFactorPreAtrNStop, AbuFactorCloseAtrNStop, AbuFactorBuyBreak, AbuDoubleMaBuy, AbuPtPosition
 from abupy import abu, EMarketTargetType, AbuMetricsBase, ABuMarketDrawing, ABuProgress, ABuSymbolPd, EMarketSourceType
 
 # abupy量化环境设置为A股
@@ -43,7 +44,7 @@ def execute_stock_us_back_test():
 
     # choice_symbols = ['300104']
     choice_symbols_pd = pd.read_csv('../todolist/stock_hk_pool.csv')
-    choice_symbols =  choice_symbols_pd['symbol']
+    choice_symbols = choice_symbols_pd['symbol']
     print("choice_symbols:{}".format(choice_symbols))
 
     # 设置初始资金数
@@ -53,8 +54,8 @@ def execute_stock_us_back_test():
     buy_factors = [
         # {'xd': 60, 'class': AbuFactorBuyBreak},
         # {'xd': 42, 'class': AbuFactorBuyBreak},
-        # {'fast': 5, 'slow': 60, 'class': AbuDoubleMaBuy},
-        {'xd': 20, 'class': AbuFactorBuyMean}
+        {'class': AbuDoubleMaBuy},
+        # {'xd': 120, 'class': AbuFactorBuyMean}
     ]
 
     # 卖出因子继续使用上一节使用的因子
@@ -78,6 +79,8 @@ def execute_stock_us_back_test():
 
     orders_pd = abu_result_tuple.orders_pd
     orders_pd.to_csv('../todolist/stock_hk_orders.csv')
+    actions_pd = abu_result_tuple.action_pd
+    actions_pd.to_csv('../todolist/stock_hk_actions.csv')
 
     save_backtest_result(metrics)
 
@@ -99,7 +102,8 @@ def save_backtest_result(metrics):
     result11 = '策略买入成交比例:{:.4f}%'.format(metrics.buy_deal_rate * 100)
     result12 = '策略资金利用率比例:{:.4f}%'.format(metrics.cash_utilization * 100)
     result13 = '策略共执行{}个交易日'.format(metrics.num_trading_days)
-    result.append("-------------20240604动态爽均线----------------")
+    today = datetime.date.today()
+    result.append("------------" + str(today) + "-------------非动态均线----------------")
     result.append(result1)
     result.append(result2)
     result.append(result3)

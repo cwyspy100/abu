@@ -11,12 +11,14 @@ import matplotlib.pyplot as plt
 # # 使用insert 0即只使用github，避免交叉使用了pip安装的abupy，导致的版本不一致问题
 # sys.path.insert(0, os.path.abspath('../'))
 import abupy
+import datetime
 
 # 使用沙盒数据，目的是和书中一样的数据环境
 # abupy.env.enable_example_env_ipython()
 abupy.env.disable_example_env_ipython()
-from abupy import AbuFactorAtrNStop, AbuFactorPreAtrNStop, AbuFactorCloseAtrNStop, AbuFactorBuyBreak, AbuDoubleMaBuy
+from abupy import AbuFactorAtrNStop, AbuFactorPreAtrNStop, AbuFactorCloseAtrNStop, AbuFactorBuyBreak, AbuDoubleMaBuy, AbuKellyPosition, AbuPtPosition
 from abupy import abu, EMarketTargetType, AbuMetricsBase, ABuMarketDrawing, ABuProgress, ABuSymbolPd, EMarketSourceType
+from cy_quant import GridFactors
 
 # abupy量化环境设置为A股
 abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_US
@@ -54,8 +56,8 @@ def execute_stock_us_back_test():
     buy_factors = [
         # {'xd': 60, 'class': AbuFactorBuyBreak},
         # {'xd': 42, 'class': AbuFactorBuyBreak},
-        # {'fast': 5, 'slow': 90, 'class': AbuDoubleMaBuy}
-        # {'class': AbuDoubleMaBuy}
+        # {'fast': 5, 'slow': 90, 'class': AbuDoubleMaBuy},
+        # {'class': AbuDoubleMaBuy, 'position': AbuPtPosition}
         {'xd': 20, 'class': AbuFactorBuyMean}
     ]
 
@@ -80,6 +82,8 @@ def execute_stock_us_back_test():
 
     orders_pd = abu_result_tuple.orders_pd
     orders_pd.to_csv('../todolist/stock_us_orders.csv')
+    actions_pd = abu_result_tuple.action_pd
+    actions_pd.to_csv('../todolist/stock_us_actions.csv')
 
     save_backtest_result(metrics)
 
@@ -101,7 +105,8 @@ def save_backtest_result(metrics):
     result11 = '策略买入成交比例:{:.4f}%'.format(metrics.buy_deal_rate * 100)
     result12 = '策略资金利用率比例:{:.4f}%'.format(metrics.cash_utilization * 100)
     result13 = '策略共执行{}个交易日'.format(metrics.num_trading_days)
-    result.append("-------------20240604非动态爽均线42-10----------------")
+    today = datetime.date.today()
+    result.append("------------" + str(today) + "-------------42非动态均线----------------")
     result.append(result1)
     result.append(result2)
     result.append(result3)
