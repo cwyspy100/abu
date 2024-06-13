@@ -52,7 +52,7 @@ def execute_stock_a_back_test():
     # 买入因子依然延用向上突破因子
     buy_factors = [
         # {'xd': 60, 'class': AbuFactorBuyBreak},
-        {'xd': 42, 'class': AbuFactorBuyBreak},
+        # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 60, 'class': AbuDoubleMaBuy},
         {'xd': 20, 'class': AbuFactorBuyMean}]
 
@@ -61,7 +61,7 @@ def execute_stock_a_back_test():
         {'stop_loss_n': 1.0, 'stop_win_n': 3.0, 'class': AbuFactorAtrNStop},
         {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
         {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5},
-        # {'xd': 120, 'class': AbuFactorSellMean}
+        {'xd': 120, 'class': AbuFactorSellMean}
     ]
 
     # 使用run_loop_back运行策略

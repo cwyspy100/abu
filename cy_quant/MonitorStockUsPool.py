@@ -45,9 +45,9 @@ def execute_stock_us_back_test():
 
     choice_symbols_pd = pd.read_csv('../todolist/stock_us_pool.csv')
     choice_symbols = choice_symbols_pd['symbol']
-    choice_symbols = ['usFUTU']
+    # choice_symbols = ['usFUTU']
     print("choice_symbols:{}".format(choice_symbols))
-    # choice_symbols = ['usGOOG']
+    # choice_symbols = ['usNVDA']
 
     # 设置初始资金数
     read_cash = 1000000
@@ -63,17 +63,17 @@ def execute_stock_us_back_test():
 
     # 卖出因子继续使用上一节使用的因子
     sell_factors = [
-        {'stop_loss_n': 1, 'stop_win_n': 3.0, 'class': AbuFactorAtrNStop},
+        {'stop_loss_n': 0.5, 'stop_win_n': 3.0, 'class': AbuFactorAtrNStop},
         {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
         {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5},
-        # {'xd': 120, 'class': AbuFactorSellMean}
+        {'xd': 120, 'class': AbuFactorSellMean}
     ]
 
     # 使用run_loop_back运行策略
     abu_result_tuple, kl_pd_manger = abu.run_loop_back(read_cash,
                                                        buy_factors,
                                                        sell_factors,
-                                                       n_folds=1,
+                                                       n_folds=2,
                                                        choice_symbols=choice_symbols)
     ABuProgress.clear_output()
     metrics = AbuMetricsBase(*abu_result_tuple)
