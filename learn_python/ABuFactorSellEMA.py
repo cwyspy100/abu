@@ -9,7 +9,7 @@ from abupy import AbuFactorSellBase, AbuFactorBuyXD, BuyCallMixin, BuyPutMixin,E
 通过均值，比如120天的均线，今天的金额小于120均线数值就卖出，对应有卖出
 
 '''
-class AbuFactorSellMean(AbuFactorSellBase):
+class AbuFactorSellEMA(AbuFactorSellBase):
     """示例向下突破卖出择时因子"""
 
     def _init_self(self, **kwargs):
@@ -32,11 +32,11 @@ class AbuFactorSellMean(AbuFactorSellBase):
         """
 
         self.kl_pd['EMA120'] = self.kl_pd['close'].ewm(span=self.xd, adjust=False).mean()
-        self.kl_pd['ma_120'] = self.kl_pd['close'].rolling(window=self.xd).mean()
+        # self.kl_pd['ma_120'] = self.kl_pd['close'].rolling(window=self.xd).mean()
 
         # 今天的收盘价格达到xd天内最高价格则符合买入条件
         # if today.close <= self.kl_pd['EMA120'].iloc[self.today_ind]:
-        if today.close <= self.kl_pd['ma_120'].iloc[self.today_ind]:
+        if today.close <= self.kl_pd['EMA120'].iloc[self.today_ind]:
         # 今天的收盘价格达到xd天内最低价格则符合条件
         # if today.close <= self.kl_pd.close[self.today_ind - self.xd + 1:self.today_ind + 1].mean():
             for order in orders:
