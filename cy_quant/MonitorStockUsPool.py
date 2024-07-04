@@ -47,8 +47,9 @@ def execute_stock_us_back_test():
 
     choice_symbols_pd = pd.read_csv('../todolist/stock_us_pool.csv')
     choice_symbols = choice_symbols_pd['symbol']
-    # choice_symbols = ['usGOOG', 'usFUTU', 'usBILI']
-    # choice_symbols = ['usFUTU']
+    choice_symbols = ['usGOOG', 'usFUTU']
+    choice_symbols = ['usFUTU']
+    # choice_symbols = ['usBILI']
     print("choice_symbols:{}".format(choice_symbols))
     # choice_symbols = ['usBILI']
 
@@ -57,12 +58,12 @@ def execute_stock_us_back_test():
 
     # 买入因子依然延用向上突破因子
     buy_factors = [
-        # {'xd': 60, 'class': AbuFactorBuyBreak},
-        # {'xd': 42, 'class': AbuFactorBuyBreak},
+        {'xd': 60, 'class': AbuFactorBuyBreak},
+        {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 90, 'class': AbuDoubleMaBuy},
         # {'class': AbuDoubleMaBuy},
-        {'xd': 60, 'class': AbuFactorBuyEMA},
-        # {'xd': 120, 'class': AbuFactorBuyMean}
+        # {'xd': 60, 'class': AbuFactorBuyEMA},
+        # {'xd': 60, 'class': AbuFactorBuyMean}
     ]
 
     # 卖出因子继续使用上一节使用的因子
@@ -78,7 +79,7 @@ def execute_stock_us_back_test():
     abu_result_tuple, kl_pd_manger = abu.run_loop_back(read_cash,
                                                        buy_factors,
                                                        sell_factors,
-                                                       n_folds=4,
+                                                       n_folds=1,
                                                        # start='2020-11-17',
                                                        # end='2024-06-12',
                                                        choice_symbols=choice_symbols)

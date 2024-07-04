@@ -56,7 +56,7 @@ def execute_stock_a_back_test():
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 60, 'class': AbuDoubleMaBuy},
         # {'xd': 120, 'class': AbuFactorBuyMean},
-        {'xd': 20, 'class': AbuFactorBuyEMA}
+        {'xd': 120, 'class': AbuFactorBuyEMA}
     ]
 
     # 卖出因子继续使用上一节使用的因子
@@ -71,7 +71,7 @@ def execute_stock_a_back_test():
     abu_result_tuple, kl_pd_manger = abu.run_loop_back(read_cash,
                                                        buy_factors,
                                                        sell_factors,
-                                                       n_folds=4,
+                                                       n_folds=1,
                                                        choice_symbols=choice_symbols)
     ABuProgress.clear_output()
     metrics = AbuMetricsBase(*abu_result_tuple)

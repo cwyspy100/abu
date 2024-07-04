@@ -40,6 +40,7 @@ class AbuFactorBuyEMA(AbuFactorBuyBase, BuyCallMixin):
 
         # 今天的收盘价格达到xd天内最高价格则符合买入条件
         if today.close >= self.kl_pd['EMA120'].iloc[self.today_ind] and self.kl_pd.close[self.today_ind - 1] < self.kl_pd['EMA120'].iloc[self.today_ind - 1]:
+        # if today.close >= self.kl_pd['EMA120'].iloc[self.today_ind]:
             # 把突破新高参数赋值skip_days，这里也可以考虑make_buy_order确定是否买单成立，但是如果停盘太长时间等也不好
             # self.skip_days = self.xd
             self.skip_days = 5
