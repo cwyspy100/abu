@@ -56,7 +56,7 @@ def execute_stock_a_back_test():
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 60, 'class': AbuDoubleMaBuy},
         # {'xd': 120, 'class': AbuFactorBuyMean},
-        {'xd': 120, 'class': AbuFactorBuyEMA}
+        {'xd': 60, 'class': AbuFactorBuyEMA}
     ]
 
     # 卖出因子继续使用上一节使用的因子

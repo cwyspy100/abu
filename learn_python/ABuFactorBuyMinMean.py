@@ -1,6 +1,6 @@
 
 '''
-通过均值，比如120天的均线，今天的金额大于120均线数值就买入，对应有卖出
+通过均值，比如120天的均线，当120日均线和close值，close大于120日均线当天值
 
 '''
 
@@ -15,7 +15,7 @@ from abupy import AbuFactorBuyBase, AbuFactorBuyXD, BuyCallMixin, BuyPutMixin
 
 
 # noinspection PyAttributeOutsideInit
-class AbuFactorBuyMean(AbuFactorBuyBase, BuyCallMixin):
+class AbuFactorBuyMinMean(AbuFactorBuyBase, BuyCallMixin):
     """示例正向突破买入择时类，混入BuyCallMixin，即向上突破触发买入event"""
 
     def _init_self(self, **kwargs):
@@ -39,9 +39,9 @@ class AbuFactorBuyMean(AbuFactorBuyBase, BuyCallMixin):
         # self.kl_pd['EMA120'] = self.kl_pd['close'].ewm(span=self.xd, adjust=False).mean()
         self.kl_pd['ma_120'] = self.kl_pd['close'].rolling(window=self.xd).mean()
 
-        # 今天的收盘价格达到xd天内最高价格则符合买入条件
-        if today.close >= self.kl_pd['ma_120'].iloc[self.today_ind] and self.kl_pd.close[self.today_ind - 1] < self.kl_pd['ma_120'].iloc[self.today_ind - 1]:
-        # if today.close >= self.kl_pd['EMA120'].iloc[self.today_ind] and self.kl_pd.close[self.today_ind - 1] < self.kl_pd['EMA120'].iloc[self.today_ind - 1]:
+        result = today.close >= self.kl_pd['ma_120'].iloc[self.today_ind] and self.kl_pd.close[self.today_ind - 1] < self.kl_pd['ma_120'].iloc[self.today_ind - 1]
+
+        if ~result and today.close > self.kl_pd['ma_120'].iloc[self.today_ind] and (today.close / self.kl_pd['ma_120'].iloc[self.today_ind] - 1) < 0.05:
             # 把突破新高参数赋值skip_days，这里也可以考虑make_buy_order确定是否买单成立，但是如果停盘太长时间等也不好
             # self.skip_days = self.xd
             self.skip_days = 5

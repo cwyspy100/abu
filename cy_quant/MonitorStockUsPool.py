@@ -18,7 +18,6 @@ import datetime
 abupy.env.disable_example_env_ipython()
 from abupy import AbuFactorAtrNStop, AbuFactorPreAtrNStop, AbuFactorCloseAtrNStop, AbuFactorBuyBreak, AbuDoubleMaBuy, AbuKellyPosition, AbuPtPosition
 from abupy import abu, EMarketTargetType, AbuMetricsBase, ABuMarketDrawing, ABuProgress, ABuSymbolPd, EMarketSourceType
-from cy_quant import GridFactors
 
 # abupy量化环境设置为A股
 abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_US
@@ -26,6 +25,7 @@ abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_sn_us
 from abupy import slippage
 
 from learn_python.ABuFactorBuyMean import AbuFactorBuyMean
+from learn_python.ABuFactorBuyMinMean import AbuFactorBuyMinMean
 from learn_python.ABuFactorBuyEMA import AbuFactorBuyEMA
 from learn_python.ABuFactorSellEMA import AbuFactorSellEMA
 from learn_python.ABuFactorSellMean import AbuFactorSellMean
@@ -47,31 +47,32 @@ def execute_stock_us_back_test():
 
     choice_symbols_pd = pd.read_csv('../todolist/stock_us_pool.csv')
     choice_symbols = choice_symbols_pd['symbol']
-    choice_symbols = ['usGOOG', 'usFUTU']
-    choice_symbols = ['usFUTU']
+    # choice_symbols = ['usGOOG', 'usFUTU']
+    # choice_symbols = ['usNVDA']
     # choice_symbols = ['usBILI']
     print("choice_symbols:{}".format(choice_symbols))
-    # choice_symbols = ['usBILI']
+    # choice_symbols = ['usFUTU']
 
     # 设置初始资金数
     read_cash = 1000000
 
     # 买入因子依然延用向上突破因子
     buy_factors = [
-        {'xd': 60, 'class': AbuFactorBuyBreak},
-        {'xd': 42, 'class': AbuFactorBuyBreak},
+        # {'xd': 60, 'class': AbuFactorBuyBreak},
+        # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 90, 'class': AbuDoubleMaBuy},
         # {'class': AbuDoubleMaBuy},
         # {'xd': 60, 'class': AbuFactorBuyEMA},
-        # {'xd': 60, 'class': AbuFactorBuyMean}
+        {'xd': 60, 'class': AbuFactorBuyMinMean},
+        {'xd': 60, 'class': AbuFactorBuyMean}
     ]
 
     # 卖出因子继续使用上一节使用的因子
     sell_factors = [
-        {'stop_loss_n': 0.5, 'stop_win_n': 3.0, 'class': AbuFactorAtrNStop},
+        {'stop_loss_n': 1.0, 'stop_win_n': 3.0, 'class': AbuFactorAtrNStop},
         {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
         {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5},
-        # {'xd': 120, 'class': AbuFactorSellEMA}
+        {'xd': 120, 'class': AbuFactorSellEMA}
         # {'xd': 120, 'class': AbuFactorSellMean}
     ]
 
@@ -79,9 +80,9 @@ def execute_stock_us_back_test():
     abu_result_tuple, kl_pd_manger = abu.run_loop_back(read_cash,
                                                        buy_factors,
                                                        sell_factors,
-                                                       n_folds=1,
+                                                       n_folds=4,
                                                        # start='2020-11-17',
-                                                       # end='2024-06-12',
+                                                       # end='2024-06-01',
                                                        choice_symbols=choice_symbols)
     ABuProgress.clear_output()
     metrics = AbuMetricsBase(*abu_result_tuple)
