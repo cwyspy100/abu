@@ -42,9 +42,9 @@ def execute_stock_a_back_test():
     # choice_symbols = ['002230', '300104', '300059', '601766', '600085', '600036', '600809', '000002', '002594',
     #                   '002739']
 
-    # choice_symbols = ['300104']
     choice_symbols_pd = pd.read_csv('../todolist/stock_a_pool.csv')
     choice_symbols = choice_symbols_pd['symbol']
+    choice_symbols = ['sz002594']
 
     # 设置初始资金数
     read_cash = 1000000
@@ -54,7 +54,7 @@ def execute_stock_a_back_test():
         # {'xd': 60, 'class': AbuFactorBuyBreak},
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 60, 'class': AbuDoubleMaBuy},
-        {'xd': 20, 'class': AbuFactorBuyMean}
+        {'xd': 120, 'class': AbuFactorBuyMean}
         ]
 
     # 卖出因子继续使用上一节使用的因子
@@ -62,14 +62,16 @@ def execute_stock_a_back_test():
         {'stop_loss_n': 1.0, 'stop_win_n': 3.0, 'class': AbuFactorAtrNStop},
         {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
         {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5},
-        {'xd': 120, 'class': AbuFactorSellMean}
+        # {'xd': 120, 'class': AbuFactorSellMean}
     ]
 
     # 使用run_loop_back运行策略
     abu_result_tuple, kl_pd_manger = abu.run_loop_back(read_cash,
                                                        buy_factors,
                                                        sell_factors,
-                                                       n_folds=1,
+                                                       n_folds=2,
+                                                       # start='2019-07-24',
+                                                       # end='2022-07-25',
                                                        choice_symbols=choice_symbols)
     ABuProgress.clear_output()
     metrics = AbuMetricsBase(*abu_result_tuple)

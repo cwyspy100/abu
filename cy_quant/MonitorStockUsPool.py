@@ -18,7 +18,6 @@ import datetime
 abupy.env.disable_example_env_ipython()
 from abupy import AbuFactorAtrNStop, AbuFactorPreAtrNStop, AbuFactorCloseAtrNStop, AbuFactorBuyBreak, AbuDoubleMaBuy, AbuKellyPosition, AbuPtPosition
 from abupy import abu, EMarketTargetType, AbuMetricsBase, ABuMarketDrawing, ABuProgress, ABuSymbolPd, EMarketSourceType
-from cy_quant import GridFactors
 
 # abupy量化环境设置为A股
 abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_US
@@ -27,6 +26,8 @@ from abupy import slippage
 
 from learn_python.ABuFactorBuyMean import AbuFactorBuyMean
 from learn_python.ABuFactorSellMean import AbuFactorSellMean
+from learn_python.ABuFactorBuyEMA import AbuFactorBuyEMA
+from learn_python.ABuFactorBuyMeanAng import AbuFactorBuyMeanAng
 
 # 开启针对非集合竞价阶段的涨停，滑点买入价格以高概率在接近涨停的价格买入
 slippage.sbb.g_enable_limit_up = True
@@ -58,7 +59,8 @@ def execute_stock_us_back_test():
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 90, 'class': AbuDoubleMaBuy},
         # {'class': AbuDoubleMaBuy, 'position': AbuPtPosition}
-        {'xd': 20, 'class': AbuFactorBuyMean}
+        # {'xd': 120, 'class': AbuFactorBuyMean},
+        {'xd': 60, 'class': AbuFactorBuyMeanAng},
     ]
 
     # 卖出因子继续使用上一节使用的因子
@@ -73,7 +75,7 @@ def execute_stock_us_back_test():
     abu_result_tuple, kl_pd_manger = abu.run_loop_back(read_cash,
                                                        buy_factors,
                                                        sell_factors,
-                                                       n_folds=2,
+                                                       n_folds=3,
                                                        choice_symbols=choice_symbols)
     ABuProgress.clear_output()
     metrics = AbuMetricsBase(*abu_result_tuple)
