@@ -26,6 +26,7 @@ from abupy import slippage
 
 from learn_python.ABuFactorBuyMean import AbuFactorBuyMean
 from learn_python.ABuFactorSellMean import AbuFactorSellMean
+from learn_python.ABuFactorBuyEMA import AbuFactorBuyEMA
 
 # 开启针对非集合竞价阶段的涨停，滑点买入价格以高概率在接近涨停的价格买入
 slippage.sbb.g_enable_limit_up = True
@@ -46,7 +47,11 @@ def execute_stock_us_back_test():
     choice_symbols_pd = pd.read_csv('../todolist/stock_hk_pool.csv')
     choice_symbols = choice_symbols_pd['symbol']
     print("choice_symbols:{}".format(choice_symbols))
+<<<<<<< Updated upstream
 
+=======
+    choice_symbols = ['00700']
+>>>>>>> Stashed changes
     # 设置初始资金数
     read_cash = 1000000
 
@@ -55,7 +60,8 @@ def execute_stock_us_back_test():
         # {'xd': 60, 'class': AbuFactorBuyBreak},
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'class': AbuDoubleMaBuy},
-        {'xd': 20, 'class': AbuFactorBuyMean}
+        # {'xd': 60, 'class': AbuFactorBuyEMA},
+        {'xd': 60, 'class': AbuFactorBuyMean}
     ]
 
     # 卖出因子继续使用上一节使用的因子
@@ -63,14 +69,14 @@ def execute_stock_us_back_test():
         {'stop_loss_n': 1.0, 'stop_win_n': 3.0, 'class': AbuFactorAtrNStop},
         {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
         {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5},
-        {'xd': 120, 'class': AbuFactorSellMean}
+        # {'xd': 60, 'class': AbuFactorSellMean}
     ]
 
     # 使用run_loop_back运行策略
     abu_result_tuple, kl_pd_manger = abu.run_loop_back(read_cash,
                                                        buy_factors,
                                                        sell_factors,
-                                                       n_folds=2,
+                                                       n_folds=1,
                                                        choice_symbols=choice_symbols)
     ABuProgress.clear_output()
     metrics = AbuMetricsBase(*abu_result_tuple)
