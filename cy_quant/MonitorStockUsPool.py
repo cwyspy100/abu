@@ -16,7 +16,7 @@ import datetime
 # 使用沙盒数据，目的是和书中一样的数据环境
 # abupy.env.enable_example_env_ipython()
 abupy.env.disable_example_env_ipython()
-from abupy import AbuFactorAtrNStop, AbuFactorPreAtrNStop, AbuFactorCloseAtrNStop, AbuFactorBuyBreak, AbuDoubleMaBuy, AbuKellyPosition, AbuPtPosition
+from abupy import AbuFactorAtrNStop, AbuFactorPreAtrNStop, AbuFactorCloseAtrNStop, AbuFactorBuyBreak, AbuDoubleMaBuy, AbuKellyPosition, AbuPtPosition, AbuFactorSellBreak
 from abupy import abu, EMarketTargetType, AbuMetricsBase, ABuMarketDrawing, ABuProgress, ABuSymbolPd, EMarketSourceType
 
 # abupy量化环境设置为A股
@@ -46,7 +46,7 @@ def execute_stock_us_back_test():
 
     choice_symbols_pd = pd.read_csv('../todolist/stock_us_pool.csv')
     choice_symbols = choice_symbols_pd['symbol']
-    # choice_symbols = ['usFUTU']
+    choice_symbols = ['usFUTU']
     print("choice_symbols:{}".format(choice_symbols))
     # choice_symbols = ['usNVDA']
 
@@ -58,24 +58,29 @@ def execute_stock_us_back_test():
         # {'xd': 60, 'class': AbuFactorBuyBreak},
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 90, 'class': AbuDoubleMaBuy},
-        # {'class': AbuDoubleMaBuy, 'position': AbuPtPosition}
-        # {'xd': 120, 'class': AbuFactorBuyMean},
-        {'xd': 60, 'class': AbuFactorBuyMeanAng},
+        # {'class': AbuDoubleMaBuy, 'position': AbuPtPosition},
+        # {'xd': 60, 'class': AbuFactorBuyMean},
+        {'xd': 60, 'class': AbuFactorBuyEMA},
+        # {'xd': 60, 'class': AbuFactorBuyMeanAng},
     ]
 
     # 卖出因子继续使用上一节使用的因子
     sell_factors = [
-        {'stop_loss_n': 0.5, 'stop_win_n': 3.0, 'class': AbuFactorAtrNStop},
+        {'stop_loss_n': 1.0, 'stop_win_n': 3.0, 'class': AbuFactorAtrNStop},
         {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
         {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5},
-        {'xd': 120, 'class': AbuFactorSellMean}
+        # {'xd': 60, 'class': AbuFactorSellMean},
+        # {'xd': 60, 'class': AbuFactorSellBreak}
+
     ]
 
     # 使用run_loop_back运行策略
     abu_result_tuple, kl_pd_manger = abu.run_loop_back(read_cash,
                                                        buy_factors,
                                                        sell_factors,
-                                                       n_folds=3,
+                                                       n_folds=2,
+                                                       # start='2023-01-01',
+                                                       # end='2024-05-01',
                                                        choice_symbols=choice_symbols)
     ABuProgress.clear_output()
     metrics = AbuMetricsBase(*abu_result_tuple)
