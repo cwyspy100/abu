@@ -37,14 +37,13 @@ class AbuFactorBuyEMA(AbuFactorBuyBase, BuyCallMixin):
 
         # price = self.kl_pd.close[self.today_ind - self.xd + 1:self.today_ind + 1].mean()
         self.kl_pd['EMA120'] = self.kl_pd['close'].ewm(span=self.xd, adjust=False).mean()
-        # self.kl_pd['ma_120'] = self.kl_pd['close'].rolling(window=self.xd).mean()
 
         # 今天的收盘价格达到xd天内最高价格则符合买入条件
-        if today.close >= self.kl_pd['EMA120'].iloc[self.today_ind] and self.kl_pd.close[self.today_ind - 1] < self.kl_pd['EMA120'].iloc[self.today_ind]:
-        # if today.close >= self.kl_pd.close[self.today_ind - self.xd + 1:self.today_ind + 1].mean():
+        if today.close >= self.kl_pd['EMA120'].iloc[self.today_ind] and self.kl_pd.close[self.today_ind - 1] < self.kl_pd['EMA120'].iloc[self.today_ind - 1]:
+        # if today.close >= self.kl_pd['EMA120'].iloc[self.today_ind]:
             # 把突破新高参数赋值skip_days，这里也可以考虑make_buy_order确定是否买单成立，但是如果停盘太长时间等也不好
+            # self.skip_days = self.xd
             self.skip_days = 5
-            # self.skip_days = 1
             # 生成买入订单, 由于使用了今天的收盘价格做为策略信号判断，所以信号发出后，只能明天买
             return self.buy_tomorrow()
             # return self.buy_today()
