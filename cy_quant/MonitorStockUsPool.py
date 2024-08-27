@@ -51,7 +51,7 @@ def execute_stock_us_back_test():
     # choice_symbols = ['usNVDA']
     # choice_symbols = ['usBILI']
     print("choice_symbols:{}".format(choice_symbols))
-    # choice_symbols = ['usFUTU']
+    # choice_symbols = ['usTSLA']
 
     # 设置初始资金数
     read_cash = 1000000
@@ -62,8 +62,8 @@ def execute_stock_us_back_test():
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 90, 'class': AbuDoubleMaBuy},
         # {'class': AbuDoubleMaBuy},
-        # {'xd': 60, 'class': AbuFactorBuyEMA},
-        {'xd': 60, 'class': AbuFactorBuyMinMean},
+        # {'xd': 120, 'class': AbuFactorBuyEMA},
+        # {'xd': 60, 'class': AbuFactorBuyMinMean},
         {'xd': 60, 'class': AbuFactorBuyMean}
     ]
 
@@ -72,7 +72,7 @@ def execute_stock_us_back_test():
         {'stop_loss_n': 1.0, 'stop_win_n': 3.0, 'class': AbuFactorAtrNStop},
         {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
         {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5},
-        {'xd': 120, 'class': AbuFactorSellEMA}
+        # {'xd': 120, 'class': AbuFactorSellEMA}
         # {'xd': 120, 'class': AbuFactorSellMean}
     ]
 
@@ -80,7 +80,7 @@ def execute_stock_us_back_test():
     abu_result_tuple, kl_pd_manger = abu.run_loop_back(read_cash,
                                                        buy_factors,
                                                        sell_factors,
-                                                       n_folds=4,
+                                                       n_folds=1,
                                                        # start='2020-11-17',
                                                        # end='2024-06-01',
                                                        choice_symbols=choice_symbols)
