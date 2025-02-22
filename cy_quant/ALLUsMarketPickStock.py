@@ -17,7 +17,7 @@ def update_all_a_data():
     abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_sn_us
     abupy.env.g_data_cache_type = EDataCacheType.E_DATA_CACHE_CSV
     abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_US
-    abu.run_kl_update(n_folds=1, market=EMarketTargetType.E_MARKET_TARGET_US, n_jobs=8)
+    abu.run_kl_update(n_folds=2, market=EMarketTargetType.E_MARKET_TARGET_US, n_jobs=8)
 
 
 def pick_stock_in_A_stock():
@@ -67,8 +67,8 @@ def check_stock_in_A_stock(symbol):
 
 if __name__ == '__main__':
     # 1、更新所有数据
-    # update_all_a_data()
+    update_all_a_data()
     # 2、使用本地数据进行选股
     # pick_stock_in_A_stock()
     # 3、验证结果
-    check_stock_in_A_stock("usTWOU")
+    # check_stock_in_A_stock("usTWOU")

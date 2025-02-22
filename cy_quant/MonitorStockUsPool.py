@@ -46,7 +46,7 @@ def execute_stock_us_back_test():
 
     choice_symbols_pd = pd.read_csv('../todolist/stock_us_pool.csv')
     choice_symbols = choice_symbols_pd['symbol']
-    choice_symbols = ['usFUTU']
+    # choice_symbols = ['usFUTU']
     print("choice_symbols:{}".format(choice_symbols))
     # choice_symbols = ['usNVDA']
 
@@ -59,8 +59,8 @@ def execute_stock_us_back_test():
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 90, 'class': AbuDoubleMaBuy},
         # {'class': AbuDoubleMaBuy, 'position': AbuPtPosition},
-        # {'xd': 60, 'class': AbuFactorBuyMean},
-        {'xd': 60, 'class': AbuFactorBuyEMA},
+        {'xd': 120, 'class': AbuFactorBuyMean},
+        # {'xd': 60, 'class': AbuFactorBuyEMA},
         # {'xd': 60, 'class': AbuFactorBuyMeanAng},
     ]
 
@@ -78,10 +78,10 @@ def execute_stock_us_back_test():
     abu_result_tuple, kl_pd_manger = abu.run_loop_back(read_cash,
                                                        buy_factors,
                                                        sell_factors,
-                                                       n_folds=2,
+                                                       n_folds=1,
                                                        # start='2023-01-01',
                                                        # end='2024-05-01',
-                                                       choice_symbols=choice_symbols)
+                                                       choice_symbols=choice_symbols, n_process_kl=4, n_process_pick=4)
     ABuProgress.clear_output()
     metrics = AbuMetricsBase(*abu_result_tuple)
     metrics.fit_metrics()

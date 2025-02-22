@@ -27,6 +27,9 @@ from abupy import slippage
 from learn_python.ABuFactorBuyMean import AbuFactorBuyMean
 from learn_python.ABuFactorSellMean import AbuFactorSellMean
 from learn_python.ABuFactorBuyEMA import AbuFactorBuyEMA
+from learn_python.ABuFactorBuyMacd import AbuFactorBuyMacd
+from learn_python.ABuFactorSellMacd import AbuFactorSellMacd
+
 
 # 开启针对非集合竞价阶段的涨停，滑点买入价格以高概率在接近涨停的价格买入
 slippage.sbb.g_enable_limit_up = True
@@ -40,12 +43,12 @@ slippage.ssb.g_pre_limit_down_rate = 0
 
 def execute_stock_a_back_test():
     # 择时股票池
-    # choice_symbols = ['002230', '300104', '300059', '601766', '600085', '600036', '600809', '000002', '002594',
-    #                   '002739']
+    choice_symbols = ['002230', '300104', '300059', '601766', '600085', '600036', '600809', '000002', '002594',
+                      '002739']
 
     choice_symbols_pd = pd.read_csv('../todolist/stock_a_pool.csv')
-    choice_symbols = choice_symbols_pd['symbol']
-    choice_symbols = ['sz002594']
+    # choice_symbols = choice_symbols_pd['symbol']
+    # choice_symbols = ['sz002594']
 
     # 设置初始资金数
     read_cash = 1000000
@@ -56,7 +59,9 @@ def execute_stock_a_back_test():
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 60, 'class': AbuDoubleMaBuy},
         # {'xd': 120, 'class': AbuFactorBuyMean},
-        {'xd': 120, 'class': AbuFactorBuyEMA}
+        {'xd': 120, 'class': AbuFactorBuyEMA},
+        # {'fast': 30, 'slow': 60, 'class': AbuFactorBuyMacd},
+
         ]
 
     # 卖出因子继续使用上一节使用的因子
@@ -64,6 +69,7 @@ def execute_stock_a_back_test():
         {'stop_loss_n': 1.0, 'stop_win_n': 3.0, 'class': AbuFactorAtrNStop},
         {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
         {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5},
+        # {'fast': 30, 'slow': 60, 'class': AbuFactorSellMacd},
         # {'xd': 120, 'class': AbuFactorSellMean}
     ]
 
