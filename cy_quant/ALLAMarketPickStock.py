@@ -88,7 +88,7 @@ def pick_stock_in_A_stock_mean():
 
 def save_stock_info(choice_symbols, flag="all"):
     today = datetime.date.today().strftime("%Y%m%d")
-    file_name = flag + "_out_put_"+today
+    file_name = flag + "_a_out_put_"+today
     with open(file_name, "w") as file:
         for item in choice_symbols:
             file.write(str(item)+"\n")
@@ -117,11 +117,11 @@ if __name__ == '__main__':
     # update_all_a_data()
 
     # 2、使用本地数据进行选股
-    # pick_stock_in_A_stock()
+    pick_stock_in_A_stock()
     # pick_stock_in_A_stock_mean()
 
     # 3、验证结果
-    check_stock_in_A_stock("sh601088")
+    # check_stock_in_A_stock("sh601088")
 
     # test
     # save_stock_info(['123', '456'])

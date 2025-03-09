@@ -17,7 +17,7 @@ import datetime
 
 
 def update_all_us_data():
-    abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
+    abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_sn_us
     abupy.env.g_data_cache_type = EDataCacheType.E_DATA_CACHE_CSV
     abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_US
     abu.run_kl_update(n_folds=1, market=EMarketTargetType.E_MARKET_TARGET_US, n_jobs=4)
@@ -39,7 +39,7 @@ def pick_stock_in_us_stock():
     # stock_pickers = [{'class': AbuPickRegressAngMinMax,
     #                   'threshold_ang_min': 5.0, 'xd': 10, 'reversed': False}]
     stock_pickers = [
-        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 5.0, 'xd': 10, 'reversed': False},
+        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 5.0, 'xd': 120, 'reversed': False},
         {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 500, 'reversed': False},
         {'class': AbuPickStockByMean, 'mean_xd': 120},
     ]
@@ -53,11 +53,11 @@ def pick_stock_in_us_stock():
     stock_pick.fit()
     # 打印最后的选股结果
     print('stock_pick.choice_symbols:', stock_pick.choice_symbols)
-    save_stock_info(choice_symbols)
+    save_stock_info(stock_pick.choice_symbols, "mean")
 
 def save_stock_info(choice_symbols, flag="all"):
     today = datetime.date.today().strftime("%Y%m%d")
-    file_name = flag + "_out_put_"+today
+    file_name = flag + "_us_out_put_"+today
     with open(file_name, "w") as file:
         for item in choice_symbols:
             file.write(str(item)+"\n")
@@ -83,7 +83,7 @@ if __name__ == '__main__':
     # 1、更新所有数据
     # update_all_us_data()
     # 2、使用本地数据进行选股
-    # pick_stock_in_us_stock()
+    pick_stock_in_us_stock()
     # 3、验证结果
-    check_stock_in_us_stock("usFUTU")
+    # check_stock_in_us_stock("usFUTU")
     print("cost time {}".format(time.time() - start_time))

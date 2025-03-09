@@ -38,7 +38,7 @@ def pick_stock_in_hk_stock():
     # stock_pickers = [{'class': AbuPickRegressAngMinMax,
     #                   'threshold_ang_min': 5.0, 'xd': 10, 'reversed': False}]
     stock_pickers = [
-        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 5.0, 'xd': 10, 'reversed': False},
+        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 5.0, 'xd': 30, 'reversed': False},
         {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 500, 'reversed': False},
         {'class': AbuPickStockByMean, 'mean_xd': 120},
     ]
@@ -57,7 +57,7 @@ def pick_stock_in_hk_stock():
 
 def save_stock_info(choice_symbols, flag="all"):
     today = datetime.date.today().strftime("%Y%m%d")
-    file_name = flag + "_out_put_"+today
+    file_name = flag + "_hk_out_put_"+today
     with open(file_name, "w") as file:
         for item in choice_symbols:
             file.write(str(item)+"\n")
