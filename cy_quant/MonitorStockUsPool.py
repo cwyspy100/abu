@@ -21,7 +21,7 @@ from abupy import abu, EMarketTargetType, AbuMetricsBase, ABuMarketDrawing, ABuP
 
 # abupy量化环境设置为A股
 abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_US
-abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_sn_us
+abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
 from abupy import slippage
 
 from learn_python.ABuFactorBuyMean import AbuFactorBuyMean
@@ -51,7 +51,7 @@ def execute_stock_us_back_test():
     # choice_symbols = ['usNVDA']
     # choice_symbols = ['usBILI']
     print("choice_symbols:{}".format(choice_symbols))
-    # choice_symbols = ['usTSLA']
+    # choice_symbols = ['usGOOG']
 
     # 设置初始资金数
     read_cash = 1000000
@@ -62,17 +62,17 @@ def execute_stock_us_back_test():
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 90, 'class': AbuDoubleMaBuy},
         # {'class': AbuDoubleMaBuy},
-        # {'xd': 120, 'class': AbuFactorBuyEMA},
+        {'xd': 60, 'class': AbuFactorBuyEMA},
         # {'xd': 60, 'class': AbuFactorBuyMinMean},
-        {'xd': 60, 'class': AbuFactorBuyMean}
+        # {'xd': 60, 'class': AbuFactorBuyMean}
     ]
 
     # 卖出因子继续使用上一节使用的因子
     sell_factors = [
         {'stop_loss_n': 1.0, 'stop_win_n': 3.0, 'class': AbuFactorAtrNStop},
-        {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
-        {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5},
-        # {'xd': 120, 'class': AbuFactorSellEMA}
+        # {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
+        # {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5},
+        {'xd': 120, 'class': AbuFactorSellEMA}
         # {'xd': 120, 'class': AbuFactorSellMean}
     ]
 
@@ -94,12 +94,12 @@ def execute_stock_us_back_test():
     actions_pd = abu_result_tuple.action_pd
     actions_pd.to_csv('../todolist/stock_us_actions.csv')
 
-    save_backtest_result(metrics)
+    save_backtest_result(metrics, buy_factors, sell_factors)
 
     # ABuMarketDrawing.plot_candle_from_order(orders_pd)
 
 
-def save_backtest_result(metrics):
+def save_backtest_result(metrics, buy_factors, sell_factors):
     result = []
     result1 = '买入后卖出的交易数量:{}'.format(metrics.order_has_ret.shape[0])
     result2 = '买入后尚未卖出的交易数量:{}'.format(metrics.order_keep.shape[0])
@@ -114,6 +114,8 @@ def save_backtest_result(metrics):
     result11 = '策略买入成交比例:{:.4f}%'.format(metrics.buy_deal_rate * 100)
     result12 = '策略资金利用率比例:{:.4f}%'.format(metrics.cash_utilization * 100)
     result13 = '策略共执行{}个交易日'.format(metrics.num_trading_days)
+    result14 = '买入策略{}'.format(str(buy_factors))
+    result15 = '卖出策略{}'.format(str(sell_factors))
     today = datetime.date.today()
     result.append("------------" + str(today) + "-------------42非动态均线----------------")
     result.append(result1)
@@ -129,6 +131,8 @@ def save_backtest_result(metrics):
     result.append(result11)
     result.append(result12)
     result.append(result13)
+    result.append(result14)
+    result.append(result15)
     string = "\n"
     with open('../todolist/stock_us_pool_backtest.txt', 'a', encoding='utf-8') as f:
         f.write(string.join(result))
