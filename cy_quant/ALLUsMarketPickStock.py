@@ -1,5 +1,5 @@
 # noinspection PyUnresolvedReferences
-import abu_local_env
+import time
 
 import abupy
 from abupy import ABuMarket
@@ -13,14 +13,14 @@ from abupy import abu
 from abupy import ABuRegUtil
 
 
-def update_all_a_data():
+def update_all_us_data():
     abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_sn_us
     abupy.env.g_data_cache_type = EDataCacheType.E_DATA_CACHE_CSV
     abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_US
-    abu.run_kl_update(n_folds=2, market=EMarketTargetType.E_MARKET_TARGET_US, n_jobs=8)
+    abu.run_kl_update(n_folds=1, market=EMarketTargetType.E_MARKET_TARGET_US, n_jobs=4)
 
 
-def pick_stock_in_A_stock():
+def pick_stock_in_us_stock():
     # 要关闭沙盒数据环境，因为沙盒里就那几个股票的历史数据, 下面要随机做50个股票
     abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
     abupy.env.disable_example_env_ipython()
@@ -52,7 +52,7 @@ def pick_stock_in_A_stock():
     print('stock_pick.choice_symbols:', stock_pick.choice_symbols)
 
 
-def check_stock_in_A_stock(symbol):
+def check_stock_in_us_stock(symbol):
     """
     验证一个股票的角度
     """
@@ -67,8 +67,10 @@ def check_stock_in_A_stock(symbol):
 
 if __name__ == '__main__':
     # 1、更新所有数据
-    update_all_a_data()
+    start_time = time.time()
+    update_all_us_data()
     # 2、使用本地数据进行选股
     # pick_stock_in_A_stock()
     # 3、验证结果
     # check_stock_in_A_stock("usTWOU")
+    print("cost time {}".format(time.time() - start_time))

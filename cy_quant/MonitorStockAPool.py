@@ -45,11 +45,11 @@ def execute_stock_a_back_test():
     # 择时股票池
     choice_symbols = ['002230', '300104', '300059', '601766', '600085', '600036', '600809', '000002', '002594',
                       '002739']
-
+    # choice_symbols = ['sz300059']
     choice_symbols_pd = pd.read_csv('../todolist/stock_a_pool.csv')
-    # choice_symbols = choice_symbols_pd['symbol']
+    choice_symbols = choice_symbols_pd['symbol']
     # choice_symbols = ['sz002594']
-
+    print(choice_symbols)
     # 设置初始资金数
     read_cash = 1000000
 
@@ -58,8 +58,8 @@ def execute_stock_a_back_test():
         # {'xd': 60, 'class': AbuFactorBuyBreak},
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 60, 'class': AbuDoubleMaBuy},
-        # {'xd': 120, 'class': AbuFactorBuyMean},
-        {'xd': 120, 'class': AbuFactorBuyEMA},
+        {'xd': 120, 'class': AbuFactorBuyMean},
+        # {'xd': 60, 'class': AbuFactorBuyEMA},
         # {'fast': 30, 'slow': 60, 'class': AbuFactorBuyMacd},
 
         ]
@@ -67,7 +67,7 @@ def execute_stock_a_back_test():
     # 卖出因子继续使用上一节使用的因子
     sell_factors = [
         {'stop_loss_n': 1.0, 'stop_win_n': 3.0, 'class': AbuFactorAtrNStop},
-        {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
+        # {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
         {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5},
         # {'fast': 30, 'slow': 60, 'class': AbuFactorSellMacd},
         # {'xd': 120, 'class': AbuFactorSellMean}

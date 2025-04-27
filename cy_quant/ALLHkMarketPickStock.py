@@ -15,19 +15,19 @@ import time
 import datetime
 
 
-def update_all_a_data():
+def update_all_hk_data():
     abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
     abupy.env.g_data_cache_type = EDataCacheType.E_DATA_CACHE_CSV
-    abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_CN
-    abu.run_kl_update(n_folds=1, market=EMarketTargetType.E_MARKET_TARGET_CN, n_jobs=4)
+    abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_HK
+    abu.run_kl_update(n_folds=1, market=EMarketTargetType.E_MARKET_TARGET_HK, n_jobs=4)
 
 
-def pick_stock_in_A_stock():
+def pick_stock_in_hk_stock():
     # 要关闭沙盒数据环境，因为沙盒里就那几个股票的历史数据, 下面要随机做50个股票
     abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
     abupy.env.disable_example_env_ipython()
     abupy.env.g_data_fetch_mode = EMarketDataFetchMode.E_DATA_FETCH_FORCE_LOCAL
-    abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_CN
+    abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_HK
 
     # 关闭沙盒后，首先基准要从非沙盒环境换取，否则数据对不齐，无法正常运行
     choice_symbols = ABuMarket.all_symbol()
@@ -36,10 +36,10 @@ def pick_stock_in_A_stock():
 
     # 选股条件threshold_ang_min=0.0, 即要求股票走势为向上上升趋势
     stock_pickers = [
-        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 5.0, 'xd': 20, 'reversed': False},
-        {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 500,   'reversed': False},
+        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 5.0, 'xd': 10, 'reversed': False},
+        {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 500, 'reversed': False},
         # {'class': AbuPickStockByMean, 'mean_xd': 120},
-                     ]
+    ]
 
     benchmark = AbuBenchmark()
     capital = AbuCapital(1000000, benchmark)
@@ -54,7 +54,7 @@ def pick_stock_in_A_stock():
     save_stock_info(stock_pick.choice_symbols)
 
 
-def pick_stock_in_A_stock_mean():
+def pick_stock_in_hk_stock_mean():
     # 要关闭沙盒数据环境，因为沙盒里就那几个股票的历史数据, 下面要随机做50个股票
     abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
     abupy.env.disable_example_env_ipython()
@@ -69,7 +69,7 @@ def pick_stock_in_A_stock_mean():
     # 选股条件threshold_ang_min=0.0, 即要求股票走势为向上上升趋势
     stock_pickers = [
         {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 5.0, 'xd': 10, 'reversed': False},
-        {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 500,  'reversed': False},
+        {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 500, 'reversed': False},
         {'class': AbuPickStockByMean, 'mean_xd': 120},
     ]
 
@@ -88,14 +88,13 @@ def pick_stock_in_A_stock_mean():
 
 def save_stock_info(choice_symbols, flag="all"):
     today = datetime.date.today().strftime("%Y%m%d")
-    file_name = flag + "_out_put_"+today
+    file_name = flag + "_out_put_" + today
     with open(file_name, "w") as file:
         for item in choice_symbols:
-            file.write(str(item)+"\n")
+            file.write(str(item) + "\n")
 
 
-
-def check_stock_in_A_stock(symbol):
+def check_stock_in_hk_stock(symbol):
     """
     验证一个股票的角度
     """
@@ -111,10 +110,10 @@ def check_stock_in_A_stock(symbol):
 if __name__ == '__main__':
     # 1、更新所有数据
     start_time = time.time()
-    # update_all_a_data()
+    update_all_hk_data()
 
     # 2、使用本地数据进行选股
-    pick_stock_in_A_stock()
+    # pick_stock_in_A_stock()
     # pick_stock_in_A_stock_mean()
 
     # 3、验证结果
