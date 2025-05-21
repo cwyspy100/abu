@@ -49,7 +49,9 @@ class AbuPickStockByMean(AbuPickStockBase):
 
         # deg = ABuRegUtil.calc_regress_deg(kl_pd[-10:].close, show=False)
 
-        if (last_price > last_ma and before_last_ma > before_last_price and before_change > 0 and last_change > 0):
+        radio = last_price - last_ma > 0 and last_ma > 0 and (last_price - last_ma) / last_price > 0.95
+
+        if (last_price > last_ma and last_price - last_ma > radio):
             print(
                 "target_symobol {} last_price {} minus last_ma {} value :{}".format(target_symbol, last_price, last_ma,
                                                                                     last_price - last_ma))
