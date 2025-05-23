@@ -48,7 +48,7 @@ def execute_stock_us_back_test():
     choice_symbols_pd = pd.read_csv('../todolist/stock_hk_pool.csv')
     choice_symbols = choice_symbols_pd['symbol']
     print("choice_symbols:{}".format(choice_symbols))
-    # choice_symbols = ['00700']
+    choice_symbols = ['00700']
     # 设置初始资金数
     read_cash = 1000000
 

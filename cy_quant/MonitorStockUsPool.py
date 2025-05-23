@@ -46,7 +46,7 @@ def execute_stock_us_back_test():
 
     choice_symbols_pd = pd.read_csv('../todolist/stock_us_pool.csv')
     choice_symbols = choice_symbols_pd['symbol']
-    choice_symbols = ['usFUTU']
+    choice_symbols = ['usNVDA']
     print("choice_symbols:{}".format(choice_symbols))
     # choice_symbols = ['usMSFT']
 
@@ -55,19 +55,19 @@ def execute_stock_us_back_test():
 
     # 买入因子依然延用向上突破因子
     buy_factors = [
-        {'xd': 60, 'class': AbuFactorBuyBreak},
+        # {'xd': 60, 'class': AbuFactorBuyBreak},
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 90, 'class': AbuDoubleMaBuy},
         # {'class': AbuDoubleMaBuy, 'position': AbuPtPosition},
         # {'xd': 60, 'class': AbuFactorBuyMean},
-        # {'xd': 30, 'class': AbuFactorBuyEMA},
+        {'xd': 60, 'class': AbuFactorBuyEMA},
         # {'xd': 60, 'class': AbuFactorBuyMeanAng},
     ]
 
     # 卖出因子继续使用上一节使用的因子
     sell_factors = [
         {'stop_loss_n': 1.0, 'stop_win_n': 3.0, 'class': AbuFactorAtrNStop},
-        # {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
+        {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
         {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5},
         # {'xd': 60, 'class': AbuFactorSellMean},
         # {'xd': 60, 'class': AbuFactorSellBreak}
@@ -78,7 +78,7 @@ def execute_stock_us_back_test():
     abu_result_tuple, kl_pd_manger = abu.run_loop_back(read_cash,
                                                        buy_factors,
                                                        sell_factors,
-                                                       n_folds=1,
+                                                       n_folds=2,
                                                        # start='2023-01-01',
                                                        # end='2024-05-01',
                                                        choice_symbols=choice_symbols, n_process_kl=4, n_process_pick=4)
