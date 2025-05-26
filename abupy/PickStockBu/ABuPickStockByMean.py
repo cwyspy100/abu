@@ -39,8 +39,8 @@ class AbuPickStockByMean(AbuPickStockBase):
         kl_pd['MA_xd'] = kl_pd['close'].rolling(window=self.mean_xd).mean()
         last_ma = kl_pd['MA_xd'].iloc[-1]
         last_price = kl_pd['close'].iloc[-1]
-        # before_last_ma = kl_pd['MA_xd'].iloc[-2]
-        # before_last_price = kl_pd['close'].iloc[-2]
+        before_last_ma = kl_pd['MA_xd'].iloc[-2]
+        before_last_price = kl_pd['close'].iloc[-2]
         # before_last_ma_1 = kl_pd['MA_xd'].iloc[-3]
         # before_last_price_1 = kl_pd['close'].iloc[-3]
         # before_change = before_last_price / before_last_price_1 - 1
@@ -48,9 +48,9 @@ class AbuPickStockByMean(AbuPickStockBase):
 
         # deg = ABuRegUtil.calc_regress_deg(kl_pd[-10:].close, show=False)
 
-        radio = last_price - last_ma > 0 and last_ma > 0 and (last_price - last_ma) / last_price > 0.95
+        radio = last_price - last_ma > 0
 
-        if (last_price > last_ma and last_price - last_ma > radio):
+        if (radio):
             print(
                 "target_symobol {} last_price {} minus last_ma {} value :{}".format(target_symbol, last_price, last_ma,
                                                                                     last_price - last_ma))

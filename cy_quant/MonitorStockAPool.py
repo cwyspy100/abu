@@ -56,14 +56,14 @@ def execute_stock_a_back_test():
         # {'xd': 60, 'class': AbuFactorBuyBreak},
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 60, 'class': AbuDoubleMaBuy},
-        # {'xd': 60, 'class': AbuFactorBuyMean},
-        {'xd': 60, 'class': AbuFactorBuyEMA}
+        {'xd': 120, 'class': AbuFactorBuyMean},
+        # {'xd': 120, 'class': AbuFactorBuyEMA}
     ]
 
     # 卖出因子继续使用上一节使用的因子
     sell_factors = [
         {'stop_loss_n': 1.0, 'stop_win_n': 3.0, 'class': AbuFactorAtrNStop},
-        {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
+        # {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
         {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5},
         # {'xd': 60, 'class': AbuFactorSellEMA}
         # {'xd': 120, 'class': AbuFactorSellMean}

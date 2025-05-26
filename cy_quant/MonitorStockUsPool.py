@@ -21,7 +21,7 @@ from abupy import abu, EMarketTargetType, AbuMetricsBase, ABuMarketDrawing, ABuP
 
 # abupy量化环境设置为A股
 abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_US
-abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
+abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_sn_us
 from abupy import slippage
 
 from learn_python.ABuFactorBuyMean import AbuFactorBuyMean
@@ -48,8 +48,8 @@ def execute_stock_us_back_test():
     choice_symbols_pd = pd.read_csv('../todolist/stock_us_pool.csv')
     choice_symbols = choice_symbols_pd['symbol']
     # choice_symbols = ['usGOOG', 'usFUTU']
-    # choice_symbols = ['usNVDA']
-    # choice_symbols = ['usBILI']
+    choice_symbols = ['usFUTU']
+    # choice_symbols = ['usYINN']
     print("choice_symbols:{}".format(choice_symbols))
     # choice_symbols = ['usGOOG']
 
@@ -62,7 +62,7 @@ def execute_stock_us_back_test():
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 90, 'class': AbuDoubleMaBuy},
         # {'class': AbuDoubleMaBuy},
-        {'xd': 60, 'class': AbuFactorBuyEMA},
+        {'xd': 120, 'class': AbuFactorBuyEMA},
         # {'xd': 60, 'class': AbuFactorBuyMinMean},
         # {'xd': 60, 'class': AbuFactorBuyMean}
     ]
@@ -71,8 +71,8 @@ def execute_stock_us_back_test():
     sell_factors = [
         {'stop_loss_n': 1.0, 'stop_win_n': 3.0, 'class': AbuFactorAtrNStop},
         # {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
-        # {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5},
-        {'xd': 120, 'class': AbuFactorSellEMA}
+        {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5},
+        # {'xd': 120, 'class': AbuFactorSellEMA}
         # {'xd': 120, 'class': AbuFactorSellMean}
     ]
 
@@ -81,8 +81,8 @@ def execute_stock_us_back_test():
                                                        buy_factors,
                                                        sell_factors,
                                                        n_folds=1,
-                                                       # start='2020-11-17',
-                                                       # end='2024-06-01',
+                                                       # start='2025-04-10',
+                                                       # end='2025-04-23',
                                                        choice_symbols=choice_symbols)
     ABuProgress.clear_output()
     metrics = AbuMetricsBase(*abu_result_tuple)

@@ -7,6 +7,7 @@ from .ABuPickStockPriceMinMax import AbuPickStockPriceMinMax
 from .ABuPickStockDemo import AbuPickStockShiftDistance, AbuPickStockNTop
 from . import ABuPickStock as ps
 from .ABuPickStockByMean import AbuPickStockByMean
+from .ABuPickStockByGrow import AbuPickStockByGrow
 
 __all__ = [
     'AbuPickRegressAngMinMax',
@@ -17,4 +18,5 @@ __all__ = [
     'AbuPickStockShiftDistance',
     'AbuPickStockNTop',
     'AbuPickStockByMean',
+    'AbuPickStockByGrow',
     'ps']

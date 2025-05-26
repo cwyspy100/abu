@@ -39,9 +39,9 @@ def pick_stock_in_us_stock():
     # stock_pickers = [{'class': AbuPickRegressAngMinMax,
     #                   'threshold_ang_min': 5.0, 'xd': 10, 'reversed': False}]
     stock_pickers = [
-        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 5.0, 'xd': 120, 'reversed': False},
+        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 20, 'xd': 20, 'reversed': False},
         {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 500, 'reversed': False},
-        {'class': AbuPickStockByMean, 'mean_xd': 120},
+        # {'class': AbuPickStockByMean, 'mean_xd': 120},
     ]
 
     benchmark = AbuBenchmark()
