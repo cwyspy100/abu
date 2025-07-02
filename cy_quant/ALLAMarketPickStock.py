@@ -16,7 +16,7 @@ import datetime
 
 
 def update_all_a_data():
-    abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_nt
+    abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
     abupy.env.g_data_cache_type = EDataCacheType.E_DATA_CACHE_CSV
     abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_CN
     abu.run_kl_update(n_folds=1, market=EMarketTargetType.E_MARKET_TARGET_CN, n_jobs=2)
@@ -116,7 +116,7 @@ if __name__ == '__main__':
     update_all_a_data()
 
     # 2、使用本地数据进行选股
-    pick_stock_in_A_stock()
+    # pick_stock_in_A_stock()
     # pick_stock_in_A_stock_mean()
 
     # 3、验证结果
