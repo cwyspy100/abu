@@ -137,14 +137,14 @@ class AbuPickTimeWorker(AbuPickTimeWorkBase):
             # 如果择时买入因子没有被封锁执行任务
             if not buy_factor.lock_factor:
                 # todo cy add 添加同一股票，同一策略，buy状态不能再次触发
-                order_keep = False
-                if len(self.orders) > 0:
-                   orders = self.orders.copy()
-                   for latest_order in orders:
-                       if latest_order.sell_type == 'keep' and latest_order.buy_factor == buy_factor.factor_name and latest_order.buy_symbol == buy_factor.kl_pd.name:
-                           order_keep = True
-                if order_keep:
-                    continue
+                # order_keep = False
+                # if len(self.orders) > 0:
+                #    orders = self.orders.copy()
+                #    for latest_order in orders:
+                #        if latest_order.sell_type == 'keep' and latest_order.buy_factor == buy_factor.factor_name and latest_order.buy_symbol == buy_factor.kl_pd.name:
+                #            order_keep = True
+                # if order_keep:
+                #     continue
                 # 迭代买入因子，每个因子都对今天进行择时，如果生成order加入self.orders
                 order = buy_factor.read_fit_day(today)
                 if order and order.order_deal:

@@ -1,3 +1,4 @@
+import datetime
 # noinspection PyUnresolvedReferences
 import time
 
@@ -36,9 +37,9 @@ def pick_stock_in_us_stock():
     # stock_pickers = [{'class': AbuPickRegressAngMinMax,
     #                   'threshold_ang_min': 5.0, 'xd': 10, 'reversed': False}]
     stock_pickers = [
-        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 5.0, 'xd': 10, 'reversed': False},
-        {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 500, 'reversed': False},
-        {'class': AbuPickStockByMean, 'mean_xd': 120},
+        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 5.0, 'xd': 120, 'reversed': False},
+        {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 1000, 'reversed': False},
+        # {'class': AbuPickStockByMean, 'mean_xd': 120},
     ]
 
     benchmark = AbuBenchmark()
@@ -50,7 +51,14 @@ def pick_stock_in_us_stock():
     stock_pick.fit()
     # 打印最后的选股结果
     print('stock_pick.choice_symbols:', stock_pick.choice_symbols)
+    save_stock_info(stock_pick.choice_symbols)
 
+def save_stock_info(choice_symbols, flag="all_US"):
+    today = datetime.date.today().strftime("%Y%m%d")
+    file_name = flag + "_out_put_" + today
+    with open(file_name, "w") as file:
+        for item in choice_symbols:
+            file.write(str(item) + "\n")
 
 def check_stock_in_us_stock(symbol):
     """
@@ -68,9 +76,9 @@ def check_stock_in_us_stock(symbol):
 if __name__ == '__main__':
     # 1、更新所有数据
     start_time = time.time()
-    update_all_us_data()
+    # update_all_us_data()
     # 2、使用本地数据进行选股
-    # pick_stock_in_A_stock()
+    pick_stock_in_us_stock()
     # 3、验证结果
     # check_stock_in_A_stock("usTWOU")
     print("cost time {}".format(time.time() - start_time))

@@ -37,8 +37,11 @@ class AbuPickRegressAngMinMax(AbuPickStockBase):
     def fit_pick(self, kl_pd, target_symbol):
         """开始根据自定义拟合角度边际参数进行选股"""
 
+        kl_pd['ma_xd'] = kl_pd['close'].rolling(window=60).mean().fillna(kl_pd['close'])
         # 计算走势角度
-        ang = ABuRegUtil.calc_regress_deg(kl_pd.close, show=False)
+        # ang = ABuRegUtil.calc_regress_deg(kl_pd['ma_xd'].dropna()[120:180], show=False)
+        ang = ABuRegUtil.calc_regress_deg(kl_pd['ma_xd'].dropna()[-60:], show=False)
+        # print("cal stock {} ang {}".format(target_symbol, ang))
         # 根据参数进行角度条件判断
         if self.threshold_ang_min < ang < self.threshold_ang_max:
             print("stock {} ang {}".format(target_symbol, ang))

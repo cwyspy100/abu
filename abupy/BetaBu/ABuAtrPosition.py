@@ -45,7 +45,7 @@ class AbuAtrPosition(AbuPositionBase):
         atr_pos = self.atr_pos_base / atr_wv
         # 最大仓位限制
         atr_pos = self.pos_max if atr_pos > self.pos_max else atr_pos
-        # atr_pos = 0.75
+        atr_pos = 0.75
         # 结果是买入多少个单位（股，手，顿，合约）
         return self.read_cash * atr_pos / self.bp * self.deposit_rate
 

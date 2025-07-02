@@ -46,8 +46,8 @@ class AbuFactorBuyFixedInvest(AbuFactorBuyBase, BuyCallMixin):
         current_month = current_date.strftime('%Y%m')  # 格式化为"202405"
 
         # 如果已经在本月进行过投资，跳过
-        # if self.last_invest_month == current_month:
-        #     return None
+        if self.last_invest_month == current_month:
+            return None
 
         # 计算均线
         self.kl_pd['ma'] = self.kl_pd['close'].rolling(window=120).mean()
@@ -84,10 +84,6 @@ class AbuFactorBuyFixedInvest(AbuFactorBuyBase, BuyCallMixin):
         else:
             # 股价低于均线40%以上，加倍投入
             coefficient = 2.0
-
-        if self.last_invest_month == current_month:
-            return None
-        # self.skip_days = 5
 
         self.invest_base_amount = 10000 * coefficient
         print("today_str {} current_ma {} today.close {}  deviation {} coefficient {}  invest_base_amount {} ".format(today_str, current_ma, today.close,

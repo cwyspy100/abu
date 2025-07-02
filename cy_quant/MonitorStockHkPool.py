@@ -1,6 +1,9 @@
 #  -*- enconding: utf9 -*-
 import os
 
+from learn_python.ABuFactorBuyGrid import AbuFactorBuyGrid
+from learn_python.ABuFactorSellGrid import AbuFactorSellGrid
+
 os.system('cls')
 
 import numpy as np
@@ -28,6 +31,7 @@ from learn_python.ABuFactorBuyMean import AbuFactorBuyMean
 from learn_python.ABuFactorSellMean import AbuFactorSellMean
 from learn_python.ABuFactorBuyEMA import AbuFactorBuyEMA
 from learn_python.ABuFactorSellEMA import AbuFactorSellEMA
+from learn_python.ABuFactorBuyFixedInvest import AbuFactorBuyFixedInvest
 
 # 开启针对非集合竞价阶段的涨停，滑点买入价格以高概率在接近涨停的价格买入
 slippage.sbb.g_enable_limit_up = True
@@ -39,16 +43,17 @@ slippage.ssb.g_enable_limit_down = True
 slippage.ssb.g_pre_limit_down_rate = 0
 
 
-def execute_stock_us_back_test():
+def execute_stock_hk_back_test(read_path, save_path, hand_type=0):
     # 择时股票池
     # choice_symbols = ['002230', '300104', '300059', '601766', '600085', '600036', '600809', '000002', '002594',
     #                   '002739']
 
     # choice_symbols = ['300104']
-    choice_symbols_pd = pd.read_csv('../todolist/stock_hk_pool.csv')
+    # choice_symbols_pd = pd.read_csv('../todolist/stock_hk_pool.csv')
+    choice_symbols_pd = pd.read_csv(read_path)
     choice_symbols = choice_symbols_pd['symbol']
     print("choice_symbols:{}".format(choice_symbols))
-    choice_symbols = ['00700']
+    # choice_symbols = ['00551']
     # 设置初始资金数
     read_cash = 1000000
 
@@ -57,8 +62,8 @@ def execute_stock_us_back_test():
         # {'xd': 60, 'class': AbuFactorBuyBreak},
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'class': AbuDoubleMaBuy},
-        {'xd': 60, 'class': AbuFactorBuyEMA},
-        # {'xd': 60, 'class': AbuFactorBuyMean}
+        # {'xd': 60, 'class': AbuFactorBuyEMA},
+        {'xd': 120, 'class': AbuFactorBuyMean},
     ]
 
     # 卖出因子继续使用上一节使用的因子
@@ -67,8 +72,20 @@ def execute_stock_us_back_test():
         {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
         {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5},
         # {'xd': 60, 'class': AbuFactorSellEMA},
-        # {'xd': 60, 'class': AbuFactorSellMean}
+        # {'xd': 120, 'class': AbuFactorSellMean}
     ]
+
+    # 网格交易法
+    if hand_type == 1:
+        buy_factors = [
+            # {'xd': 20, 'class': AbuFactorBuyFixedInvest},
+            {'xd': 20, 'class': AbuFactorBuyGrid},
+        ]
+
+        # 卖出因子继续使用上一节使用的因子
+        sell_factors = [
+            {'xd': 20, 'class': AbuFactorSellGrid},
+        ]
 
     # 使用run_loop_back运行策略
     abu_result_tuple, kl_pd_manger = abu.run_loop_back(read_cash,
@@ -81,17 +98,24 @@ def execute_stock_us_back_test():
     metrics.fit_metrics()
     AbuMetricsBase.show_general(*abu_result_tuple, only_show_returns=True)
 
+    if hand_type == 0:
+        order_path = '../todolist/stock_hk_orders.csv'
+        action_path = '../todolist/stock_hk_actions.csv'
+
+    if hand_type == 1:
+        order_path = '../todolist/stock_hk_grid_orders.csv'
+        action_path = '../todolist/stock_hk_grid_actions.csv'
     orders_pd = abu_result_tuple.orders_pd
-    orders_pd.to_csv('../todolist/stock_hk_orders.csv')
+    orders_pd.to_csv(order_path)
     actions_pd = abu_result_tuple.action_pd
-    actions_pd.to_csv('../todolist/stock_hk_actions.csv')
+    actions_pd.to_csv(action_path)
 
-    save_backtest_result(metrics)
-
+    save_backtest_result(metrics, save_path)
+    print("test ")
     # ABuMarketDrawing.plot_candle_from_order(orders_pd)
 
 
-def save_backtest_result(metrics):
+def save_backtest_result(metrics, save_path):
     result = []
     result1 = '买入后卖出的交易数量:{}'.format(metrics.order_has_ret.shape[0])
     result2 = '买入后尚未卖出的交易数量:{}'.format(metrics.order_keep.shape[0])
@@ -122,11 +146,14 @@ def save_backtest_result(metrics):
     result.append(result12)
     result.append(result13)
     string = "\n"
-    with open('../todolist/stock_hk_pool_backtest.txt', 'a', encoding='utf-8') as f:
+    with open(save_path, 'a', encoding='utf-8') as f:
         f.write(string.join(result))
 
 
 if __name__ == "__main__":
-    execute_stock_us_back_test()
+    # execute_stock_us_back_test('../todolist/stock_us_pool.csv', '../todolist/stock_us_pool_backtest.txt')
+    # execute_stock_hk_back_test('../todolist/stock_hk_grid_pool.csv', '../todolist/stock_hk_grid_pool_backtest.txt', hand_type=1)
+    execute_stock_hk_back_test('../todolist/stock_hk_pool.csv', '../todolist/stock_hk_pool_backtest.txt', hand_type=0)
+    print("work test")
     # stock_a_pd = pd.read_csv('stock_a_pool.csv')
     # print(stock_a_pd['symbol'])
