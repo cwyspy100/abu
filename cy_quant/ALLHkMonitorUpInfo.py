@@ -16,33 +16,33 @@ import datetime
 import os
 
 
-class ALLAMonitorUpInfo:
+class ALLHkMonitorUpInfo:
     def __init__(self):
         self.benchmark = AbuBenchmark()
         self.capital = AbuCapital(1000000, self.benchmark)
         self.kl_pd_manager = AbuKLManager(self.benchmark, self.capital)
         
-    def update_all_a_data(self):
+    def update_all_hk_data(self):
         """
-        更新所有A股数据到本地
+        更新所有港股数据到本地
         """
         abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
         abupy.env.g_data_cache_type = EDataCacheType.E_DATA_CACHE_CSV
-        abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_CN
-        abu.run_kl_update(n_folds=1, market=EMarketTargetType.E_MARKET_TARGET_CN, n_jobs=2)
+        abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_HK
+        abu.run_kl_update(n_folds=1, market=EMarketTargetType.E_MARKET_TARGET_HK, n_jobs=2)
         
     def test_single_stock(self, symbol, save_to_csv=True):
         """
-        测试单个股票，获取详细数据并保存到CSV
+        测试单个港股，获取详细数据并保存到CSV
         
         Args:
-            symbol (str): 股票代码，如 '000001'
+            symbol (str): 港股代码，如 '0700'
             save_to_csv (bool): 是否保存到CSV文件，默认True
             
         Returns:
             dict: 包含股票详细分析数据的字典
         """
-        print(f"开始分析股票: {symbol}")
+        print(f"开始分析港股: {symbol}")
         
         # 设置环境
         self._setup_environment()
@@ -51,7 +51,7 @@ class ALLAMonitorUpInfo:
             # 获取股票数据
             kl_pd = self.kl_pd_manager.get_pick_stock_kl_pd(symbol)
             if kl_pd is None or len(kl_pd) < 120:
-                print(f"股票 {symbol} 数据不足，需要至少120个交易日数据")
+                print(f"港股 {symbol} 数据不足，需要至少120个交易日数据")
                 return None
                 
             print(f"获取到 {len(kl_pd)} 个交易日数据")
@@ -86,7 +86,7 @@ class ALLAMonitorUpInfo:
             return result
             
         except Exception as e:
-            print(f"分析股票 {symbol} 时出错: {str(e)}")
+            print(f"分析港股 {symbol} 时出错: {str(e)}")
             return None
     
     def _setup_environment(self):
@@ -96,7 +96,7 @@ class ALLAMonitorUpInfo:
         abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
         abupy.env.disable_example_env_ipython()
         abupy.env.g_data_fetch_mode = EMarketDataFetchMode.E_DATA_FETCH_FORCE_LOCAL
-        abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_CN
+        abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_HK
     
     def _calculate_technical_indicators(self, kl_pd, symbol):
         """
@@ -141,6 +141,7 @@ class ALLAMonitorUpInfo:
         return {
             'symbol': symbol,
             'co_name': stock_info.get('co_name', ''),
+            'market_type': '港股',
             'ma120_angle': round(ma120_angle, 3),
             'current_price': current_price,
             'ma5_price': kl_pd['MA5'].iloc[-1],
@@ -285,59 +286,49 @@ class ALLAMonitorUpInfo:
         print(f"5日均量: {result['vol_ma5']:.0f}")
         print(f"10日均量: {result['vol_ma10']:.0f}")
         
-    def cal_a_up_days(self):
+    def cal_hk_up_days(self):
         """
-        统计所有股票数据中120日均线的角度是大于0的，
-        统计从价格超过120日均线开始的，涨幅天数和涨的幅度
+        统计所有港股数据中120日均线的角度是大于0的
         """
-        # 设置环境 - 使用本地数据，不通过网络更新
         self._setup_environment()
 
-        # 获取所有股票代码
         all_symbols = ABuMarket.all_symbol()
-        print(f"总共获取到 {len(all_symbols)} 只股票")
+        print(f"总共获取到 {len(all_symbols)} 只港股")
 
-        # 存储结果
         results = []
 
         for i, symbol in enumerate(all_symbols):
             try:
-                print(f"正在处理第 {i+1}/{len(all_symbols)} 只股票: {symbol}")
+                print(f"正在处理第 {i+1}/{len(all_symbols)} 只港股: {symbol}")
 
-                # 获取股票数据
                 kl_pd = self.kl_pd_manager.get_pick_stock_kl_pd(symbol)
                 if kl_pd is None or len(kl_pd) < 120:
-                    print(f"股票 {symbol} 数据不足，跳过")
+                    print(f"港股 {symbol} 数据不足，跳过")
                     continue
 
-                # 计算120日均线
                 kl_pd['MA120'] = kl_pd['close'].rolling(window=120).mean()
 
-                # 计算120日均线角度（使用最近30个交易日的数据）
                 if len(kl_pd) >= 30:
                     recent_ma120 = kl_pd['MA120'].dropna().tail(30)
-                    if len(recent_ma120) >= 10:  # 至少需要10个数据点计算角度
+                    if len(recent_ma120) >= 10:
                         ma120_angle = ABuRegUtil.calc_regress_deg(recent_ma120, show=False)
                     else:
                         ma120_angle = 0
                 else:
                     ma120_angle = 0
 
-                # 只处理120日均线角度大于0的股票
                 if ma120_angle > 0:
-                    # 找到价格最后一次超过120日均线的位置
                     cross_above_ma120 = self._find_cross_above_ma120(kl_pd)
 
                     if cross_above_ma120 is not None:
-                        # 计算从最后一次突破开始到现在的涨幅天数和幅度
                         up_days, up_ratio, up_count, down_count, up_down_ratio = self._calculate_up_info(kl_pd, cross_above_ma120)
 
-                        # 获取股票基本信息
                         stock_info = self._get_stock_info(symbol)
 
                         result = {
                             'symbol': symbol,
                             'co_name': stock_info.get('co_name', ''),
+                            'market_type': '港股',
                             'ma120_angle': round(ma120_angle, 3),
                             'cross_date': cross_above_ma120,
                             'up_days': up_days,
@@ -349,16 +340,13 @@ class ALLAMonitorUpInfo:
                             'ma120_price': kl_pd['MA120'].iloc[-1]
                         }
                         results.append(result)
-                        print(f"股票 {symbol} 符合条件: 角度={ma120_angle:.3f}, 最后突破天数={up_days}, 涨幅={up_ratio:.2f}%, 上涨天数={up_count}, 下跌天数={down_count}, 比率={up_down_ratio:.2f}")
+                        print(f"港股 {symbol} 符合条件: 角度={ma120_angle:.3f}, 最后突破天数={up_days}, 涨幅={up_ratio:.2f}%, 上涨天数={up_count}, 下跌天数={down_count}, 比率={up_down_ratio:.2f}")
 
             except Exception as e:
-                print(f"处理股票 {symbol} 时出错: {str(e)}")
+                print(f"处理港股 {symbol} 时出错: {str(e)}")
                 continue
 
-        # 保存结果到文件
         self._save_results(results)
-
-        # 打印统计信息
         self._print_statistics(results)
 
         return results
@@ -367,11 +355,9 @@ class ALLAMonitorUpInfo:
         """
         找到价格最后一次超过120日均线的位置
         """
-        # 确保有足够的数据
         if len(kl_pd) < 120:
             return None
 
-        # 找到价格最后一次超过120日均线的位置
         last_cross = None
         for i in range(120, len(kl_pd)):
             if kl_pd['close'].iloc[i] > kl_pd['MA120'].iloc[i] and kl_pd['close'].iloc[i-1] <= kl_pd['MA120'].iloc[i-1]:
@@ -383,31 +369,23 @@ class ALLAMonitorUpInfo:
         """
         计算从突破开始到现在的涨幅天数和幅度，以及上涨下跌天数统计
         """
-        # 找到突破日期在数据中的位置
         cross_idx = kl_pd.index.get_loc(cross_date)
         cross_price = kl_pd['close'].iloc[cross_idx]
         current_price = kl_pd['close'].iloc[-1]
 
-        # 计算涨幅天数
         up_days = len(kl_pd) - cross_idx - 1
-
-        # 计算涨幅幅度
         up_ratio = ((current_price - cross_price) / cross_price) * 100
 
-        # 统计上涨下跌天数
         up_count = 0
         down_count = 0
         
-        # 从突破后一天开始统计
         for i in range(cross_idx + 1, len(kl_pd)):
-            if i > 0:  # 确保有前一天的数据
+            if i > 0:
                 if kl_pd['close'].iloc[i] > kl_pd['close'].iloc[i-1]:
                     up_count += 1
                 elif kl_pd['close'].iloc[i] < kl_pd['close'].iloc[i-1]:
                     down_count += 1
-                # 如果价格相等，不计入任何一方
 
-        # 计算上涨下跌比率
         up_down_ratio = up_count / down_count if down_count > 0 else float('inf')
 
         return up_days, up_ratio, up_count, down_count, up_down_ratio
@@ -417,17 +395,14 @@ class ALLAMonitorUpInfo:
         获取股票基本信息
         """
         try:
-            # 这里可以添加获取股票基本信息的逻辑
-            # 比如从股票代码中提取公司名称等
             return {'co_name': symbol}
         except:
             return {'co_name': symbol}
 
     def _save_results(self, results):
         """
-        保存结果到文件，按市场分类保存
+        保存结果到文件
         """
-        # 创建todolist目录（如果不存在）
         todolist_dir = "todolist"
         if not os.path.exists(todolist_dir):
             os.makedirs(todolist_dir)
@@ -436,72 +411,45 @@ class ALLAMonitorUpInfo:
         today = datetime.date.today().strftime("%Y%m%d")
         
         if results:
-            # 保存总体结果
-            all_file = os.path.join(todolist_dir, f"cal_up_days_all_{today}.csv")
-            df_all = pd.DataFrame(results)
-            df_all.to_csv(all_file, index=False, encoding='utf-8-sig')
-            print(f"总体结果已保存到: {all_file}")
+            hk_file = os.path.join(todolist_dir, f"cal_up_days_港股_{today}.csv")
+            df_hk = pd.DataFrame(results)
+            df_hk.to_csv(hk_file, index=False, encoding='utf-8-sig')
+            print(f"港股结果已保存到: {hk_file}")
         else:
-            print("没有找到符合条件的股票")
+            print("没有找到符合条件的港股")
 
     def _print_statistics(self, results):
         """
         打印统计信息
         """
         if not results:
-            print("没有找到符合条件的股票")
+            print("没有找到符合条件的港股")
             return
 
-        print(f"\n=== 统计结果 ===")
-        print(f"符合条件的股票数量: {len(results)}")
+        print(f"\n=== 港股统计结果 ===")
+        print(f"符合条件的港股数量: {len(results)}")
 
-        # 按涨幅排序
         results_sorted = sorted(results, key=lambda x: x['up_ratio'], reverse=True)
 
         print(f"\n涨幅前10名:")
         for i, result in enumerate(results_sorted[:10]):
             print(f"{i+1}. {result['symbol']} {result['co_name']} - 涨幅: {result['up_ratio']}%, 最后突破天数: {result['up_days']}, 上涨天数: {result['up_count']}, 下跌天数: {result['down_count']}, 比率: {result['up_down_ratio']}")
 
-        # 按角度排序
-        results_angle_sorted = sorted(results, key=lambda x: x['ma120_angle'], reverse=True)
-
-        print(f"\n角度前10名:")
-        for i, result in enumerate(results_angle_sorted[:10]):
-            print(f"{i+1}. {result['symbol']} {result['co_name']} - 角度: {result['ma120_angle']}, 涨幅: {result['up_ratio']}%, 上涨下跌比率: {result['up_down_ratio']}")
-        
-        # 按上涨下跌比率排序
-        results_ratio_sorted = sorted(results, key=lambda x: x['up_down_ratio'] if x['up_down_ratio'] != 'inf' else 0, reverse=True)
-        
-        print(f"\n上涨下跌比率前10名:")
-        for i, result in enumerate(results_ratio_sorted[:10]):
-            print(f"{i+1}. {result['symbol']} {result['co_name']} - 比率: {result['up_down_ratio']}, 上涨天数: {result['up_count']}, 下跌天数: {result['down_count']}, 涨幅: {result['up_ratio']}%")
-
 
 if __name__ == '__main__':
     start_time = time.time()
     
-    monitor = ALLAMonitorUpInfo()
+    monitor = ALLHkMonitorUpInfo()
     
-    # 测试单个股票
-    test_symbol = '300204'  # 可以修改为任意股票代码
-    # print(f"测试股票: {test_symbol}")
+    # 测试单个港股
+    test_symbol = '0700'  # 可以修改为任意港股代码
+    # print(f"测试港股: {test_symbol}")
     # result = monitor.test_single_stock(test_symbol)
     
-    # 如果需要测试多只股票
-    # test_symbols = ['000001', '000002', '600000']
-    # for symbol in test_symbols:
-    #     monitor.test_single_stock(symbol)
-    
     # 1、更新所有数据（可选，如果本地已有数据可以注释掉）
-    # monitor.update_all_a_data()
+    # monitor.update_all_hk_data()
     
-    # 2、使用本地数据进行统计（可选）
-    results = monitor.cal_a_up_days()
-    
-    # 1、更新所有数据（可选，如果本地已有数据可以注释掉）
-    # monitor.update_all_a_data()
-    
-    # 2、使用本地数据进行统计（可选）
-    # results = monitor.cal_a_up_days()
+    # 2、使用本地数据进行统计
+    results = monitor.cal_hk_up_days()
     
     print(f"\n总耗时: {time.time() - start_time:.2f} 秒") 
