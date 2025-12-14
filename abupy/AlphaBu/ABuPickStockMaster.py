@@ -21,6 +21,28 @@ from ..CoreBu.ABuFixes import partial
 from ..CoreBu.ABuParallel import delayed, Parallel
 from ..CoreBu.ABuDeprecated import AbuDeprecated
 
+"""
+本模块 AbuPickStockMaster.py 主要用于选股流程的多任务/并行调度，负责根据市场股票池对选股任务进行切分、分发与汇总。
+其核心类 AbuPickStockMaster 提供 do_pick_stock_with_process 方法，实现多进程/多任务的选股因子遍历和股票筛选，旨在提高大规模选股时的计算效率和吞吐能力。
+
+主要内容说明：
+- 封装了选股因子（stock_pickers）在多进程/多任务下对股票池进行分片选股的完整调度、管理及结果整合。
+- 依据 CPU 核数等资源，自动平衡任务粒度，并对数据源（如hdf5、csv本地文件等）模式做出自适应判断，保障并行工作的稳定性。
+- 选股worker由 do_pick_stock_work/do_pick_stock_thread_work 装饰处理，能保证进程/线程环境一致性。
+- 支持 callback 钩子的自定义扩展，方便将其他选股策略嵌入整体流程。
+- 兼容不同平台及存储模式，特别考虑了多进程下文件竞争/数据安全等特殊场景。
+
+python3 优化建议与分析：
+- 本模块 import 了 __future__ 相关内容（absolute_import, print_function, division），在 Python 3 下已为默认行为，可去除，无需保留。
+- 并行与多任务相关逻辑已基于高层API封装并适配 python3，无明显语法问题。内部大量调用 itertools、partial、Parallel 等模块已兼容 python3。
+- 日志、异常管理接口使用标准 logging ，符合现代规范。
+- 若仅考虑 python3，可使用类型注解(type hints)进一步提升代码可读性和静态检查能力。
+- 自动推导进程数量的逻辑可适配 python3 的 os.cpu_count() 工具，当前 AbuEnv.g_cpu_cnt 若为 int 亦符合预期。
+- 若涉及 Pickle 或序列化，多进程间对象传递可考虑 dill/cloudpickle 增强兼容性，但现有装饰器机制已处理主要场景。
+
+结论：
+本模块在 python3 下已结构合理、可直接工作。可选提升空间主要是：移除 __future__ 相关import，引入类型注解，丰富文档字符串。如果不再支持python2，可放心精简相关兼容写法。
+"""
 
 class AbuPickStockMaster(object):
     """选股并行多任务调度类"""

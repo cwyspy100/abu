@@ -19,6 +19,28 @@ from ..UtilBu.ABuProgress import AbuMulPidProgress
 __author__ = '阿布'
 __weixin__ = 'abu_quant'
 
+"""
+AbuPickStockWorker 分析与 Python3 优化建议
+
+类 AbuPickStockWorker 负责将资金、基准、选股因子和股票池等关键对象整合，循环迭代初始证券池，利用股票选股因子拟合后输出选股结果。
+其职责为：
+- 持有资本、基准、证券池和金融时间序列管理器，对引入的 stock_pickers 进行初始化、复合和执行。
+- 通过 init_stock_pickers 方法动态实例化与验证每个选股因子。
+- 支持灵活传入选股因子构造参数和对象检查。
+
+Python3 优化点建议如下：
+1. 移除 `from __future__` 相关导入：这些导入只为兼容 Python2，当前仅支持 Python3 可删去。
+2. 类型注解：为 __init__ 和核心方法增加类型注解（如 capital: AbuCapital），提升代码可读性和静态检查能力。
+3. 深拷贝优化：copy.deepcopy 在参数已标准化的情况下可考虑浅拷贝或 dict unpack，减少性能开销，具体要结合实测需求。
+4. 使用 super()：若 AbuPickStockWorkBase 为新式类（继承 object），可直接用 super().__init__()，更规范。
+5. f-string 优化：__str__ 方法可使用 f-string 替代 format，代码更现代。
+6. 抛出异常类型可补充提示信息，如 TypeError、ValueError 内容详实，并可自定义新异常。
+7. 去除多余的中英注释混排。如确定仅服务于中文用户，可统一中文注释，否则建议主要用英文，提升国际化能力。
+8. 模块文档字符串（docstring）可补充方法参数与返回类型说明，按照 PEP 257 精简格式。
+9. 若有并发需求，stock_pickers/init 过程可探索异步优化或者多线程/进程实例化（如有大量因子）。
+
+总之，本类及模块总体已结构清晰，对于 Python3 兼容性良好。主要提升空间为类型注解、现代语法和适当性能细节优化。
+"""
 
 class AbuPickStockWorker(AbuPickStockWorkBase):
     """选股类"""
