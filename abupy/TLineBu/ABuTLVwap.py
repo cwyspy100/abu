@@ -5,9 +5,6 @@
     非标准传统意义vwap计算，即非使用高频的分钟k线和量进行计算，只是套用概念计算
     日线级别的vwap
 """
-from __future__ import division
-from __future__ import print_function
-from __future__ import absolute_import
 
 from enum import Enum
 

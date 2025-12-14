@@ -1,9 +1,6 @@
 # -*- encoding:utf-8 -*-
 """资金仓位管理策略图形可视化"""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import ipywidgets as widgets
 

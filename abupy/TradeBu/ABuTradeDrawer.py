@@ -3,15 +3,13 @@
     交易可视化模块
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import copy
 
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 
 from ..CoreBu import ABuEnv
@@ -108,7 +106,31 @@ def plot_his_trade(orders, kl_pd):
                 sell_tip = 'sell price:{:.2f}, profit:{:.2f}'.format(order.sell_price, pft)
             else:
                 # 如果单子未卖出，卖出入信息标签使用，收益使用now_price计算，需＊单子期望的盈利方向
-                sell_date_fmt = ABuDateUtil.str_to_datetime(str(all_pd[-1:]['date'][0]), '%Y%m%d')
+                # Python 3.9 + pandas 2.0+: 使用 iloc[-1] 替代 [-1:]['date'][0] 避免 FutureWarning
+                # 处理日期格式：date 列可能是整数或 datetime，统一转换为字符串格式
+                date_val = all_pd.iloc[-1]['date']
+                try:
+                    if isinstance(date_val, pd.Timestamp):
+                        # 如果是 datetime 类型，使用 strftime 格式化
+                        date_str = date_val.strftime('%Y%m%d')
+                    elif isinstance(date_val, (int, np.integer)):
+                        # 如果是整数类型，转换为字符串（确保是8位数字）
+                        date_str = str(int(date_val)).zfill(8)
+                    else:
+                        # 其他类型，先转换为字符串，然后尝试提取数字部分
+                        date_str = str(date_val).strip()
+                        # 如果包含非数字字符，尝试提取8位数字
+                        import re
+                        match = re.search(r'\d{8}', date_str)
+                        if match:
+                            date_str = match.group()
+                        else:
+                            # 如果无法提取，使用索引的日期作为后备方案
+                            date_str = all_pd.index[-1].strftime('%Y%m%d')
+                    sell_date_fmt = ABuDateUtil.str_to_datetime(date_str, '%Y%m%d')
+                except (ValueError, AttributeError, TypeError):
+                    # 如果所有方法都失败，使用索引的日期
+                    sell_date_fmt = all_pd.index[-1]
                 pft = (now_price - order.buy_price) * order.buy_cnt * order.expect_direction
                 sell_tip = 'now price:{:.2f}, profit:{:.2f}'.format(now_price, pft)
 

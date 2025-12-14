@@ -4,16 +4,12 @@
     抛弃异常时间序列，交易市场范围限制，以及对比与策略的度量结果等作用
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 from ..CoreBu.ABuEnv import EMarketDataSplitMode, EMarketTargetType
 from ..MarketBu import ABuSymbolPd
 from ..MarketBu.ABuSymbol import IndexSymbol, Symbol
 from ..CoreBu import ABuEnv
 from ..CoreBu.ABuBase import PickleStateMixin
-from ..CoreBu.ABuFixes import six
 
 __author__ = '阿布'
 __weixin__ = 'abu_quant'
@@ -74,7 +70,7 @@ class AbuBenchmark(PickleStateMixin):
         """完成 PickleStateMixin中__setstate__结束之前的工作，为kl_pd.name赋予准确的benchmark"""
         if isinstance(self.benchmark, Symbol):
             self.kl_pd.name = self.benchmark.value
-        elif isinstance(self.benchmark, six.string_types):
+        elif isinstance(self.benchmark, (str, bytes)):
             self.kl_pd.name = self.benchmark
 
     def __str__(self):

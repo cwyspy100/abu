@@ -3,9 +3,6 @@
     数据源解析模块以及示例内置数据源的解析类实现
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import logging
 
@@ -13,7 +10,6 @@ import numpy as np
 import pandas as pd
 
 from .ABuSymbol import EMarketTargetType
-from ..CoreBu.ABuFixes import six
 from ..UtilBu import ABuDateUtil
 
 __author__ = '阿布'
@@ -39,7 +35,7 @@ class AbuDataParseWrap(object):
 
     def __call__(self, cls):
         """只做为数据源解析类的装饰器，统一封装通用的数据解析规范及流程"""
-        if isinstance(cls, six.class_types):
+        if isinstance(cls, type):
             # 只做为类装饰器使用
             init = cls.__init__
 

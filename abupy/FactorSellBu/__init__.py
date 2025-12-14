@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 
 from .ABuFactorSellBase import AbuFactorSellBase, AbuFactorSellXD, ESupportDirection
 from .ABuFactorPreAtrNStop import AbuFactorPreAtrNStop

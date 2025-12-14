@@ -3,9 +3,6 @@
     深度学习工具模块，为caffe等工具库标准化图片格式
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 
 import glob
 import imghdr

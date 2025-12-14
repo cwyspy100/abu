@@ -2,9 +2,6 @@
 """
     买入卖出因子与ump进行组织管理通信模块
 """
-from __future__ import division
-from __future__ import print_function
-from __future__ import absolute_import
 
 from ..UtilBu.ABuLazyUtil import LazyFunc
 from ..UtilBu.ABuFileUtil import file_exist
@@ -21,7 +18,6 @@ from ..UmpBu.ABuUmpMainWave import AbuUmpMainWave
 from ..UmpBu.ABuUmpMainBase import AbuUmpMainBase
 from ..CoreBu import ABuEnv
 # noinspection PyUnresolvedReferences
-from ..CoreBu.ABuFixes import filter, six
 
 __author__ = '阿布'
 __weixin__ = 'abu_quant'
@@ -40,7 +36,7 @@ def append_user_ump(ump, check=True):
     """
     if check:
         # 检测ump训练后的本地物理文件是否存在
-        if isinstance(ump, six.class_types):
+        if isinstance(ump, type):
             ump_cache_path = ump(predict=True).dump_file_fn()
         else:
             ump_cache_path = ump.dump_file_fn()
@@ -299,7 +295,7 @@ class AbuUmpManager(object):
         for extend_ump in self.extend_ump_list:
             class_unique_id = extend_ump.class_unique_id()
             # 由于对外添加ump的接口append_user_ump中参数ump可以是ump class类型，也可以是实例化后的ump object
-            if isinstance(extend_ump, six.class_types):
+            if isinstance(extend_ump, type):
                 # 把class类型的ump进行实例构造
 
                 is_main_ump = issubclass(extend_ump, AbuUmpMainBase)

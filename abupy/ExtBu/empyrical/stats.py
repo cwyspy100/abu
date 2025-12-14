@@ -20,7 +20,7 @@ from functools import wraps
 import pandas as pd
 import numpy as np
 from scipy import stats
-from six import iteritems
+# Python 3.9: dict.items() 替代 six.iteritems
 
 from .utils import nanmean, nanstd, nanmin
 
@@ -721,7 +721,7 @@ def _aligned_series(*many_series):
 
     """
     return [series
-            for col, series in iteritems(pd.concat(many_series, axis=1))]
+            for col, series in pd.concat(many_series, axis=1).items()]
 
 
 def alpha_beta(returns, factor_returns, risk_free=0.0, period=DAILY,

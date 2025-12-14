@@ -3,14 +3,10 @@
     函数对象的工具类
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 from collections import OrderedDict
 from abc import ABCMeta
 
-from ..CoreBu.ABuFixes import six
 
 try:
     from inspect import getfullargspec as getargspec
@@ -22,7 +18,7 @@ __author__ = '夜猫'
 __weixin__ = 'abu_quant'
 
 
-class ArgNoDefault(six.with_metaclass(ABCMeta, TypeError)):
+class ArgNoDefault(TypeError, metaclass=ABCMeta):
     """没有默认值的参数对象"""
     pass
 
@@ -81,7 +77,7 @@ def check_bind(func, *args, **kwargs):
         )
     # 检查 kwargs 中是否和 args的参数冲突
     arg_inds = OrderedDict(zip(spec_args, range(len(spec_args))))
-    for k, v in six.iteritems(kwargs):
+    for k, v in kwargs.items():
         if l_arg_len > arg_inds[k]:
             raise TypeError(
                 "dict argument crash on tuple argument:  {}".format(str(k))
@@ -102,7 +98,7 @@ def bind_partial(func, *args, **kwargs):
 
     # 拼装函数参数和对应的参数对象
     bind_dict = OrderedDict(zip(spec_args, [None] * len(spec_args)))
-    for k, v in six.iteritems(kwargs):
+    for k, v in kwargs.items():
         bind_dict[k] = v
     for k, v in zip(six.iterkeys(bind_dict), args):
         bind_dict[k] = v

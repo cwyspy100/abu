@@ -3,9 +3,6 @@
     卖出择时示例因子：n倍atr(止盈止损)择时卖出策略
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 
 from .ABuFactorSellBase import AbuFactorSellBase, ESupportDirection
 

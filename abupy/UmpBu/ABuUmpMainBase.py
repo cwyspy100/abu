@@ -3,9 +3,6 @@
     主裁基础实现模块
 """
 
-from __future__ import division
-from __future__ import print_function
-from __future__ import absolute_import
 
 import os
 import copy
@@ -837,7 +834,8 @@ class AbuUmpMainBase(AbuUmpBase):
         nts_pd = pd.DataFrame()
         for component_cluster in llps.index:
             # component_cluster eg:  '14-7', self.nts[component_cluster]即对应的pd.DataFrame对象
-            nts_pd = nts_pd.append(self.nts[component_cluster])
+            # Python 3.9 + pandas 2.0+: append() 已移除，使用 pd.concat() 替代
+            nts_pd = pd.concat([nts_pd, self.nts[component_cluster]], ignore_index=True)
             """
                 eg: self.nts字典中元素如下所示：
                 '14-7':
@@ -1174,7 +1172,8 @@ class AbuUmpMainBase(AbuUmpBase):
         nts_pd = pd.DataFrame()
         for component_cluster in llps.index:
             # component_cluster eg:  '14-7', self.nts[component_cluster]即对应的pd.DataFrame对象
-            nts_pd = nts_pd.append(self.nts[component_cluster])
+            # Python 3.9 + pandas 2.0+: append() 已移除，使用 pd.concat() 替代
+            nts_pd = pd.concat([nts_pd, self.nts[component_cluster]], ignore_index=True)
             """
                 eg: self.nts字典中元素如下所示：
                 '14-7':

@@ -3,9 +3,6 @@
     跳空缺口模块
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import itertools
 from collections import namedtuple
@@ -170,7 +167,8 @@ def calc_jump(kl_pd, jump_diff_factor=1, show=True):
             # 计算出跳空缺口强度
             today['jump_power'] = (today.low - today.pre_close) / jump_diff
 
-            jump_pd = jump_pd.append(today)
+            # Python 3.9 + pandas 2.0+: append() 已移除，使用 pd.concat() 替代
+            jump_pd = pd.concat([jump_pd, today.to_frame().T], ignore_index=True)
         elif today.p_change < 0 and (today.pre_close - today.high) > jump_diff:
             # 注意向下跳空判断使用today.high，向下跳空 －1
             today['jump'] = -1
@@ -180,7 +178,8 @@ def calc_jump(kl_pd, jump_diff_factor=1, show=True):
             today['jump_diff'] = jump_diff
             # 计算出跳空缺口强度
             today['jump_power'] = (today.pre_close - today.high) / jump_diff
-            jump_pd = jump_pd.append(today)
+            # Python 3.9 + pandas 2.0+: append() 已移除，使用 pd.concat() 替代
+            jump_pd = pd.concat([jump_pd, today.to_frame().T], ignore_index=True)
 
     if show:
         # 通过plot_candle_form_klpd可视化跳空缺口，通过view_indexs参数

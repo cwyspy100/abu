@@ -3,9 +3,6 @@
     包装选股worker进行，完善前后工作
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 
 from .ABuPickStockWorker import AbuPickStockWorker
 from ..CoreBu.ABuEnvProcess import add_process_env_sig

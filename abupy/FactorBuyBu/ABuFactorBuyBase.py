@@ -3,14 +3,10 @@
     买入择时策略因子基础模块
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 
 import copy
 from abc import ABCMeta, abstractmethod
 
-from ..CoreBu.ABuFixes import six
 from ..CoreBu.ABuDeprecated import AbuDeprecated
 from ..BetaBu.ABuAtrPosition import AbuAtrPosition
 from ..BetaBu import ABuPositionBase
@@ -60,7 +56,7 @@ class BuyPutMixin(object):
         return -1.0
 
 
-class AbuFactorBuyBase(six.with_metaclass(ABCMeta, AbuParamBase)):
+class AbuFactorBuyBase(AbuParamBase, metaclass=ABCMeta):
     """
         买入择时策略因子基类：每一个继承AbuFactorBuyBase的子类必须混入一个方向类，
         且只能混入一个方向类，即具体买入因子必须明确买入方向，且只能有一个买入方向，
@@ -123,7 +119,7 @@ class AbuFactorBuyBase(six.with_metaclass(ABCMeta, AbuParamBase)):
 
         if 'position' in kwargs:
             position = kwargs.pop('position', AbuAtrPosition)
-            if isinstance(position, six.class_types):
+            if isinstance(position, type):
                 # 如果position里面直接设置的是一个class，直接弹出
                 self.position_class = position
             elif isinstance(position, dict):

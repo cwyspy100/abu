@@ -11,9 +11,6 @@
     2016-07-26	225.93	228.740	225.63	-1.77	227.34	230.01	41833	20160726	1	503	9.1337	8.7541
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 from collections import Iterable
 

@@ -1,9 +1,6 @@
 # -*- encoding:utf-8 -*-
 """封装grid search相关操作模块"""
 
-from __future__ import division
-from __future__ import print_function
-from __future__ import absolute_import
 
 import logging
 
@@ -12,7 +9,6 @@ import numpy as np
 from sklearn.base import ClassifierMixin, RegressorMixin
 from sklearn.metrics import explained_variance_score, make_scorer
 
-from ..CoreBu.ABuFixes import signature, six
 from ..CoreBu.ABuFixes import GridSearchCV
 
 __author__ = '阿布'
@@ -88,7 +84,7 @@ def grid_search_init_kwargs(estimator, x, y, param_name, param_range, cv=10, n_j
     :return: eg：(0.81930415263748602, {'n_estimators': 300})
     """
 
-    if not isinstance(param_name, six.string_types):
+    if not isinstance(param_name, (str, bytes)):
         # param_name参数需要是字符串类型
         logging.info('param_name is str, not {}, eg: \'n_estimators\''.format(param_name))
         return None, None

@@ -9,9 +9,6 @@ MACD称为指数平滑异动移动平均线，是从双指数移动平均线发�
 是卖的信号。当MACD以大角度变化，表示快的移动平均线和慢的移动平均线的差距非常迅速的拉开，代表了一个市场大趋势的转变。
 
 """
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 
 import matplotlib.pyplot as plt
 import numpy as np

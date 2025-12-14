@@ -1,8 +1,5 @@
 # -*- encoding:utf-8 -*-
 """度量模块基础"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import functools
 import logging
@@ -15,7 +12,6 @@ import seaborn as sns
 from ..ExtBu.empyrical import stats
 from ..CoreBu import ABuEnv
 from ..CoreBu.ABuEnv import EMarketDataFetchMode
-from ..CoreBu.ABuFixes import six
 from ..UtilBu import ABuDateUtil
 from ..UtilBu import ABuStatsUtil, ABuScalerUtil
 from ..UtilBu.ABuDTUtil import warnings_filter
@@ -466,13 +462,13 @@ class AbuMetricsBase(object):
 
             diff = sf_val.values - sub_val
 
-            if diff.max() > list(six.itervalues(max_draw_down))[0]:
+            if diff.max() > list(max_draw_down.values())[0]:
                 st_ind = diff.argmax()
                 st_ind = sf_val.index[st_ind]
                 end_ind = cap_pd_index[sf]
                 max_draw_down = {(st_ind, end_ind): diff.max()}
 
-        down_rate = list(six.itervalues(max_draw_down))[0] / self.capital.capital_pd['capital_blance'].loc[
+        down_rate = list(max_draw_down.values())[0] / self.capital.capital_pd['capital_blance'].loc[
             list(six.iterkeys(max_draw_down))[0][0]]
         """
             截取开始交易部分
@@ -499,7 +495,7 @@ class AbuMetricsBase(object):
         self.log_func('最大回测启始时间:{}, 结束时间{}, 共回测{:3f}'.format(
             ABuDateUtil.timestamp_to_str(list(six.iterkeys(max_draw_down))[0][0]),
             ABuDateUtil.timestamp_to_str(list(six.iterkeys(max_draw_down))[0][1]),
-            list(six.itervalues(max_draw_down))[0]))
+            list(max_draw_down.values())[0]))
 
     @valid_check
     def transform_to_full_rate_factor(self, read_cash=-1, kl_pd_manager=None, n_process_kl=ABuEnv.g_cpu_cnt,

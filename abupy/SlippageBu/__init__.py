@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 
 from .ABuSlippageBuyBase import AbuSlippageBuyBase
 from .ABuSlippageBuyMean import AbuSlippageBuyMean

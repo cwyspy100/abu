@@ -3,9 +3,6 @@
     行业分类模块，仅支持美股，a股，港股
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 from collections import Iterable
 import logging

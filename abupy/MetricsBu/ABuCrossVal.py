@@ -1,9 +1,6 @@
 # -*- encoding:utf-8 -*-
 """策略验证模块"""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import logging
 from itertools import chain

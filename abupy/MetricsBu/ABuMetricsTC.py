@@ -1,9 +1,6 @@
 # -*- encoding:utf-8 -*-
 """比特币度量模块"""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 
 from ..MetricsBu.ABuMetricsFutures import AbuMetricsFutures

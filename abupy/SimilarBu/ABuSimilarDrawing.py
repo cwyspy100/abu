@@ -2,9 +2,6 @@
 """
     相关系数，相似度可视化模块
 """
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import itertools
 import math
@@ -16,7 +13,6 @@ from ..MarketBu import ABuSymbolPd
 from ..UtilBu import ABuScalerUtil
 
 # noinspection PyUnresolvedReferences
-from ..CoreBu.ABuFixes import xrange
 from ..CoreBu import ABuEnv
 from ..UtilBu.ABuDTUtil import plt_show
 
@@ -43,7 +39,7 @@ def draw_show_close(sorted_ret, target_count, show_cnt):
 
     with plt_show():
         # 循环K_PLT_MAP_STYLE颜色集的颜色，绘制各个金融时间序列
-        for x, cs_color in zip(xrange(0, show_cnt), itertools.cycle(K_PLT_MAP_STYLE)):
+        for x, cs_color in zip(range(0, show_cnt), itertools.cycle(K_PLT_MAP_STYLE)):
             # 通过多少个交易日参数target_count，计算出要请求几年的数据n_folds
             n_folds = int(math.ceil(target_count / ABuEnv.g_market_trade_year))
             # sorted_ret[x] : ('usTSLA', 1.0) -> sorted_ret[x][0]: usTSLA
@@ -55,7 +51,7 @@ def draw_show_close(sorted_ret, target_count, show_cnt):
                 # 再次确认时间范围
                 close_array = close_array[:int(target_count)]
 
-            cs_np = np.array(close_array, dtype=np.float)
+            cs_np = np.array(close_array, dtype=float)
             # 使用ABuScalerUtil.scaler_std将序列进行标准化在一个数量值范围内可视化
             plt.plot(ABuScalerUtil.scaler_std(cs_np), cs_color, label=sorted_ret[x][0])
         plt.legend(loc='best', bbox_to_anchor=(1.05, 1), borderaxespad=0.)

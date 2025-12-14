@@ -1,11 +1,8 @@
 # -*- encoding:utf-8 -*-
 """
     全局环境配置模块
+    Python 3.9 版本
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import logging
 import os
@@ -15,19 +12,18 @@ import sys
 import warnings
 from enum import Enum
 from os import path
+from importlib import reload
 
 import numpy as np
 import pandas as pd
-
-from ..CoreBu.ABuFixes import six
 
 __author__ = '阿布'
 __weixin__ = 'abu_quant'
 
 """暂时支持windows和mac os，不是windows就是mac os（不使用Darwin做判断），linux下没有完整测试"""
 g_is_mac_os = platform.system().lower().find("windows") < 0 and sys.platform != "win32"
-"""python版本环境，是否python3"""
-g_is_py3 = six.PY3
+"""python版本环境，Python 3.9 始终为 True"""
+g_is_py3 = True
 """ipython，是否ipython运行环境"""
 g_is_ipython = True
 """主进程pid，使用并行时由于ABuEnvProcess会拷贝主进程注册了的模块信息，所以可以用g_main_pid来判断是否在主进程"""
@@ -47,13 +43,8 @@ try:
     """有psutil，使用psutil.cpu_count计算cpu个数"""
     g_cpu_cnt = psutil.cpu_count(logical=True) * 1
 except ImportError:
-    if g_is_py3:
-        # noinspection PyUnresolvedReferences
-        g_cpu_cnt = os.cpu_count()
-    else:
-        import multiprocessing as mp
-
-        g_cpu_cnt = mp.cpu_count()
+    # Python 3.9 直接使用 os.cpu_count()
+    g_cpu_cnt = os.cpu_count() or 4
 except:
     # 获取cpu个数失败，默认4个
     g_cpu_cnt = 4
@@ -84,6 +75,9 @@ if g_ignore_lib_warnings:
 
         matplotlib.warnings.filterwarnings('ignore')
         matplotlib.warnings.simplefilter('ignore')
+        # Python 3.9 + matplotlib 3.8+: 抑制 MatplotlibDeprecationWarning
+        # 这些警告通常来自 IDE 插件（如 PyCharm），不是用户代码的问题
+        warnings.filterwarnings('ignore', category=matplotlib.MatplotlibDeprecationWarning)
         import sklearn
 
         sklearn.warnings.filterwarnings('ignore')
@@ -123,9 +117,9 @@ def str_is_cn(a_str):
         """
         to_unicode原始位置: UtilBu.ABuStrUtil，为保持env为最初初始化不引入其它模块，这里临时拷贝使用
         """
-        if isinstance(text, six.text_type):
+        if isinstance(text, str):
             return text
-        if not isinstance(text, (bytes, six.text_type)):
+        if not isinstance(text, (bytes, str)):
             raise TypeError('to_unicode must receive a bytes, str or unicode '
                             'object, got %s' % type(text).__name__)
         if encoding is None:
@@ -492,11 +486,9 @@ def init_logging():
     """
     logging相关初始化工作，配置log级别，默认写入路径，输出格式
     """
-    if g_is_ipython and not g_is_py3:
-        """ipython在python2的一些版本需要reload logging模块，否则不显示log信息"""
-        # noinspection PyUnresolvedReferences, PyCompatibility
+    if g_is_ipython:
+        """ipython需要reload logging模块，否则不显示log信息"""
         reload(logging)
-        # pass
 
     if not os.path.exists(g_project_log_dir):
         # 创建log文件夹

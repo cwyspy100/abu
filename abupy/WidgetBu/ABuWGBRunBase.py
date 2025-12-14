@@ -1,9 +1,6 @@
 # -*- encoding:utf-8 -*-
 """股票基本信息图形可视化"""
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import os
 import ipywidgets as widgets

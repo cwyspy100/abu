@@ -4,9 +4,6 @@
 
     所有数据接口仅供学习使用，以及最基本使用测试，如需进一步使用，请购买数据
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import logging
 import os
@@ -27,7 +24,6 @@ from ..UtilBu import ABuStrUtil, ABuDateUtil, ABuMd5
 from ..UtilBu.ABuDTUtil import catch_error
 from ..CoreBu.ABuDeprecated import AbuDeprecated
 # noinspection PyUnresolvedReferences
-from ..CoreBu.ABuFixes import xrange, range, filter
 
 """网络请求（连接10秒，接收60秒）超时时间"""
 K_TIME_OUT = (10, 60)
@@ -119,7 +115,7 @@ class BDApi(StockBaseMarket, SupportMixin):
             # 每次返回300条数据
             n_folds = int(days / 300.0)
 
-        for _ in xrange(0, n_folds):
+        for _ in range(0, n_folds):
             if next_start:
                 url = url + BDApi.K_NET_CONNECT_START + str(next_start)
             # logging.info(url)
@@ -303,7 +299,8 @@ class NTApi(StockBaseMarket, SupportMixin):
             if data is not None:
                 temp_df = self.data_parser_cls(self._symbol, data.json()).df
             if temp_df is not None:
-                kl_df = temp_df if kl_df is None else kl_df.append(temp_df)
+                # Python 3.9 + pandas 2.0+: append() 已移除，使用 pd.concat() 替代
+                kl_df = temp_df if kl_df is None else pd.concat([kl_df, temp_df], ignore_index=True)
         if kl_df is None:
             return None
         return StockBaseMarket._fix_kline_pd(kl_df, n_folds, start, end)

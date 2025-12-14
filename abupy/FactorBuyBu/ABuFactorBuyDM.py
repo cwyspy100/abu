@@ -3,9 +3,6 @@
     买入择时示例因子：动态自适应双均线策略
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 
 import math
 

@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 
 from .ABuGridSearch import ParameterGrid, GridSearch
 from .ABuCrossVal import AbuCrossVal

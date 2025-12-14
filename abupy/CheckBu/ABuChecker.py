@@ -3,9 +3,6 @@
     检查类，检查函数对象、函数参数、函数返回值
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 from toolz import valmap
 from functools import wraps
@@ -18,14 +15,14 @@ __author__ = '夜猫'
 __weixin__ = 'abu_quant'
 
 
-class _NoInstances(six.with_metaclass(ABCMeta, type)):
+class _NoInstances(type, metaclass=ABCMeta):
     """阻止实例化"""
 
     def __call__(cls, *args, **kwargs):
         raise TypeError("Can't instantiate directly")
 
 
-class FuncChecker(six.with_metaclass(ABCMeta, _NoInstances)):
+class FuncChecker(_NoInstances, metaclass=ABCMeta):
     """函数相关的检查类"""
 
     @staticmethod
@@ -38,7 +35,7 @@ class FuncChecker(six.with_metaclass(ABCMeta, _NoInstances)):
             raise CheckError('%s is not callable' % get_func_name(func))
 
 
-class ArgChecker(six.with_metaclass(ABCMeta, _NoInstances)):
+class ArgChecker(_NoInstances, metaclass=ABCMeta):
     """函数参数相关的检查类"""
 
     @staticmethod
@@ -60,7 +57,7 @@ class ArgChecker(six.with_metaclass(ABCMeta, _NoInstances)):
                     )
                 )
         # 检查是否有不合规的dict参数
-        for name, ty in six.iteritems(ty_kwargs):
+        for name, ty in ty_kwargs.items():
             if not isinstance(ty, (type, tuple)):
                 raise TypeError(
                     "check_type() expected a type or tuple of types for "
@@ -210,7 +207,7 @@ class ArgChecker(six.with_metaclass(ABCMeta, _NoInstances)):
                     )
                 )
         # 检查是否有不合规的dict参数
-        for name, ss in six.iteritems(ss_kwargs):
+        for name, ss in ss_kwargs.items():
             if not isinstance(ss, (list, set, type(None))):
                 raise TypeError(
                     "check_subset() expected a list or set of values for "
@@ -222,7 +219,7 @@ class ArgChecker(six.with_metaclass(ABCMeta, _NoInstances)):
         return arg_process(*map(subset_check, list(ss_args)), **valmap(subset_check, ss_kwargs))
 
 
-class ReturnChecker(six.with_metaclass(ABCMeta, _NoInstances)):
+class ReturnChecker(_NoInstances, metaclass=ABCMeta):
     """函数返回值相关的检查类"""
 
     @staticmethod

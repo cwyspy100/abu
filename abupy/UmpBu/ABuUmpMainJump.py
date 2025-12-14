@@ -1,9 +1,6 @@
 # -*- encoding:utf-8 -*-
 """示例ump主裁特征跳空模块"""
 
-from __future__ import division
-from __future__ import print_function
-from __future__ import absolute_import
 
 from ..TradeBu.ABuMLFeature import AbuFeatureJump
 from ..MLBu.ABuMLPd import AbuMLPd

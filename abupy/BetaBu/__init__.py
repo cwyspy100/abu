@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 
 from .ABuPositionBase import AbuPositionBase
 from .ABuAtrPosition import AbuAtrPosition

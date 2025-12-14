@@ -3,19 +3,13 @@
     预处理函数参数或返回值
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 from functools import wraps
 
 from ..CoreBu.ABuFixes import zip
 from ..CheckBu.ABuFuncUtil import *
 
-try:
-    from ..ExtBu.six.moves import zip_longest
-except ImportError:
-    from six.moves import zip_longest
+from itertools import zip_longest
 
 __author__ = '夜猫'
 __weixin__ = 'abu_quant'
@@ -39,9 +33,9 @@ def arg_process(*arg_funcs, **kwarg_funcs):
         @wraps(func)
         def wrapper(*args, **kwargs):
             # 拼装经过函数处理后的新参数
-            args_new = [f(arg) if f else arg for arg, f in zip(args, six.itervalues(funcs))]
+            args_new = [f(arg) if f else arg for arg, f in zip(args, funcs.values())]
             kwargs_new = {k: funcs[k](arg) if k in funcs and funcs[k] else arg
-                          for k, arg in six.iteritems(kwargs)}
+                          for k, arg in kwargs.items()}
             # 调用函数
             return func(*args_new, **kwargs_new)
 

@@ -1,11 +1,7 @@
 # -*- encoding:utf-8 -*-
 """买入因子类装饰器模块"""
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 
-from ..CoreBu.ABuFixes import six
 from ..TLineBu.ABuTL import AbuTLine
 
 __author__ = '阿布'
@@ -18,7 +14,7 @@ class AbuLeastPolyWrap(object):
     def __call__(self, cls):
         """只做为买入因子策略类的装饰器"""
 
-        if isinstance(cls, six.class_types):
+        if isinstance(cls, type):
             # 只做为类装饰器使用
 
             init_self = cls._init_self

@@ -1,9 +1,6 @@
 # -*- encoding:utf-8 -*-
 """量化振幅分析工具图形可视化"""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import ipywidgets as widgets
 from IPython.display import display

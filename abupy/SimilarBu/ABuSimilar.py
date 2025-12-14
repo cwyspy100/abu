@@ -3,9 +3,6 @@
     相关系数相似应用模块
 """
 
-from __future__ import division
-from __future__ import print_function
-from __future__ import absolute_import
 
 import functools
 import logging
@@ -29,7 +26,6 @@ from ..UtilBu.ABuDTUtil import consume_time
 from ..UtilBu.ABuProgress import do_clear_output
 from ..CoreBu.ABuEnvProcess import add_process_env_sig, AbuEnvProcess
 # noinspection PyUnresolvedReferences
-from ..CoreBu.ABuFixes import xrange
 from ..UtilBu import ABuProgress
 
 """进行相似度数据收集并行进程数，IO操作偏多，所以分配多个，默认=cpu个数＊2, windows还是..."""

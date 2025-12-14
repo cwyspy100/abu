@@ -4,9 +4,6 @@
     择时操作，以时间驱动择时事件的发生
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import copy
 

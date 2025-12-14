@@ -1,9 +1,6 @@
 # -*- encoding:utf-8 -*-
 """股票池选股ui界面"""
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import ipywidgets as widgets
 

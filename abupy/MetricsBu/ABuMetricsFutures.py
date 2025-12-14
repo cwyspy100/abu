@@ -1,8 +1,5 @@
 # -*- encoding:utf-8 -*-
 """期货度量模块"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import matplotlib.pyplot as plt
 import numpy as np

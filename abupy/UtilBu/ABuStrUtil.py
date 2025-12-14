@@ -3,16 +3,11 @@
     字符工具模块
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import random
 import re
 
 # noinspection PyUnresolvedReferences
-from ..CoreBu.ABuFixes import xrange
-from ..CoreBu.ABuFixes import six
 from ..CoreBu import ABuEnv
 
 K_CN_RE = re.compile(u'[\u4e00-\u9fa5]+')
@@ -27,7 +22,7 @@ def _create_random_tmp(salt_count, seed):
     :return: 返回生成字符串
     """
     # TODO random.choice有放回抽取方法, 添加参数支持无放回抽取模式
-    sa = [random.choice(seed) for _ in xrange(salt_count)]
+    sa = [random.choice(seed) for _ in range(salt_count)]
     salt = ''.join(sa)
     return salt
 
@@ -66,11 +61,11 @@ def create_random_with_num_low(salt_count):
 
 def to_unicode(text, encoding=None, errors='strict'):
     """
-    to_native_str对py2生效，对six.text_type直接返回，其它的encode，默认utf-8
+    to_native_str对py2生效，对str直接返回，其它的encode，默认utf-8
     """
-    if isinstance(text, six.text_type):
+    if isinstance(text, str):
         return text
-    if not isinstance(text, (bytes, six.text_type)):
+    if not isinstance(text, (bytes, str)):
         raise TypeError('to_unicode must receive a bytes, str or unicode '
                         'object, got %s' % type(text).__name__)
     if encoding is None:
@@ -90,7 +85,7 @@ def to_bytes(text, encoding=None, errors='strict'):
     """
     if isinstance(text, bytes):
         return text
-    if not isinstance(text, six.string_types):
+    if not isinstance(text, (str, bytes)):
         raise TypeError('to_bytes must receive a unicode, str or bytes '
                         'object, got %s' % type(text).__name__)
     if encoding is None:

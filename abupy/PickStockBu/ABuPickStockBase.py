@@ -3,14 +3,10 @@
     选股因子抽象基类
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import functools
 from abc import ABCMeta, abstractmethod
 
-from ..CoreBu.ABuFixes import six
 from ..CoreBu import ABuEnv
 from ..CoreBu.ABuBase import AbuParamBase
 
@@ -30,7 +26,7 @@ def reversed_result(func):
     return wrapper
 
 
-class AbuPickStockBase(six.with_metaclass(ABCMeta, AbuParamBase)):
+class AbuPickStockBase(AbuParamBase, metaclass=ABCMeta):
     def __init__(self, capital, benchmark, **kwargs):
         """
         :param capital:资金类AbuCapital实例化对象

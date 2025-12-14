@@ -2,9 +2,6 @@
 """
     选股示例因子：价格选股因子
 """
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 from .ABuPickStockBase import AbuPickStockBase, reversed_result
 import numpy as np

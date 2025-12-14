@@ -2,9 +2,6 @@
 """
     市场相关切割，选股，等操作模块
 """
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import os
 import datetime
@@ -18,7 +15,6 @@ from ..CoreBu.ABuDeprecated import AbuDeprecated
 from ..CoreBu.ABuEnv import EMarketTargetType, EMarketSubType
 # noinspection PyUnresolvedReferences
 from ..CoreBu.ABuFixes import filter, zip
-from ..CoreBu.ABuFixes import KFold, six
 from ..UtilBu.ABuLazyUtil import LazyFunc
 from ..MarketBu.ABuSymbol import Symbol, code_to_symbol
 from ..MarketBu.ABuSymbolFutures import AbuFuturesCn, AbuFuturesGB
@@ -251,7 +247,7 @@ def query_symbol_market(target_symbol):
         symbol_obj = None
     elif isinstance(target_symbol, Symbol):
         symbol_obj = target_symbol
-    elif isinstance(target_symbol, six.string_types):
+    elif isinstance(target_symbol, (str, bytes)):
         try:
             # 如果字符串通过code_to_symbol转换为Symbol对象类型
             symbol_obj = code_to_symbol(target_symbol)

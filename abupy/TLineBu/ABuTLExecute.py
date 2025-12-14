@@ -2,9 +2,6 @@
 """
     技术线内部执行模块
 """
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import math
 import logging
@@ -17,7 +14,7 @@ from sklearn.cluster import KMeans
 from sklearn.linear_model import LinearRegression
 
 # noinspection PyUnresolvedReferences
-from ..CoreBu.ABuFixes import xrange
+# Python 3.9 使用内置 range，无需导入
 from ..CoreBu.ABuPdHelper import pd_resample
 from ..CoreBu import ABuEnv
 from ..CoreBu.ABuEnv import EMarketDataSplitMode
@@ -374,7 +371,7 @@ def support_resistance_pos(x, support_resistance_y, best_poly=0, label=None):
     support_resistance = set()
     # 属于耗时操作，构建进度条显示
     with AbuProgress(len(support_resistance_y), 0, label) as progess:
-        for index in xrange(0, len(support_resistance_y), 1):
+        for index in range(0, len(support_resistance_y), 1):
             progess.show(index + 1)
             local_min_pos = int(bfgs_min_pos(index, len(support_resistance_y), p))
             if local_min_pos == -1:
@@ -398,7 +395,7 @@ def select_k_support_resistance(support_resistance, thresh=0.06, label='', show=
     :return: 最佳分类器对象，KMeans类型
     """
     # 阻力位或者支撑位序列从1-序列个数开始聚类
-    k_rng = xrange(1, len(support_resistance))
+    k_rng = range(1, len(support_resistance))
     est_arr = [KMeans(n_clusters=k).fit(support_resistance) for k in k_rng]
     sum_squares = [e.inertia_ for e in est_arr]
     """

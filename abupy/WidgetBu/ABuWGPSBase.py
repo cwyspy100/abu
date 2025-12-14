@@ -1,9 +1,6 @@
 # -*- encoding:utf-8 -*-
 """选股因子参数以及选择图形可视化"""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 from abc import abstractmethod
 

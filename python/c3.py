@@ -384,7 +384,7 @@ def sample_342():
     """
         如果有numba使用numba进行加速, 这个加速效果非常明显，不使用numba非常非常非常慢
     """
-    import numba as nb
+    import numbers as nb
     casino = nb.jit(casino)
 
     print('heaven_moneys....')

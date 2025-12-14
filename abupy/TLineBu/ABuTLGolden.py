@@ -3,9 +3,6 @@
     黄金分割及比例分割示例模块
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 from collections import namedtuple
 

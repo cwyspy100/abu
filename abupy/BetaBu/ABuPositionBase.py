@@ -3,13 +3,9 @@
     风险控制仓位管理基础
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 from abc import ABCMeta, abstractmethod
 
-from ..CoreBu.ABuFixes import six
 from ..MarketBu.ABuMarket import MarketMixin
 
 """每一笔交易最大仓位比例设置，外部可通过如：abupy.beta.position.g_pos_max = 0.5修改最大每一笔交易最大仓位比例，默认75%"""
@@ -30,7 +26,7 @@ g_deposit_rate = 1
 g_default_pos_class = None
 
 
-class AbuPositionBase(six.with_metaclass(ABCMeta, MarketMixin)):
+class AbuPositionBase(MarketMixin, metaclass=ABCMeta):
     """仓位管理抽象基类"""
 
     def __init__(self, kl_pd_buy, factor_name, symbol_name, bp, read_cash, **kwargs):

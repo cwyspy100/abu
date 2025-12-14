@@ -5,22 +5,18 @@
     实现日内择时滑点功能，不考虑大资金的冲击成本及系统外的大幅滑点
 """
 
-from __future__ import division
-from __future__ import print_function
-from __future__ import absolute_import
 
 from abc import ABCMeta, abstractmethod
 import functools
 
 import numpy as np
 
-from ..CoreBu.ABuFixes import six
 
 __author__ = '阿布'
 __weixin__ = 'abu_quant'
 
 
-class AbuSlippageBuyBase(six.with_metaclass(ABCMeta, object)):
+class AbuSlippageBuyBase(object, metaclass=ABCMeta):
     """非高频日内滑点买入决策抽象基类"""
 
     def __init__(self, kl_pd_buy, factor_name):

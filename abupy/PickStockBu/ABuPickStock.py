@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 
 # noinspection all
 from . import ABuPickSimilarNTop as similar_top

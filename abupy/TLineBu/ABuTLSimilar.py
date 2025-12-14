@@ -3,9 +3,6 @@
     相关系数上层技术线应用模块
 """
 
-from __future__ import division
-from __future__ import print_function
-from __future__ import absolute_import
 
 import copy
 import logging

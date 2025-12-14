@@ -9,7 +9,8 @@ import re
 import subprocess
 import threading
 
-from sklearn.externals.joblib._compat import PY3_OR_LATER
+# Python 3.9+: sklearn.externals.joblib 已移除，从本地 _compat 模块导入
+from ._compat import PY3_OR_LATER
 
 
 def warnings_to_stdout():

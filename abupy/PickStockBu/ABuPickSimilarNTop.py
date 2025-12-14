@@ -3,9 +3,6 @@
     选股示例因子：相似度选股因子，主要示例fit_first_choice
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import numpy as np
 

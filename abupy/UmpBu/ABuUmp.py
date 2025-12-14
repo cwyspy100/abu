@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 
 # noinspection all
 from . import ABuUmpEdgeBase as edge

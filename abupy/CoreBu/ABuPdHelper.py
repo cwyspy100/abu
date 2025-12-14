@@ -1,18 +1,14 @@
 # -*- encoding:utf-8 -*-
 """
     封装pandas中版本兼容问题，保持接口规范情况下，避免警告
+    Python 3.9 版本
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import functools
-from collections import Iterable
+from collections.abc import Iterable
 
 import pandas as pd
 from ..CoreBu.ABuFixes import partial
-from ..CoreBu.ABuFixes import six
 
 __author__ = '阿布'
 __weixin__ = 'abu_quant'
@@ -29,25 +25,27 @@ except ImportError:
     except ImportError:
         g_pandas_has_resampler = False
 
+# Python 3.9 + pandas >= 1.3.0: 检查 ewm 方法是否可用
+# 不依赖导入 EWM 类，直接检查方法是否存在
 try:
-    # noinspection PyUnresolvedReferences
-    from pandas.core.window import EWM
-    g_pandas_has_ewm = True
-except ImportError:
+    import pandas as pd
+    # 检查 Series 是否有 ewm 方法
+    g_pandas_has_ewm = hasattr(pd.Series([1, 2, 3]), 'ewm')
+except:
     g_pandas_has_ewm = False
 
+# Python 3.9 + pandas >= 1.3.0: 检查 rolling 方法是否可用
 try:
-    # noinspection PyUnresolvedReferences
-    from pandas.core.window import Rolling
-    g_pandas_has_rolling = True
-except ImportError:
+    import pandas as pd
+    g_pandas_has_rolling = hasattr(pd.Series([1, 2, 3]), 'rolling')
+except:
     g_pandas_has_rolling = False
 
+# Python 3.9 + pandas >= 1.3.0: 检查 expanding 方法是否可用
 try:
-    # noinspection PyUnresolvedReferences
-    from pandas.core.window import Expanding
-    g_pandas_has_expanding = True
-except ImportError:
+    import pandas as pd
+    g_pandas_has_expanding = hasattr(pd.Series([1, 2, 3]), 'expanding')
+except:
     g_pandas_has_expanding = False
 
 
@@ -60,8 +58,8 @@ def __pd_object_covert_start(iter_obj):
     if isinstance(iter_obj, (pd.Series, pd.DataFrame)):
         # 如果本身就是(pd.Series, pd.DataFrame)，返回对返回值不需要转换，即False
         return iter_obj, False
-    # TODO Iterable和six.string_types的判断抽出来放在一个模块，做为Iterable的判断来使用
-    if isinstance(iter_obj, Iterable) and not isinstance(iter_obj, six.string_types):
+    # Python 3.9 字符串类型判断
+    if isinstance(iter_obj, Iterable) and not isinstance(iter_obj, (str, bytes)):
         # 可迭代对象使用pd.Series进行包装，且返回对返回值需要转换为np.array，即True
         return pd.Series(iter_obj), True
     raise TypeError('pd_object must support Iterable!!!')

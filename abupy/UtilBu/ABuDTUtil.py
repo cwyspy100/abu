@@ -3,9 +3,6 @@
     通用装饰器, 上下文管理器工具模块
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import functools
 import logging
@@ -20,7 +17,6 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from ..CoreBu import ABuEnv
-from ..CoreBu.ABuFixes import six
 
 
 def warnings_filter(func):
@@ -65,8 +61,8 @@ def arr_to_pandas(arr):
         函数装饰器：将可以迭代的序列转换为pd.DataFrame或者pd.Series，支持
         np.ndarray，list，dict, list，set，嵌套可迭代序列, 混嵌套可迭代序列
     """
-    # TODO Iterable和six.string_types的判断抽出来放在一个模块，做为Iterable的判断来使用
-    if not isinstance(arr, Iterable) or isinstance(arr, six.string_types):
+    # TODO Iterable和(str, bytes)的判断抽出来放在一个模块，做为Iterable的判断来使用
+    if not isinstance(arr, Iterable) or isinstance(arr, (str, bytes)):
         return arr
 
     if not isinstance(arr, pd.DataFrame) or isinstance(arr, pd.Series):
@@ -108,8 +104,8 @@ def arr_to_numpy(arr):
         函数装饰器：将可以迭代的序列转换为np.array，支持pd.DataFrame或者pd.Series
         ，list，dict, list，set，嵌套可迭代序列, 混嵌套可迭代序列
     """
-    # TODO Iterable和six.string_types的判断抽出来放在一个模块，做为Iterable的判断来使用
-    if not isinstance(arr, Iterable) or isinstance(arr, six.string_types):
+    # TODO Iterable和(str, bytes)的判断抽出来放在一个模块，做为Iterable的判断来使用
+    if not isinstance(arr, Iterable) or isinstance(arr, (str, bytes)):
         return arr
 
     if not isinstance(arr, np.ndarray):

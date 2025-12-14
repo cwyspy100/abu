@@ -11,9 +11,6 @@
 下轨线=中轨线－nb_dev * N日的移动标准差
 （nb_dev为参数，可根据股票的特性来做相应的调整，一般默为2）
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import matplotlib.pyplot as plt
 import numpy as np

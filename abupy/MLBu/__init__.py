@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 
 from .ABuML import AbuML
 from .ABuMLCreater import AbuMLCreater

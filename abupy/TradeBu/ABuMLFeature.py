@@ -3,9 +3,6 @@
     内置特征定义，以及用户特征扩展，定义模块
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import ast
 import datetime
@@ -15,7 +12,6 @@ import numpy as np
 
 from ..CoreBu import ABuEnv
 # noinspection PyUnresolvedReferences
-from ..CoreBu.ABuFixes import xrange, range, six
 from ..MarketBu import ABuMarketDrawing
 from ..TLineBu import ABuTLAtr
 from ..TLineBu import ABuTLJump
@@ -294,7 +290,7 @@ class AbuFeatureWave(AbuFeatureBase, BuyFeatureMixin, SellFeatureMixin):
 
         # 返回的波动特征键值对字典
         wave_dict = {}
-        for xd_ind in xrange(1, self.wave_key_cnt + 1):
+        for xd_ind in range(1, self.wave_key_cnt + 1):
             # wave_df固定为一年交易时间序列，xd是calc_wave_st内部计算rolling std的window值，详ABuTLWave.calc_wave_std
             wave = ABuTLWave.calc_wave_std(wave_df, xd=xd_ind * self.wave_xd, show=False)
             wave_score = wave.score
@@ -524,7 +520,7 @@ def append_user_feature(feature, check=True):
     :return:
     """
 
-    if isinstance(feature, six.class_types):
+    if isinstance(feature, type):
         # 暂时认为所有feature的实例化不需要参数，如需要也可添加＊args
         feature_obj = feature()
     else:

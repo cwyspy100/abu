@@ -3,15 +3,11 @@
     时间日期工具模块
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import datetime
 import time
 from datetime import datetime as dt
 
-from ..CoreBu.ABuFixes import six
 # noinspection PyUnresolvedReferences
 from ..CoreBu.ABuFixes import filter
 
@@ -121,7 +117,7 @@ def fix_date(date_str):
     """
     if date_str is not None:
         # 如果是字符串先统一把除了数字之外的都干掉，变成干净的数字串
-        if isinstance(date_str, six.string_types):
+        if isinstance(date_str, (str, bytes)):
             # eg, 2016:01-01, 201601-01, 2016,01 01, 2016/01-01 -> 20160101
             date_str = ''.join(list(filter(lambda c: c.isdigit(), date_str)))
         # 再统一确定%Y-%m-%d形式
@@ -181,11 +177,11 @@ def diff(start_date, end_date, check_order=True):
     start_date = fix_date(start_date)
     end_date = fix_date(end_date)
 
-    if check_order and isinstance(start_date, six.string_types):
+    if check_order and isinstance(start_date, (str, bytes)):
         # start_date字符串的日期格式转换为int
         start_date = date_str_to_int(start_date)
 
-    if check_order and isinstance(end_date, six.string_types):
+    if check_order and isinstance(end_date, (str, bytes)):
         # end_date字符串的日期格式转换为int
         end_date = date_str_to_int(end_date)
 

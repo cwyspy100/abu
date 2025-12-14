@@ -4,9 +4,6 @@
 拥有create estimator
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import logging
 import os
@@ -24,12 +21,11 @@ from sklearn.preprocessing import label_binarize, StandardScaler, binarize
 from . import ABuMLExecute
 from .ABuMLCreater import AbuMLCreater
 from ..CoreBu import ABuEnv
-from ..CoreBu.ABuFixes import train_test_split, cross_val_score, mean_squared_error_scorer, six
 from ..UtilBu import ABuFileUtil
 from ..UtilBu.ABuProgress import AbuProgress
 from ..UtilBu.ABuDTUtil import warnings_filter
 from ..UtilBu.ABuDTUtil import params_to_numpy
-from ..CoreBu.ABuFixes import signature
+from ..CoreBu.ABuFixes import signature, mean_squared_error_scorer, mean_absolute_error_scorer, median_absolute_error_scorer, log_loss
 
 __author__ = '阿布'
 __weixin__ = 'abu_quant'
@@ -86,7 +82,7 @@ def entry_wrapper(support=(EMLFitType.E_FIT_CLF, EMLFitType.E_FIT_REG, EMLFitTyp
                 # 如果传递了fiter_type参数，pop出来
                 fiter_type = kwargs.pop('fiter_type')
                 # 如果传递的fiter_type参数是str，eg：'clf'， 转换为EMLFitType(fiter_type)
-                if isinstance(fiter_type, six.string_types):
+                if isinstance(fiter_type, (str, bytes)):
                     fiter_type = EMLFitType(fiter_type)
                 self.fiter_type = fiter_type
 
@@ -350,7 +346,7 @@ class AbuML(object):
         """
         self.estimator = AbuMLCreater()
         # 如果传递进来的是字符串类型，转换为EMLFitType
-        if isinstance(fiter_type, six.string_types):
+        if isinstance(fiter_type, (str, bytes)):
             fiter_type = EMLFitType(fiter_type)
         self.x = x
         self.y = y
@@ -1181,7 +1177,7 @@ class AbuML(object):
             self.fit(**kwargs)
 
         fiter = self.get_fiter()
-        if not isinstance(callback, six.string_types):
+        if not isinstance(callback, (str, bytes)):
             # callback必须是字符串类型
             self.log_func('callback must str, not {}'.format(type(callback)))
             return

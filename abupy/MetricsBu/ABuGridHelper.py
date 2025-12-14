@@ -3,9 +3,6 @@
     组合参数辅助模块
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 import copy
 from itertools import product
 
@@ -15,7 +12,6 @@ import pandas as pd
 from .ABuGridSearch import ParameterGrid
 from scipy import stats
 # noinspection PyUnresolvedReferences
-from ..CoreBu.ABuFixes import range, xrange
 
 __author__ = '阿布'
 __weixin__ = 'abu_quant'
@@ -89,12 +85,12 @@ def make_grid_score_pd(grid_scores, score_index=0):
     factor_buy_pd = pd.DataFrame([factor_params[3] for factor_params in grid_scores])
 
     org_columns = factor_pd.shape[1]
-    for columns_ind in xrange(0, org_columns):
+    for columns_ind in range(0, org_columns):
         factor_pd[str(columns_ind) + 'class'] = factor_pd[columns_ind].apply(lambda x:
                                                                              None if x is None else x['class'])
 
     org_buy_columns = factor_buy_pd.shape[1]
-    for columns_ind in xrange(0, org_buy_columns):
+    for columns_ind in range(0, org_buy_columns):
         factor_buy_pd[str(columns_ind) + 'class'] = factor_buy_pd[columns_ind].apply(lambda x:
                                                                                      None if x is None else x['class'])
 

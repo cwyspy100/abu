@@ -3,9 +3,6 @@
     买入择时示例因子：长线趋势跟踪与短线均值回复的配合
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 
 from ..TLineBu.ABuTLine import AbuTLine
 from ..TLineBu.ABuTLGolden import calc_golden

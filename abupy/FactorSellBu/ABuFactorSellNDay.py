@@ -3,9 +3,6 @@
     卖出择时示例因子：n日卖出策略，不管什么结果，买入后只持有N天
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 
 from .ABuFactorSellBase import AbuFactorSellBase, ESupportDirection
 

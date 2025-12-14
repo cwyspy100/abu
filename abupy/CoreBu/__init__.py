@@ -1,5 +1,5 @@
 # IN ABu LIST __all__
-from __future__ import absolute_import
+# Python 3.9 版本
 
 from .ABuFixes import *
 from .ABuPdHelper import *
@@ -38,9 +38,7 @@ __all__ = [
     'Parameter',
 
     'ThreadPoolExecutor',
-    'six',
     'zip',
-    'xrange',
     'range',
     'reduce',
     'map',

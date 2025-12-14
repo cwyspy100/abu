@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 
 from .ABuDataBase import BaseMarket, FuturesBaseMarket, StockBaseMarket, TCBaseMarket, SupportMixin
 from .ABuDataParser import AbuDataParseWrap

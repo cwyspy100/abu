@@ -3,16 +3,12 @@
     md5, crc32等加密，变换匹配模块
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import hashlib
 import os
 from binascii import crc32
 
 # noinspection PyUnresolvedReferences
-from ..CoreBu.ABuFixes import xrange
 from ..CoreBu import ABuEnv
 
 K_BYTE_SIZE = 1024
@@ -81,7 +77,7 @@ def crc32_from_file(fn, block_m=1):
             crc = crc32(fb, crc)
         f.close()
         res = ''
-        for _ in xrange(4):
+        for _ in range(4):
             t = crc & 0xFF
             crc >>= 8
             res = '%02x%s' % (t, res)

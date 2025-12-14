@@ -6,9 +6,6 @@
     均线理论是当今应用最普遍的技术指标之一，它帮助交易者确认现有趋势、判断将出现的趋势、发现过度延生即将反转的趋势
 """
 
-from __future__ import division
-from __future__ import absolute_import
-from __future__ import print_function
 
 from collections import Iterable
 
@@ -18,7 +15,6 @@ from enum import Enum
 
 from .ABuNDBase import plot_from_order, g_calc_type, ECalcType
 from ..CoreBu.ABuPdHelper import pd_rolling_mean, pd_ewm_mean
-from ..CoreBu.ABuFixes import six
 from ..UtilBu.ABuDTUtil import catch_error
 
 __author__ = '阿布'
@@ -133,8 +129,8 @@ def plot_ma(prices, kl_index, time_period, from_calc=EMACalcType.E_MA_MA,
     :param with_price:  将价格一起绘制
     :return:
     """
-    # TODO Iterable和six.string_types的判断抽出来放在一个模块，做为Iterable的判断来使用
-    if not isinstance(time_period, Iterable) or isinstance(time_period, six.string_types):
+    # TODO Iterable和(str, bytes)的判断抽出来放在一个模块，做为Iterable的判断来使用
+    if not isinstance(time_period, Iterable) or isinstance(time_period, (str, bytes)):
         raise TypeError('MA CALC time_period MUST PASS Iterable!!!')
 
     calc_type_func = calc_ma

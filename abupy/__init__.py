@@ -1,5 +1,4 @@
 # -*- encoding:utf-8 -*-
-from __future__ import absolute_import
 
 from .CoreBu import *
 from .CheckBu import *
@@ -21,7 +20,7 @@ from .MarketBu import *
 from .SimilarBu import *
 from .WidgetBu import *
 
-__all__ = ['AlphaBu', 'BetaBu', 'CheckBu', 'UmpBu', 'FactorSellBu', 'FactorSell', 'IndicatorBu', 'MarketBu', 'UtilBu',
+__all__ = ['AlphaBu', 'BetaBu', 'CheckBu', 'UmpBu', 'FactorSellBu', 'IndicatorBu', 'MarketBu', 'UtilBu',
            'SimilarBu', 'MetricsBu', 'SlippageBu', 'PickStockBu', 'CoreBu', 'TLineBu',
            'MLBu', 'DLBu', 'TradeBu', 'WidgetBu']
 

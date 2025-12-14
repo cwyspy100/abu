@@ -1,15 +1,11 @@
 # -*- encoding:utf-8 -*-
 """回测结果评分模块"""
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 
 import numpy as np
 import pandas as pd
 
-from ..CoreBu.ABuFixes import six
 from .ABuMetricsBase import AbuMetricsBase
 
 __author__ = '阿布'
@@ -37,7 +33,7 @@ class AbuScoreTuple(namedtuple('AbuScoreTuple',
                 self.buy_factors, self.sell_factors, self.stock_picks)
 
 
-class AbuBaseScorer(six.with_metaclass(ABCMeta, object)):
+class AbuBaseScorer(object, metaclass=ABCMeta):
     """针对GridSearch的score_tuple_array进行评分抽象基类"""
 
     # noinspection PyUnresolvedReferences

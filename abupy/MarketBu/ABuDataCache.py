@@ -3,9 +3,6 @@
     对数据采集进行存储，读取，以及数据更新merge策略等实现模块
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import os
 
@@ -16,7 +13,6 @@ from ..CoreBu import ABuEnv
 from ..UtilBu.ABuFileUtil import load_df_csv, load_hdf5, ensure_dir, file_exist, del_file, dump_df_csv, \
     dump_del_hdf5
 # noinspection PyUnresolvedReferences
-from ..CoreBu.ABuFixes import xrange, range, filter
 from ..UtilBu.ABuProgress import AbuProgress
 
 try:

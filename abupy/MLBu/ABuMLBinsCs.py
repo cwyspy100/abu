@@ -1,9 +1,6 @@
 # -*- encoding:utf-8 -*-
 """直观可视化制作qcut的bins点"""
 
-from __future__ import division
-from __future__ import print_function
-from __future__ import absolute_import
 
 import math
 import logging

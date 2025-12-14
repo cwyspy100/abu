@@ -1,9 +1,6 @@
 # -*- encoding:utf-8 -*-
 """上层回测图形可视化"""
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import pandas as pd
 from IPython.display import display

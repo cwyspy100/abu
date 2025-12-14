@@ -2,9 +2,6 @@
 """
     市场，数据可视化绘制模块
 """
-from __future__ import division
-from __future__ import print_function
-from __future__ import absolute_import
 
 import itertools
 import logging

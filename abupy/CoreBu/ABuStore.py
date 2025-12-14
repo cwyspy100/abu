@@ -114,7 +114,8 @@ def dump_custom_ump_index_csv(custom_name, ump_unique, is_main_ump, custom_desc)
     if index_csv_df is not None:
         if custom_name in index_csv_df.index:
             return
-        index_csv_df = index_csv_df.append(index_df)
+        # Python 3.9 + pandas 2.0+: append() 已移除，使用 pd.concat() 替代
+        index_csv_df = pd.concat([index_csv_df, index_df])
     else:
         index_csv_df = index_df
     # 最终dump为csv文件

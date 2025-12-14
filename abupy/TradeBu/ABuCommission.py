@@ -3,9 +3,6 @@
     手续费模块
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import logging
 from contextlib import contextmanager
@@ -218,7 +215,8 @@ class AbuCommission(object):
             # 将买单对象AbuOrder实例中的数据转换成交易记录需要的np.array对象
             record = np.array(['buy', a_order.buy_date, a_order.buy_symbol, commission]).reshape(1, 4)
             record_df = pd.DataFrame(record, columns=self.df_columns)
-            self.commission_df = self.commission_df.append(record_df)
+            # Python 3.9 + pandas 2.0+: append() 已移除，使用 pd.concat() 替代
+            self.commission_df = pd.concat([self.commission_df, record_df], ignore_index=True)
         else:
             logging.info('buy_commission_func calc error')
 
@@ -243,6 +241,7 @@ class AbuCommission(object):
             # 将卖单对象AbuOrder实例中的数据转换成交易记录需要的np.array对象
             record = np.array(['sell', a_order.sell_date, a_order.buy_symbol, commission]).reshape(1, 4)
             record_df = pd.DataFrame(record, columns=self.df_columns)
-            self.commission_df = self.commission_df.append(record_df)
+            # Python 3.9 + pandas 2.0+: append() 已移除，使用 pd.concat() 替代
+            self.commission_df = pd.concat([self.commission_df, record_df], ignore_index=True)
         else:
             logging.info('sell_commission_func calc error!!!')

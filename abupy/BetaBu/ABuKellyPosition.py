@@ -1,9 +1,6 @@
 # -*- encoding:utf-8 -*-
 """示例仓位管理：kelly仓位管理模块"""
 
-from __future__ import division
-from __future__ import absolute_import
-from __future__ import print_function
 
 from .ABuPositionBase import AbuPositionBase
 

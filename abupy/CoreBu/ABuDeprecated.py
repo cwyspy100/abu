@@ -5,7 +5,6 @@
 
 import warnings
 
-from ..CoreBu.ABuFixes import six
 
 
 class AbuDeprecated(object):
@@ -16,7 +15,7 @@ class AbuDeprecated(object):
         self.tip_info = tip_info
 
     def __call__(self, obj):
-        if isinstance(obj, six.class_types):
+        if isinstance(obj, type):
             # 针对类装饰
             return self._decorate_class(obj)
         else:

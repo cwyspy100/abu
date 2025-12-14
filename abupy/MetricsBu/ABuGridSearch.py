@@ -1,9 +1,6 @@
 # -*- encoding:utf-8 -*-
 """借鉴sklearn GridSearch，针对买入因子，卖出因子，选股因子最合进行最优寻找分析"""
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 import operator
 from collections import Mapping
 from functools import reduce

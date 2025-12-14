@@ -1,9 +1,6 @@
 # -*- encoding:utf-8 -*-
 """股票基本信息图形可视化"""
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import logging
 
@@ -12,10 +9,10 @@ import ipywidgets as widgets
 from abc import ABCMeta, abstractmethod
 from IPython.display import display
 
-from ..CoreBu.ABuFixes import six, partial
 from ..UtilBu.ABuStrUtil import to_unicode
 from ..UtilBu.ABuOsUtil import show_msg
 from ..MarketBu.ABuSymbol import search_to_symbol_dict
+from ..CoreBu.ABuFixes import partial
 
 __author__ = '阿布'
 __weixin__ = 'abu_quant'
@@ -48,7 +45,7 @@ class WidgetBase(object):
         display(self.widget)
 
 
-class WidgetFactorBase(six.with_metaclass(ABCMeta, WidgetBase)):
+class WidgetFactorBase(WidgetBase, metaclass=ABCMeta):
     """策略可视化基础类"""
 
     def __init__(self, wg_manager):
@@ -69,7 +66,7 @@ class WidgetFactorBase(six.with_metaclass(ABCMeta, WidgetBase)):
         pass
 
 
-class WidgetFactorManagerBase(six.with_metaclass(ABCMeta, WidgetBase)):
+class WidgetFactorManagerBase(WidgetBase, metaclass=ABCMeta):
     """策略管理可视化基础类"""
 
     def __init__(self, show_add_buy=True, add_button_style='default'):

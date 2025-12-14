@@ -3,9 +3,6 @@
     多任务子进程拷贝跟随主进程设置模块
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 
 import functools
 

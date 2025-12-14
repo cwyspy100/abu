@@ -2,16 +2,12 @@
 """
     symbol模块
 """
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 from fnmatch import fnmatch
 
 import numpy as np
 
 from ..CoreBu.ABuEnv import EMarketTargetType, EMarketSubType
-from ..CoreBu.ABuFixes import six
 from ..UtilBu.ABuStrUtil import to_unicode
 from ..UtilBu.ABuLazyUtil import LazyFunc
 
@@ -32,7 +28,7 @@ def code_to_symbol(code, rs=True):
     if isinstance(code, Symbol):
         # code本身时symbol对象直接返回
         return code
-    if not isinstance(code, six.string_types):
+    if not isinstance(code, (str, bytes)):
         # code必须是string_types
         raise TypeError('code must be string_types!!!，{} : type is {}'.format(code, type(code)))
 

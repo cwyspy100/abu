@@ -2,15 +2,11 @@
 """
     股票类型的symbol模块，a股，美股，港股
 """
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import os
 
 import pandas as pd
 
-from ..CoreBu.ABuFixes import six
 from ..CoreBu.ABuBase import FreezeAttrMixin
 from ..CoreBu import ABuEnv
 from ..CoreBu.ABuEnv import EMarketTargetType, EMarketSubType
@@ -35,7 +31,7 @@ class AbuStockBaseWrap(object):
     """做为类装饰器封装替换init 解析csv symbol数据操作，装饰替换init"""
 
     def __call__(self, cls):
-        if isinstance(cls, six.class_types):
+        if isinstance(cls, type):
             # 只做为类装饰器使用，拿出原始的__init__
             init = cls.__init__
 
@@ -373,7 +369,7 @@ def query_stock_info(symbol):
     :param symbol: eg：usTSLA
     :return: 一行数据的pd.DataFrame对象
     """
-    if isinstance(symbol, six.string_types):
+    if isinstance(symbol, (str, bytes)):
         symbol = code_to_symbol(symbol)
 
     if symbol.is_a_stock():

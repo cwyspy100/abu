@@ -3,9 +3,6 @@
     数据源模块
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import logging
 
@@ -16,7 +13,6 @@ from ..MarketBu.ABuDataFeed import BDApi, TXApi, NTApi, HBApi, SNUSApi, SNFuture
 from .ABuSymbol import Symbol
 from .ABuSymbol import code_to_symbol
 from ..CoreBu import ABuEnv
-from ..CoreBu.ABuFixes import six
 from ..CoreBu.ABuEnv import EMarketDataSplitMode, EMarketDataFetchMode
 from ..CoreBu.ABuEnv import EMarketSourceType
 from ..MarketBu.ABuDataCache import load_kline_df, load_kline_df_net
@@ -64,7 +60,13 @@ def _calc_start_end_date(df, force_local, n_folds, start, end):
 
     if start is None:
         if force_local:
-            end_ss = df[df.date >= end_int]
+            # Python 3.9 + pandas 1.5+: 如果 df.date 是 datetime 类型，需要转换为整数进行比较
+            if df.date.dtype.name.startswith('datetime'):
+                # 使用 strftime 格式化更高效
+                date_int = df.date.dt.strftime('%Y%m%d').astype(int)
+                end_ss = df[date_int >= end_int]
+            else:
+                end_ss = df[df.date >= end_int]
             if end_ss is None or end_ss.empty:
                 ind = 0
             else:
@@ -119,7 +121,7 @@ def kline_pd(symbol, data_mode, n_folds=2, start=None, end=None, save=True):
     try:
         if isinstance(symbol, Symbol):
             temp_symbol = symbol
-        elif isinstance(symbol, six.string_types):
+        elif isinstance(symbol, (str, bytes)):
             # 如果是str对象，通过code_to_symbol转化为Symbol对象
             temp_symbol = code_to_symbol(symbol)
         else:
@@ -131,7 +133,7 @@ def kline_pd(symbol, data_mode, n_folds=2, start=None, end=None, save=True):
             # 有设置私有数据源
             source = ABuEnv.g_private_data_source
             # 私有源首先设置的需要是class类型，然后判断是BaseMarket的子类
-            if not isinstance(source, six.class_types):
+            if not isinstance(source, type):
                 raise TypeError('g_private_data_source must be a class type!!!')
             if not issubclass(ABuEnv.g_private_data_source, BaseMarket):
                 raise TypeError('g_private_data_source must be a subclass of BaseMarket!!!')
@@ -185,7 +187,14 @@ def kline_pd(symbol, data_mode, n_folds=2, start=None, end=None, save=True):
         if match:
             if data_mode == EMarketDataSplitMode.E_DATA_SPLIT_SE:
                 # 如果满足，且模式需要根据切割df的进行切割筛选
-                df = df[(start_int <= df.date) & (df.date <= end_int)]
+                # Python 3.9 + pandas 1.5+: 如果 df.date 是 datetime 类型，需要转换为整数进行比较
+                if df.date.dtype.name.startswith('datetime'):
+                    # 将 datetime 转换为整数进行比较（使用 strftime 格式化更高效）
+                    date_int = df.date.dt.strftime('%Y%m%d').astype(int)
+                    df = df[(start_int <= date_int) & (date_int <= end_int)]
+                else:
+                    # df.date 已经是整数类型，直接比较
+                    df = df[(start_int <= df.date) & (df.date <= end_int)]
         elif not force_local:
             # 数据不满足，但非强制本地，走网络
             df = load_kline_df_net(source, temp_symbol, n_folds, start=start, end=end, start_int=start_int,

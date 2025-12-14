@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 
 from .ABuWGStockInfo import WidgetStockInfo, WidgetSearchStockInfo
 from .ABuWGBRunBase import WidgetRunTT

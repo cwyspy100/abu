@@ -1,9 +1,6 @@
 # -*- encoding:utf-8 -*-
 """示例ump价格波动特征模块"""
 
-from __future__ import division
-from __future__ import print_function
-from __future__ import absolute_import
 
 from ..TradeBu.ABuMLFeature import AbuFeatureWave
 from ..MLBu.ABuMLPd import AbuMLPd

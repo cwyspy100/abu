@@ -4,9 +4,6 @@
     做为单边止损因子使用，作为风险控制保护因子
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 
 from .ABuFactorSellBase import AbuFactorSellBase, ESupportDirection
 

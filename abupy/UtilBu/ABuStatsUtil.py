@@ -3,9 +3,6 @@
     统计相关工具模块
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 try:
     from collections import OrderedDict
@@ -25,7 +22,6 @@ from sklearn.metrics.pairwise import euclidean_distances, manhattan_distances, c
 
 from ..CoreBu import ABuEnv
 from ..UtilBu import ABuScalerUtil
-from ..CoreBu.ABuFixes import six
 from ..CoreBu.ABuPdHelper import pd_rolling_mean
 
 __author__ = '阿布'
@@ -327,8 +323,8 @@ def arr_to_pandas(func):
     @functools.wraps(func)
     def wrapper(arr, *arg, **kwargs):
 
-        # TODO Iterable和six.string_types的判断抽出来放在一个模块，做为Iterable的判断来使用
-        if not isinstance(arr, Iterable) or isinstance(arr, six.string_types):
+        # TODO Iterable和(str, bytes)的判断抽出来放在一个模块，做为Iterable的判断来使用
+        if not isinstance(arr, Iterable) or isinstance(arr, (str, bytes)):
             # arr必须是可以迭代的对象
             raise TypeError('arr not isinstance of Iterable')
 
@@ -358,8 +354,8 @@ def arr_to_numpy(func):
 
     @functools.wraps(func)
     def wrapper(arr, *arg, **kwargs):
-        # TODO Iterable和six.string_types的判断抽出来放在一个模块，做为Iterable的判断来使用
-        if not isinstance(arr, Iterable) or isinstance(arr, six.string_types):
+        # TODO Iterable和(str, bytes)的判断抽出来放在一个模块，做为Iterable的判断来使用
+        if not isinstance(arr, Iterable) or isinstance(arr, (str, bytes)):
             # arr必须是可以迭代的对象
             raise TypeError('arr not isinstance of Iterable')
 

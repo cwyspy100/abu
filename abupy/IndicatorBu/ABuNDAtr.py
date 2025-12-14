@@ -11,9 +11,6 @@ ATR又称 Average true range平均真实波动范围，简称ATR指标，是由J
 3. 常用参数N设置为14日或者21日
 
 """
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 
 import matplotlib.pyplot as plt
 import pandas as pd

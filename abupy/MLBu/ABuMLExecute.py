@@ -1,9 +1,6 @@
 # -*- encoding:utf-8 -*-
 """封装常用的分析方式及流程模块"""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import logging
 import os
@@ -11,7 +8,8 @@ import os
 import matplotlib.cbook as cbook
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import interp
+# scipy.interp 在较新版本中已移除，使用 numpy.interp 替代
+from numpy import interp
 from sklearn import metrics
 from sklearn import tree
 from sklearn.base import ClusterMixin, clone

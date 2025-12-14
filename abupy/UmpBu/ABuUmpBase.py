@@ -3,9 +3,6 @@
     ump基础模块
 """
 
-from __future__ import division
-from __future__ import print_function
-from __future__ import absolute_import
 
 import functools
 import weakref
@@ -15,7 +12,6 @@ import numpy as np
 import sklearn.preprocessing as preprocessing
 
 from ..UtilBu import ABuFileUtil
-from ..CoreBu.ABuFixes import six
 
 __author__ = '阿布'
 __weixin__ = 'abu_quant'
@@ -195,7 +191,7 @@ def ump_edge_make_xy(func):
     return wrapper
 
 
-class AbuUmpBase(six.with_metaclass(ABCMeta, object)):
+class AbuUmpBase(object, metaclass=ABCMeta):
     """ump拦截缓存，在AbuUmpBase类中"""
     dump_clf_manager = CachedUmpManager()
 

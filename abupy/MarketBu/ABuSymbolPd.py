@@ -3,9 +3,6 @@
     数据对外接口模块，其它模块需要数据都只应该使用ABuSymbolPd, 不应涉及其它内部模块的使用
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import logging
 from collections import Iterable
@@ -28,7 +25,6 @@ from ..UtilBu import ABuDateUtil
 from ..UtilBu.ABuFileUtil import batch_h5s
 from ..UtilBu.ABuProgress import AbuMulPidProgress, do_clear_output
 from ..CoreBu.ABuParallel import delayed, Parallel
-from ..CoreBu.ABuFixes import six
 # from ..UtilBu.ABuThreadPool import AbuThreadPoolExecutor
 
 __author__ = '阿布'
@@ -45,12 +41,17 @@ def _benchmark(df, benchmark, symbol):
     :param symbol: Symbol对象
     :return: 使用基准的时间范围切割返回的金融时间序列
     """
-    if len(df.index & benchmark.kl_pd.index) <= 0:
+    # Python 3.9 + pandas 1.5+: 使用 intersection() 替代 & 操作符
+    # & 操作符在 DatetimeIndex 上已被弃用，应使用 intersection()
+    intersection_index = df.index.intersection(benchmark.kl_pd.index)
+    if len(intersection_index) <= 0:
         # 如果基准benchmark时间范围和输入的df没有交集，直接返回None
         return None
 
-    # 两个金融时间序列通过loc寻找交集
-    kl_pd = df.loc[benchmark.kl_pd.index]
+    # Python 3.9 + pandas 1.5+: 使用 reindex() 替代 loc[]，避免 KeyError
+    # reindex() 会为不存在的索引创建 NaN 值，这正是后续代码需要的（通过 nan_cnt 计算）
+    # 两个金融时间序列通过reindex寻找交集，不存在的索引会变成 NaN
+    kl_pd = df.reindex(benchmark.kl_pd.index)
     # nan的date个数即为不相交的个数
     nan_cnt = kl_pd['date'].isnull().value_counts()
     # 两个金融序列是否相同的结束日期
@@ -184,8 +185,8 @@ def kl_df_dict_parallel(symbols, data_mode=ABuEnv.EMarketDataSplitMode.E_DATA_SP
     :param how: process：多进程，thread：多线程，main：单进程单线程
     """
 
-    # TODO Iterable和six.string_types的判断抽出来放在一个模块，做为Iterable的判断来使用
-    if not isinstance(symbols, Iterable) or isinstance(symbols, six.string_types):
+    # TODO Iterable和(str, bytes)的判断抽出来放在一个模块，做为Iterable的判断来使用
+    if not isinstance(symbols, Iterable) or isinstance(symbols, (str, bytes)):
         # symbols必须是可迭代的序列对象
         raise TypeError('symbols must a Iterable obj!')
     # 可迭代的symbols序列分成n_jobs个子序列
@@ -300,7 +301,7 @@ def make_kl_df(symbol, data_mode=ABuEnv.EMarketDataSplitMode.E_DATA_SPLIT_SE,
         # TODO pd.Panel过时
         return pd.Panel(panel)
 
-    elif isinstance(symbol, Symbol) or isinstance(symbol, six.string_types):
+    elif isinstance(symbol, Symbol) or isinstance(symbol, (str, bytes)):
         # 对单个symbol进行数据获取
         df, _ = _make_kl_df(symbol, data_mode=data_mode,
                             n_folds=n_folds, start=start, end=end, benchmark=benchmark, save=True)
@@ -332,7 +333,7 @@ def check_symbol_in_local_csv(symbol):
     :return: bool, symbol是否存在csv缓存
     """
 
-    if isinstance(symbol, six.string_types):
+    if isinstance(symbol, (str, bytes)):
         # 如果是str对象，通过code_to_symbol转化为Symbol对象
         symbol = code_to_symbol(symbol, rs=False)
     if symbol is None:
@@ -361,7 +362,11 @@ def combine_pre_kl_pd(kl_pd, n_folds=1):
     pre_kl_pd = make_kl_df(kl_pd.name, data_mode=ABuEnv.EMarketDataSplitMode.E_DATA_SPLIT_SE, n_folds=n_folds,
                            end=end)
     # 再合并两段时间序列，pre_kl_pd[:-1]跳过重复的end
-    combine_kl = kl_pd if pre_kl_pd is None else pre_kl_pd[:-1].append(kl_pd)
+    # Python 3.9 + pandas 2.0+: append() 已移除，使用 pd.concat() 替代
+    if pre_kl_pd is None:
+        combine_kl = kl_pd
+    else:
+        combine_kl = pd.concat([pre_kl_pd[:-1], kl_pd])
     # 根据combine_kl长度重新进行key计算
     combine_kl['key'] = list(range(0, len(combine_kl)))
     return combine_kl

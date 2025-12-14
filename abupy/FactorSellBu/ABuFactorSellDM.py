@@ -3,9 +3,6 @@
     卖出择时示例因子，双均线策略
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 
 from .ABuFactorSellBase import AbuFactorSellXD, ESupportDirection
 from ..IndicatorBu.ABuNDMa import calc_ma_from_prices

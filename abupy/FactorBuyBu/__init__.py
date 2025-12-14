@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 
 from .ABuFactorBuyBase import AbuFactorBuyBase, AbuFactorBuyXD, AbuFactorBuyTD, BuyCallMixin, BuyPutMixin
 from .ABuFactorBuyBreak import AbuFactorBuyBreak, AbuFactorBuyPutBreak

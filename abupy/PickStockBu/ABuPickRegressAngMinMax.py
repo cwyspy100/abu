@@ -2,9 +2,6 @@
 """
     选股示例因子：价格拟合角度选股因子
 """
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import numpy as np
 

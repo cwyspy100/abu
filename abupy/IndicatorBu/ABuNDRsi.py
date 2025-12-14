@@ -14,9 +14,6 @@
 5. rsi = 100 - 100 / (1 + rs)
 
 """
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 
 import matplotlib.pyplot as plt
 import numpy as np

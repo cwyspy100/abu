@@ -3,15 +3,11 @@
     数据源基础模块
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 from abc import ABCMeta, abstractmethod
 
 from ..MarketBu.ABuSymbol import Symbol
 from ..CoreBu.ABuEnv import EMarketTargetType
-from ..CoreBu.ABuFixes import six
 from ..UtilBu import ABuDateUtil
 
 
@@ -34,7 +30,7 @@ class SupportMixin(object):
         if symbol is None:
             symbol = self._symbol
 
-        if isinstance(symbol, six.string_types):
+        if isinstance(symbol, (str, bytes)):
             # 如果是str，使用_support_market返回的value组成字符串数组，进行成员测试
             if symbol in [market.value for market in self._support_market()]:
                 return True
@@ -142,7 +138,7 @@ class BaseMarket(object):
         return kl_df
 
 
-class StockBaseMarket(six.with_metaclass(ABCMeta, BaseMarket)):
+class StockBaseMarket(BaseMarket, metaclass=ABCMeta):
     """基于股票类型的数据源抽象基类"""
 
     @abstractmethod
@@ -161,7 +157,7 @@ class StockBaseMarket(six.with_metaclass(ABCMeta, BaseMarket)):
         return cls._fix_kline_pd_se(kl_df, n_folds, start=start, end=end)
 
 
-class FuturesBaseMarket(six.with_metaclass(ABCMeta, BaseMarket)):
+class FuturesBaseMarket(BaseMarket, metaclass=ABCMeta):
     """基于期货类型的数据源抽象基类"""
 
     @abstractmethod
@@ -177,7 +173,7 @@ class FuturesBaseMarket(six.with_metaclass(ABCMeta, BaseMarket)):
         return cls._fix_kline_pd_zero(kl_df)
 
 
-class TCBaseMarket(six.with_metaclass(ABCMeta, BaseMarket)):
+class TCBaseMarket(BaseMarket, metaclass=ABCMeta):
     """基于比特币，莱特币等类型的数据源抽象基类"""
 
     @abstractmethod

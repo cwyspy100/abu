@@ -1,9 +1,6 @@
 # -*- encoding:utf-8 -*-
 """封装AbuML为业务逻辑层进行规范模块"""
 
-from __future__ import division
-from __future__ import print_function
-from __future__ import absolute_import
 
 from abc import ABCMeta, abstractmethod
 
@@ -11,7 +8,6 @@ import pandas as pd
 import numpy as np
 
 from .ABuML import AbuML
-from ..CoreBu.ABuFixes import six
 from ..CoreBu import ABuEnv
 from ..MarketBu import ABuSymbolPd
 from ..IndicatorBu import ABuNDMa
@@ -21,7 +17,7 @@ __author__ = '阿布'
 __weixin__ = 'abu_quant'
 
 
-class AbuMLPd(six.with_metaclass(ABCMeta, object)):
+class AbuMLPd(object, metaclass=ABCMeta):
     """封装AbuML的上层具体业务逻辑类"""
 
     def __init__(self, **kwarg):
@@ -285,5 +281,6 @@ class BtcBigWaveClf(AbuMLPd):
                              'pre_close': 'today_pre_close',
                              'date_week': 'today_date_week'}, inplace=True)
             # 将抽取改名字后的特征连接起来组合成为一条新数据，即3天的交易数据特征－>1条新的数据
-            btc_df = btc_df.append(pd.concat([a0, a1, a2], axis=0), ignore_index=True)
+            # Python 3.9 + pandas 2.0+: append() 已移除，使用 pd.concat() 替代
+            btc_df = pd.concat([btc_df, pd.concat([a0, a1, a2], axis=0)], ignore_index=True)
         return btc_df

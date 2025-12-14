@@ -3,9 +3,6 @@
     资金模块，不区分美元，人民币等类型，做美股交易默认当作美元，a股默认当作人民币
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import logging
 
@@ -157,17 +154,19 @@ class AbuCapital(PickleStateMixin):
             :param buy_type_head: 代表交易类型，范围（_call，_put）
             """
             # cash_blance对na进行pad处理
-            self.capital_pd['cash_blance'].fillna(method='pad', inplace=True)
+            # Python 3.9 + pandas 2.0+: fillna(method='pad') 已弃用，使用 ffill() 替代
+            # Python 3.9 + pandas 3.0+: 避免链式赋值，使用直接赋值替代 inplace=True
+            self.capital_pd['cash_blance'] = self.capital_pd['cash_blance'].ffill()
             # symbol对应列持仓量对na进行处理
-            self.capital_pd[kl_pd.name + buy_type_head + '_keep'].fillna(method='pad', inplace=True)
-            self.capital_pd[kl_pd.name + buy_type_head + '_keep'].fillna(0, inplace=True)
+            self.capital_pd[kl_pd.name + buy_type_head + '_keep'] = self.capital_pd[kl_pd.name + buy_type_head + '_keep'].ffill()
+            self.capital_pd[kl_pd.name + buy_type_head + '_keep'] = self.capital_pd[kl_pd.name + buy_type_head + '_keep'].fillna(0)
 
             # 使用apply在axis＝1上，即每一个交易日上对持仓量及市场价值进行更新
             self.capital_pd.apply(self.apply_k_line, axis=1, args=(kl_pd, buy_type_head))
 
             # symbol对应列市场价值对na进行处理
-            self.capital_pd[kl_pd.name + buy_type_head + '_worth'].fillna(method='pad', inplace=True)
-            self.capital_pd[kl_pd.name + buy_type_head + '_worth'].fillna(0, inplace=True)
+            self.capital_pd[kl_pd.name + buy_type_head + '_worth'] = self.capital_pd[kl_pd.name + buy_type_head + '_worth'].ffill()
+            self.capital_pd[kl_pd.name + buy_type_head + '_worth'] = self.capital_pd[kl_pd.name + buy_type_head + '_worth'].fillna(0)
 
             # 纠错处理把keep=0但是worth被pad的进行二次修正
             fe_mask = (self.capital_pd[kl_pd.name + buy_type_head + '_keep'] == 0) & (
@@ -272,8 +271,9 @@ class AbuCapital(PickleStateMixin):
             keep_cnt = 0
             if has_cond1 and has_cond2:
                 # 前提1 + 前提2->本就有持仓, 拿到之前的持仓量
+                # Python 3.9 + pandas 2.0+: 使用 iloc[-1] 替代 [-1] 避免 FutureWarning
                 keep_cnt = self.capital_pd[a_order.buy_symbol
-                                           + buy_type_keep].iloc[:num_index + 1].dropna()[-1]
+                                           + buy_type_keep].iloc[:num_index + 1].dropna().iloc[-1]
 
             keep_cnt += a_order.buy_cnt
 
@@ -317,7 +317,8 @@ class AbuCapital(PickleStateMixin):
 
         if has_cond1 and has_cond2:
             # 有持仓, 拿到之前的持仓量
-            keep_cnt = self.capital_pd[a_order.buy_symbol + buy_type_keep].iloc[:num_index + 1].dropna()[-1]
+            # Python 3.9 + pandas 2.0+: 使用 iloc[-1] 替代 [-1] 避免 FutureWarning
+            keep_cnt = self.capital_pd[a_order.buy_symbol + buy_type_keep].iloc[:num_index + 1].dropna().iloc[-1]
             sell_cnt = a_order.buy_cnt
 
             if keep_cnt < sell_cnt:

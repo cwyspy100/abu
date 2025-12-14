@@ -3,9 +3,6 @@
     买入择时示例因子：日胜率均值买入择时因子
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 
 from .ABuFactorBuyBase import AbuFactorBuyTD, BuyCallMixin
 
