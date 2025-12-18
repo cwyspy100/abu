@@ -196,7 +196,13 @@ class AbuSymbolCN(AbuSymbolStockBase):
         """
 
         # 过滤df中的A股指数symbol
-        a_index = self.industry_factorize_name_series[self.industry_factorize_name_series == 'A股指数'].index.values[0]
+        a_index = 0
+        # 兼容 industry_factorize_name_series 没有 'A股指数' 的情况
+        try:
+            a_index = self.industry_factorize_name_series[self.industry_factorize_name_series == 'A股指数'].index.values[0]
+        except (AttributeError, IndexError, KeyError):
+            # 如果没有'A股指数'，则用一个永远不会匹配的值（避免过滤出所有股票）
+            a_index = '__NOT_EXISTING_INDEX__'
         df_filter = self.df[self.df['industry_factorize'] != a_index]
         # 通过symbol_func转换为外部可直接使用ABuSymbolPd.make_kl_df请求的symbol序列
         all_symbol = self.symbol_func(df_filter)

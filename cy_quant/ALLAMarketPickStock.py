@@ -36,10 +36,10 @@ def pick_stock_in_A_stock():
 
     # 选股条件threshold_ang_min=0.0, 即要求股票走势为向上上升趋势
     stock_pickers = [
-        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 20.0, 'xd': 10, 'reversed': False},
+        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 1.0, 'xd': 60, 'reversed': False},
         {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 500,   'reversed': False},
-        {'class': AbuPickStockByMean, 'mean_xd': 120},
-        {'class': AbuPickStockByGrow, 'grow_num': 20},
+        {'class': AbuPickStockByMean, 'mean_xd': 60},
+        {'class': AbuPickStockByGrow, 'grow_num': 0},
                      ]
 
     benchmark = AbuBenchmark()
@@ -69,9 +69,9 @@ def pick_stock_in_A_stock_mean():
 
     # 选股条件threshold_ang_min=0.0, 即要求股票走势为向上上升趋势
     stock_pickers = [
-        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 1.0, 'xd': 10, 'reversed': False},
+        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 1.0, 'xd': 60, 'reversed': False},
         {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 500,  'reversed': False},
-        {'class': AbuPickStockByMean, 'mean_xd': 60},
+        {'class': AbuPickStockByMean, 'mean_xd': 120},
         {'class': AbuPickStockByGrow, 'grow_num': 20},
     ]
 
@@ -116,11 +116,11 @@ def check_stock_in_A_stock(symbol):
 if __name__ == '__main__':
     # 1、更新所有数据
     start_time = time.time()
-    update_all_a_data()
+    # update_all_a_data()
 
     # 2、使用本地数据进行选股
-    # pick_stock_in_A_stock()
-    pick_stock_in_A_stock_mean()
+    pick_stock_in_A_stock()
+    # pick_stock_in_A_stock_mean()
 
     # 3、验证结果
     # check_stock_in_A_stock("sh601088")
