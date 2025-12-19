@@ -367,6 +367,13 @@ class Analyze120MA:
             
             start_date_breakthrough, start_price, current_price, growth_rate, days_diff = breakthrough_info
             
+            # 如果突破后持续天数小于10天，不需要继续计算
+            if days_diff < 10:
+                return None
+
+            if growth_rate < 5:
+                return None
+            
             # 如果设置了最小价格阈值，过滤掉start_price小于阈值的股票
             if self.min_price is not None and start_price < self.min_price:
                 return None
@@ -546,7 +553,7 @@ def main(prefixes=None, min_price=1.0):
     analyzer = Analyze120MA(prefixes=prefixes, min_price=min_price)
 
     # 测试流程
-    result_df = analyzer.analyze_stock(filepath='~/abu/data/csv/hk09992_20220606_20250624')
+    # result_df = analyzer.analyze_stock(filepath='~/abu/data/csv/hk09992_20220606_20250624')
 
     # 分析所有股票
     result_df = analyzer.analyze_all()
