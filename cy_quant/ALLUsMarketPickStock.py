@@ -1,7 +1,6 @@
-import time
-
+import datetime
 # noinspection PyUnresolvedReferences
-import abu_local_env
+import time
 
 import abupy
 from abupy import ABuMarket
@@ -13,7 +12,6 @@ from abupy import AbuPickStockWorker
 from abupy import EMarketSourceType, EDataCacheType, EMarketTargetType, EMarketDataFetchMode
 from abupy import abu
 from abupy import ABuRegUtil
-import datetime
 
 
 def update_all_us_data():
@@ -39,8 +37,8 @@ def pick_stock_in_us_stock():
     # stock_pickers = [{'class': AbuPickRegressAngMinMax,
     #                   'threshold_ang_min': 5.0, 'xd': 10, 'reversed': False}]
     stock_pickers = [
-        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 20, 'xd': 20, 'reversed': False},
-        {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 500, 'reversed': False},
+        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 5.0, 'xd': 120, 'reversed': False},
+        {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 1000, 'reversed': False},
         # {'class': AbuPickStockByMean, 'mean_xd': 120},
     ]
 
@@ -53,15 +51,14 @@ def pick_stock_in_us_stock():
     stock_pick.fit()
     # 打印最后的选股结果
     print('stock_pick.choice_symbols:', stock_pick.choice_symbols)
-    save_stock_info(stock_pick.choice_symbols, "mean")
+    save_stock_info(stock_pick.choice_symbols)
 
-def save_stock_info(choice_symbols, flag="all"):
+def save_stock_info(choice_symbols, flag="all_US"):
     today = datetime.date.today().strftime("%Y%m%d")
-    file_name = flag + "_us_out_put_"+today
+    file_name = flag + "_out_put_" + today
     with open(file_name, "w") as file:
         for item in choice_symbols:
-            file.write(str(item)+"\n")
-
+            file.write(str(item) + "\n")
 
 def check_stock_in_us_stock(symbol):
     """

@@ -88,9 +88,9 @@ def pick_stock_in_A_stock_mean():
     save_stock_info(stock_pick.choice_symbols, "mean")
 
 
-def save_stock_info(choice_symbols, flag="all"):
+def save_stock_info(choice_symbols, flag="all_A"):
     today = datetime.date.today().strftime("%Y%m%d")
-    file_name = flag + "_a_out_put_"+today
+    file_name = flag + "_out_put_"+today
     with open(file_name, "w") as file:
         for item in choice_symbols:
             file.write(str(item)+"\n")

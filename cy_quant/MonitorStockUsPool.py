@@ -16,19 +16,21 @@ import datetime
 # 使用沙盒数据，目的是和书中一样的数据环境
 # abupy.env.enable_example_env_ipython()
 abupy.env.disable_example_env_ipython()
-from abupy import AbuFactorAtrNStop, AbuFactorPreAtrNStop, AbuFactorCloseAtrNStop, AbuFactorBuyBreak, AbuDoubleMaBuy, AbuKellyPosition, AbuPtPosition
+from abupy import AbuFactorAtrNStop, AbuFactorPreAtrNStop, AbuFactorCloseAtrNStop, AbuFactorBuyBreak, AbuDoubleMaBuy, AbuKellyPosition, AbuPtPosition, AbuFactorSellBreak
 from abupy import abu, EMarketTargetType, AbuMetricsBase, ABuMarketDrawing, ABuProgress, ABuSymbolPd, EMarketSourceType
 
 # abupy量化环境设置为A股
 abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_US
-abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_sn_us
+abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
 from abupy import slippage
 
 from learn_python.ABuFactorBuyMean import AbuFactorBuyMean
-from learn_python.ABuFactorBuyMinMean import AbuFactorBuyMinMean
-from learn_python.ABuFactorBuyEMA import AbuFactorBuyEMA
-from learn_python.ABuFactorSellEMA import AbuFactorSellEMA
 from learn_python.ABuFactorSellMean import AbuFactorSellMean
+from learn_python.ABuFactorBuyEMA import AbuFactorBuyEMA
+from learn_python.ABuFactorBuyMeanAng import AbuFactorBuyMeanAng
+from learn_python.ABuFactorBuyFixedInvest import AbuFactorBuyFixedInvest
+from learn_python.ABuFactorBuyGrid import AbuFactorBuyGrid
+from learn_python.ABuFactorSellGrid import AbuFactorSellGrid
 
 # 开启针对非集合竞价阶段的涨停，滑点买入价格以高概率在接近涨停的价格买入
 slippage.sbb.g_enable_limit_up = True
@@ -40,66 +42,90 @@ slippage.ssb.g_enable_limit_down = True
 slippage.ssb.g_pre_limit_down_rate = 0
 
 
-def execute_stock_us_back_test():
+def execute_stock_us_back_test(read_path, save_path, hand_type=0):
     # 择时股票池
     # choice_symbols = ['002230', '300104', '300059', '601766', '600085', '600036', '600809', '000002', '002594',
     #                   '002739']
 
-    choice_symbols_pd = pd.read_csv('../todolist/stock_us_pool.csv')
+    # choice_symbols_pd = pd.read_csv('../todolist/stock_us_pool.csv')
+    choice_symbols_pd = pd.read_csv(read_path)
     choice_symbols = choice_symbols_pd['symbol']
-    # choice_symbols = ['usGOOG', 'usFUTU']
     choice_symbols = ['usFUTU']
-    # choice_symbols = ['usYINN']
     print("choice_symbols:{}".format(choice_symbols))
-    # choice_symbols = ['usGOOG']
+    # choice_symbols = ['usUPRO']
+    # choice_symbols = ['usYINN']
+    # choice_symbols = ['usTQQQ']
+    # choice_symbols = ['usTSLA']
 
     # 设置初始资金数
     read_cash = 1000000
 
-    # 买入因子依然延用向上突破因子
+
+    # 买入因子依然延用向上突破因子,默认
     buy_factors = [
         # {'xd': 60, 'class': AbuFactorBuyBreak},
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 90, 'class': AbuDoubleMaBuy},
-        # {'class': AbuDoubleMaBuy},
+        # {'class': AbuDoubleMaBuy, 'position': AbuPtPosition},
+        # {'xd': 60, 'class': AbuFactorBuyMean},
         {'xd': 120, 'class': AbuFactorBuyEMA},
-        # {'xd': 60, 'class': AbuFactorBuyMinMean},
-        # {'xd': 60, 'class': AbuFactorBuyMean}
+        # {'xd': 120, 'class': AbuFactorBuyMeanAng},
     ]
 
     # 卖出因子继续使用上一节使用的因子
     sell_factors = [
         {'stop_loss_n': 1.0, 'stop_win_n': 3.0, 'class': AbuFactorAtrNStop},
-        # {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
+        {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
         {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5},
-        # {'xd': 120, 'class': AbuFactorSellEMA}
-        # {'xd': 120, 'class': AbuFactorSellMean}
+        # {'xd': 60, 'class': AbuFactorSellMean},
+        # {'xd': 60, 'class': AbuFactorSellBreak},
     ]
+
+    # 网格交易法
+    if hand_type == 1:
+        buy_factors = [
+            # {'xd': 20, 'class': AbuFactorBuyFixedInvest},
+            {'xd': 20, 'class': AbuFactorBuyGrid},
+        ]
+
+        # 卖出因子继续使用上一节使用的因子
+        sell_factors = [
+            {'xd': 20, 'class': AbuFactorSellGrid},
+        ]
+
 
     # 使用run_loop_back运行策略
     abu_result_tuple, kl_pd_manger = abu.run_loop_back(read_cash,
                                                        buy_factors,
                                                        sell_factors,
-                                                       n_folds=1,
-                                                       # start='2025-04-10',
-                                                       # end='2025-04-23',
+                                                       n_folds=2,
+                                                       # start='2023-01-01',
+                                                       # end='2024-05-01',
                                                        choice_symbols=choice_symbols)
     ABuProgress.clear_output()
     metrics = AbuMetricsBase(*abu_result_tuple)
     metrics.fit_metrics()
     AbuMetricsBase.show_general(*abu_result_tuple, only_show_returns=True)
 
-    orders_pd = abu_result_tuple.orders_pd
-    orders_pd.to_csv('../todolist/stock_us_orders.csv')
-    actions_pd = abu_result_tuple.action_pd
-    actions_pd.to_csv('../todolist/stock_us_actions.csv')
+    if hand_type == 0:
+        order_path = '../todolist/stock_us_orders.csv'
+        action_path = '../todolist/stock_us_actions.csv'
 
-    save_backtest_result(metrics, buy_factors, sell_factors)
+    if hand_type == 1:
+        order_path = '../todolist/stock_us_grid_orders.csv'
+        action_path = '../todolist/stock_us_grid_actions.csv'
+
+    orders_pd = abu_result_tuple.orders_pd
+    orders_pd.to_csv(order_path)
+    actions_pd = abu_result_tuple.action_pd
+    actions_pd.to_csv(action_path)
+
+    save_backtest_result(metrics, save_path)
 
     # ABuMarketDrawing.plot_candle_from_order(orders_pd)
 
 
-def save_backtest_result(metrics, buy_factors, sell_factors):
+def save_backtest_result(metrics, save_path):
     result = []
     result1 = '买入后卖出的交易数量:{}'.format(metrics.order_has_ret.shape[0])
     result2 = '买入后尚未卖出的交易数量:{}'.format(metrics.order_keep.shape[0])
@@ -114,8 +140,6 @@ def save_backtest_result(metrics, buy_factors, sell_factors):
     result11 = '策略买入成交比例:{:.4f}%'.format(metrics.buy_deal_rate * 100)
     result12 = '策略资金利用率比例:{:.4f}%'.format(metrics.cash_utilization * 100)
     result13 = '策略共执行{}个交易日'.format(metrics.num_trading_days)
-    result14 = '买入策略{}'.format(str(buy_factors))
-    result15 = '卖出策略{}'.format(str(sell_factors))
     today = datetime.date.today()
     result.append("------------" + str(today) + "-------------42非动态均线----------------")
     result.append(result1)
@@ -131,14 +155,16 @@ def save_backtest_result(metrics, buy_factors, sell_factors):
     result.append(result11)
     result.append(result12)
     result.append(result13)
-    result.append(result14)
-    result.append(result15)
     string = "\n"
-    with open('../todolist/stock_us_pool_backtest.txt', 'a', encoding='utf-8') as f:
+    # with open('../todolist/stock_us_pool_backtest.txt', 'a', encoding='utf-8') as f:
+    with open(save_path, 'a', encoding='utf-8') as f:
         f.write(string.join(result))
 
 
+
+
 if __name__ == "__main__":
-    execute_stock_us_back_test()
+    execute_stock_us_back_test('../todolist/stock_us_pool.csv', '../todolist/stock_us_pool_backtest.txt')
+    # execute_stock_us_back_test('../todolist/stock_us_grid_pool.csv', '../todolist/stock_us_grid_pool_backtest.txt', hand_type=1)
     # stock_a_pd = pd.read_csv('stock_a_pool.csv')
     # print(stock_a_pd['symbol'])
