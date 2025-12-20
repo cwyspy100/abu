@@ -69,14 +69,20 @@ g_ignore_all_warnings = False
 """忽略库警告，默认打开"""
 g_ignore_lib_warnings = True
 if g_ignore_lib_warnings:
+    # 在导入 matplotlib 之前就设置警告过滤器，以抑制 PyCharm 插件产生的警告
+    # Python 3.9 + matplotlib 3.8+: 抑制 MatplotlibDeprecationWarning
+    # 这些警告通常来自 IDE 插件（如 PyCharm），不是用户代码的问题
+    # 使用消息匹配来抑制特定的警告，这样可以在导入 matplotlib 之前就生效
+    warnings.filterwarnings('ignore', message='.*tostring_rgb.*')
+    warnings.filterwarnings('ignore', message='.*buffer_rgba.*')
+    
     # noinspection PyBroadException
     try:
         import matplotlib
 
         matplotlib.warnings.filterwarnings('ignore')
         matplotlib.warnings.simplefilter('ignore')
-        # Python 3.9 + matplotlib 3.8+: 抑制 MatplotlibDeprecationWarning
-        # 这些警告通常来自 IDE 插件（如 PyCharm），不是用户代码的问题
+        # 抑制所有 MatplotlibDeprecationWarning（包括 PyCharm 插件产生的）
         warnings.filterwarnings('ignore', category=matplotlib.MatplotlibDeprecationWarning)
         import sklearn
 

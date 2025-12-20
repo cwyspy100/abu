@@ -27,7 +27,6 @@ from abupy import slippage
 from learn_python.ABuFactorBuyMean import AbuFactorBuyMean
 from learn_python.ABuFactorSellMean import AbuFactorSellMean
 from learn_python.ABuFactorBuyEMA import AbuFactorBuyEMA
-from learn_python.ABuFactorBuyMeanAng import AbuFactorBuyMeanAng
 from learn_python.ABuFactorBuyFixedInvest import AbuFactorBuyFixedInvest
 from learn_python.ABuFactorBuyGrid import AbuFactorBuyGrid
 from learn_python.ABuFactorSellGrid import AbuFactorSellGrid
@@ -43,19 +42,10 @@ slippage.ssb.g_pre_limit_down_rate = 0
 
 
 def execute_stock_us_back_test(read_path, save_path, hand_type=0):
-    # 择时股票池
-    # choice_symbols = ['002230', '300104', '300059', '601766', '600085', '600036', '600809', '000002', '002594',
-    #                   '002739']
-
-    # choice_symbols_pd = pd.read_csv('../todolist/stock_us_pool.csv')
     choice_symbols_pd = pd.read_csv(read_path)
     choice_symbols = choice_symbols_pd['symbol']
     choice_symbols = ['usFUTU']
     print("choice_symbols:{}".format(choice_symbols))
-    # choice_symbols = ['usUPRO']
-    # choice_symbols = ['usYINN']
-    # choice_symbols = ['usTQQQ']
-    # choice_symbols = ['usTSLA']
 
     # 设置初始资金数
     read_cash = 1000000
@@ -68,7 +58,7 @@ def execute_stock_us_back_test(read_path, save_path, hand_type=0):
         # {'fast': 5, 'slow': 90, 'class': AbuDoubleMaBuy},
         # {'class': AbuDoubleMaBuy, 'position': AbuPtPosition},
         # {'xd': 60, 'class': AbuFactorBuyMean},
-        {'xd': 120, 'class': AbuFactorBuyEMA},
+        {'xd': 60, 'class': AbuFactorBuyFixedInvest},
         # {'xd': 120, 'class': AbuFactorBuyMeanAng},
     ]
 
@@ -161,10 +151,6 @@ def save_backtest_result(metrics, save_path):
         f.write(string.join(result))
 
 
-
-
 if __name__ == "__main__":
     execute_stock_us_back_test('../todolist/stock_us_pool.csv', '../todolist/stock_us_pool_backtest.txt')
     # execute_stock_us_back_test('../todolist/stock_us_grid_pool.csv', '../todolist/stock_us_grid_pool_backtest.txt', hand_type=1)
-    # stock_a_pd = pd.read_csv('stock_a_pool.csv')
-    # print(stock_a_pd['symbol'])

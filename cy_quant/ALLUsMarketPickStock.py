@@ -78,9 +78,9 @@ def check_stock_in_us_stock(symbol):
 if __name__ == '__main__':
     start_time = time.time()
     # 1、更新所有数据
-    # update_all_us_data()
+    update_all_us_data()
     # 2、使用本地数据进行选股
-    pick_stock_in_us_stock()
+    # pick_stock_in_us_stock()
     # 3、验证结果
     # check_stock_in_us_stock("usFUTU")
     print("cost time {}".format(time.time() - start_time))

@@ -1,9 +1,7 @@
 
 '''
 通过均值，比如120天的均线，今天的金额大于120均线数值就买入，对应有卖出
-
 '''
-
 
 from __future__ import absolute_import
 from __future__ import print_function
@@ -11,10 +9,6 @@ from __future__ import division
 
 from abupy import AbuFactorBuyBase, AbuFactorBuyXD, BuyCallMixin, BuyPutMixin
 
-
-
-
-# noinspection PyAttributeOutsideInit
 class AbuFactorBuyEMA(AbuFactorBuyBase, BuyCallMixin):
     """示例正向突破买入择时类，混入BuyCallMixin，即向上突破触发买入event"""
 

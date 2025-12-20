@@ -131,12 +131,23 @@ class AbuMetricsBase(object):
 
         # 收益cum数据
         # noinspection PyTypeChecker
-        self.algorithm_cum_returns = stats.cum_returns(self.algorithm_returns)
-        self.benchmark_cum_returns = stats.cum_returns(self.benchmark_returns)
+        algorithm_cum_returns_result = stats.cum_returns(self.algorithm_returns)
+        benchmark_cum_returns_result = stats.cum_returns(self.benchmark_returns)
+        
+        # 确保返回的是 pandas Series，以便后续调用 .plot() 方法
+        if not isinstance(algorithm_cum_returns_result, pd.Series):
+            self.algorithm_cum_returns = pd.Series(algorithm_cum_returns_result, index=self.algorithm_returns.index)
+        else:
+            self.algorithm_cum_returns = algorithm_cum_returns_result
+            
+        if not isinstance(benchmark_cum_returns_result, pd.Series):
+            self.benchmark_cum_returns = pd.Series(benchmark_cum_returns_result, index=self.benchmark_returns.index)
+        else:
+            self.benchmark_cum_returns = benchmark_cum_returns_result
 
         # 最后一日的cum return
-        self.benchmark_period_returns = self.benchmark_cum_returns[-1]
-        self.algorithm_period_returns = self.algorithm_cum_returns[-1]
+        self.benchmark_period_returns = self.benchmark_cum_returns.iloc[-1]
+        self.algorithm_period_returns = self.algorithm_cum_returns.iloc[-1]
 
         # 交易天数
         self.num_trading_days = len(self.benchmark_returns)

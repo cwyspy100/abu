@@ -142,7 +142,10 @@ def cum_returns(returns, starting_value=0):
 
     if np.isnan(np.asanyarray(returns)[0]):
         returns = returns.copy()
-        returns[0] = 0.
+        if isinstance(returns, pd.Series):
+            returns.iloc[0] = 0.
+        else:
+            returns[0] = 0.
 
     df_cum = np.exp(nancumsum(np.log1p(returns)))
 
