@@ -20,12 +20,18 @@ class AbuFactorSellGrid(AbuFactorSellBase):
 
     def _init_self(self, **kwargs):
         """kwargs中必须包含: 
-        1. grid_interval: 网格间距，百分比表示，默认5%
-        2. ma_period: 均线周期，默认120天
-        3. grid_count: 网格数量，默认5格
+        1. xd: 均线周期（兼容参数），如果提供则作为 ma_period 使用
+        2. grid_interval: 网格间距，百分比表示，默认5%
+        3. ma_period: 均线周期，默认120天
+        4. grid_count: 网格数量，默认5格
         """
+        # 兼容 xd 参数，如果提供了 xd 则作为 ma_period 使用
+        if 'xd' in kwargs and 'ma_period' not in kwargs:
+            self.ma_period = kwargs.get('xd', 120)
+        else:
+            self.ma_period = kwargs.get('ma_period', 120)
+        
         self.grid_interval = kwargs.get('grid_interval', 5)
-        self.ma_period = kwargs.get('ma_period', 120)
         self.grid_count = kwargs.get('grid_count', 5)
         
         # 记录网格状态，与买入策略共享

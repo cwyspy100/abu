@@ -16,11 +16,12 @@ warnings.filterwarnings('ignore')
 class Analyze120MA:
     """120日均线分析器"""
     
-    def __init__(self, prefixes=None, min_price=None):
+    def __init__(self, prefixes=None, min_price=None, growth_weights=None):
         """
         初始化
         :param prefixes: 文件前缀列表，默认为['sh', 'sz']
         :param min_price: 最小价格阈值，过滤掉start_price小于此值的股票，默认为None（不过滤）
+        :param growth_weights: 涨幅比重参数，默认为[0.3, 0.3, 0.4]，分别对应10、20、30日涨幅的权重
         """
         self.csv_dir = os.path.expanduser('~/abu/data/csv')
         self.results = []
@@ -29,6 +30,10 @@ class Analyze120MA:
             prefixes = ['sh', 'sz']
         self.prefixes = prefixes if isinstance(prefixes, list) else [prefixes]
         self.min_price = min_price
+        # 如果没有指定比重，默认使用[0.3, 0.3, 0.4]
+        if growth_weights is None:
+            growth_weights = [0.3, 0.3, 0.4]
+        self.growth_weights = growth_weights
     
     def get_stock_files(self):
         """
@@ -236,90 +241,6 @@ class Analyze120MA:
         
         return result
     
-    def calculate_ma_slope(self, df, breakthrough_date, ma_column, days=10):
-        """
-        计算从突破日期开始往后N天的均线斜率
-        :param df: 包含均线数据的DataFrame，已按日期排序
-        :param breakthrough_date: 突破日期（字符串格式）
-        :param ma_column: 均线列名，如'ma10', 'ma20', 'ma30'
-        :param days: 从突破日期开始往后计算的天数，默认10
-        :return: 斜率值（如果数据不足返回None）
-        """
-        if ma_column not in df.columns:
-            return None
-        
-        # 确保trade_date是字符串类型
-        df = df.copy()
-        df['trade_date'] = df['trade_date'].astype(str)
-        
-        # 找到突破日期在DataFrame中的位置
-        breakthrough_idx = None
-        for idx, row in df.iterrows():
-            if row['trade_date'] == breakthrough_date:
-                breakthrough_idx = idx
-                break
-        
-        if breakthrough_idx is None:
-            return None
-        
-        # 从突破日期开始，往后取days个数据点（包含突破当天）
-        end_idx = breakthrough_idx + days
-        if end_idx > len(df):
-            return None
-        
-        # 获取从突破日期开始往后days天的均线数据
-        ma_values = df.iloc[breakthrough_idx:end_idx][ma_column].dropna()
-        
-        if len(ma_values) < days:
-            return None
-        
-        # 使用线性回归计算斜率
-        y_values = ma_values.values
-        x_values = np.arange(len(y_values))
-        
-        # 使用线性回归计算斜率
-        slope = np.polyfit(x_values, y_values, 1)[0]
-        
-        return slope
-    
-    def calculate_max_price(self, df, breakthrough_date, days):
-        """
-        计算从突破日期开始往后N日的最高价格
-        :param df: 包含close的DataFrame，已按日期排序
-        :param breakthrough_date: 突破日期（字符串格式）
-        :param days: 从突破日期开始往后计算的天数，如10、20、30
-        :return: 最高价格（如果数据不足返回None）
-        """
-        if 'close' not in df.columns:
-            return None
-        
-        # 确保trade_date是字符串类型
-        df = df.copy()
-        df['trade_date'] = df['trade_date'].astype(str)
-        
-        # 找到突破日期在DataFrame中的位置
-        breakthrough_idx = None
-        for idx, row in df.iterrows():
-            if row['trade_date'] == breakthrough_date:
-                breakthrough_idx = idx
-                break
-        
-        if breakthrough_idx is None:
-            return None
-        
-        # 从突破日期开始，往后取days个数据点（包含突破当天）
-        end_idx = breakthrough_idx + days
-        if end_idx > len(df):
-            return None
-        
-        # 获取从突破日期开始往后days天的价格数据
-        price_data = df.iloc[breakthrough_idx:end_idx]['close']
-        
-        if len(price_data) < days:
-            return None
-        
-        return price_data.max()
-    
     def analyze_stock(self, filepath):
         """
         分析单个股票文件
@@ -435,29 +356,16 @@ class Analyze120MA:
             # 添加突破后不同天数的累计增长数据
             result.update(growth_at_days)
             
-            # 计算从突破日期开始往后10、20、30天的均线斜率
-            ma_slopes = {}
-            breakthrough_date_str = str(start_date_breakthrough)
-            for ma_period in [10, 20, 30]:
-                ma_col = f'ma{ma_period}'
-                slope = self.calculate_ma_slope(df_sorted, breakthrough_date_str, ma_col, days=ma_period)
-                if slope is not None:
-                    ma_slopes[f'ma{ma_period}_slope'] = round(slope, 4)
-                else:
-                    ma_slopes[f'ma{ma_period}_slope'] = 0.0
-            
-            # 计算从突破日期开始往后10、20、30日的最高价格
-            max_prices = {}
-            for days in [10, 20, 30]:
-                max_price = self.calculate_max_price(df_sorted, breakthrough_date_str, days)
-                if max_price is not None:
-                    max_prices[f'max_price_{days}d'] = round(max_price, 2)
-                else:
-                    max_prices[f'max_price_{days}d'] = 0.0
-            
-            # 添加均线斜率和最高价格数据
-            result.update(ma_slopes)
-            result.update(max_prices)
+            # 计算积分：10、20、30日涨幅与比重相乘
+            score = 0.0
+            if len(self.growth_weights) >= 3:
+                growth_10d = growth_at_days.get('growth_10d', 0.0)
+                growth_20d = growth_at_days.get('growth_20d', 0.0)
+                growth_30d = growth_at_days.get('growth_30d', 0.0)
+                score = (growth_10d * self.growth_weights[0] + 
+                        growth_20d * self.growth_weights[1] + 
+                        growth_30d * self.growth_weights[2])
+            result['score'] = round(score, 2)
             
             return result
             
@@ -502,8 +410,7 @@ class Analyze120MA:
         # 确保数值字段为正确的数值类型，以便排序
         numeric_columns = ['growth_rate', 'days', 'year_to_date_growth', 
                           'growth_10d', 'growth_20d', 'growth_30d', 'growth_40d', 'growth_50d',
-                          'ma10_slope', 'ma20_slope', 'ma30_slope',
-                          'max_price_10d', 'max_price_20d', 'max_price_30d']
+                          'score']
         for col in numeric_columns:
             if col in result_df.columns:
                 result_df[col] = pd.to_numeric(result_df[col], errors='coerce')
@@ -543,14 +450,15 @@ class Analyze120MA:
         print(result_df.head(20).to_string(index=False))
 
 
-def main(prefixes=None, min_price=1.0):
+def main(prefixes=None, min_price=1.0, growth_weights=None):
     """
     主函数
     :param prefixes: 文件前缀列表，默认为None（使用默认的['sh', 'sz']）
                      可以传入 ['sh', 'sz'] 或 ['sh'] 或 ['sz'] 等
     :param min_price: 最小价格阈值，过滤掉start_price小于此值的股票，默认为None（不过滤）
+    :param growth_weights: 涨幅比重参数，默认为None（使用默认的[0.3, 0.3, 0.4]），分别对应10、20、30日涨幅的权重
     """
-    analyzer = Analyze120MA(prefixes=prefixes, min_price=min_price)
+    analyzer = Analyze120MA(prefixes=prefixes, min_price=min_price, growth_weights=growth_weights)
 
     # 测试流程
     # result_df = analyzer.analyze_stock(filepath='~/abu/data/csv/hk09992_20220606_20250624')
@@ -569,7 +477,7 @@ if __name__ == '__main__':
     import time
     start = time.time()
     
-    result = main('hk')
+    result = main()
     
     print(f"\n处理完成，耗时 {time.time() - start:.2f} 秒")
 

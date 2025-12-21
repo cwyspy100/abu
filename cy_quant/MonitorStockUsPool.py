@@ -45,6 +45,9 @@ def execute_stock_us_back_test(read_path, save_path, hand_type=0):
     choice_symbols_pd = pd.read_csv(read_path)
     choice_symbols = choice_symbols_pd['symbol']
     choice_symbols = ['usFUTU']
+    choice_symbols = ['usTQQQ']
+    choice_symbols = ['usUPRO']
+    choice_symbols = ['usYINN']
     print("choice_symbols:{}".format(choice_symbols))
 
     # 设置初始资金数
@@ -74,13 +77,13 @@ def execute_stock_us_back_test(read_path, save_path, hand_type=0):
     # 网格交易法
     if hand_type == 1:
         buy_factors = [
-            # {'xd': 20, 'class': AbuFactorBuyFixedInvest},
-            {'xd': 20, 'class': AbuFactorBuyGrid},
+            {'xd': 20, 'class': AbuFactorBuyFixedInvest},
+            # {'xd': 100, 'class': AbuFactorBuyGrid},
         ]
 
         # 卖出因子继续使用上一节使用的因子
         sell_factors = [
-            {'xd': 20, 'class': AbuFactorSellGrid},
+            # {'xd': 100, 'class': AbuFactorSellGrid},
         ]
 
 
@@ -88,7 +91,7 @@ def execute_stock_us_back_test(read_path, save_path, hand_type=0):
     abu_result_tuple, kl_pd_manger = abu.run_loop_back(read_cash,
                                                        buy_factors,
                                                        sell_factors,
-                                                       n_folds=2,
+                                                       n_folds=4,
                                                        # start='2023-01-01',
                                                        # end='2024-05-01',
                                                        choice_symbols=choice_symbols)
@@ -110,12 +113,12 @@ def execute_stock_us_back_test(read_path, save_path, hand_type=0):
     actions_pd = abu_result_tuple.action_pd
     actions_pd.to_csv(action_path)
 
-    save_backtest_result(metrics, save_path)
+    save_backtest_result(metrics, save_path, choice_symbols)
 
     # ABuMarketDrawing.plot_candle_from_order(orders_pd)
 
 
-def save_backtest_result(metrics, save_path):
+def save_backtest_result(metrics, save_path, choice_symbols):
     result = []
     result1 = '买入后卖出的交易数量:{}'.format(metrics.order_has_ret.shape[0])
     result2 = '买入后尚未卖出的交易数量:{}'.format(metrics.order_keep.shape[0])
@@ -131,6 +134,7 @@ def save_backtest_result(metrics, save_path):
     result12 = '策略资金利用率比例:{:.4f}%'.format(metrics.cash_utilization * 100)
     result13 = '策略共执行{}个交易日'.format(metrics.num_trading_days)
     today = datetime.date.today()
+
     result.append("------------" + str(today) + "-------------42非动态均线----------------")
     result.append(result1)
     result.append(result2)
@@ -145,6 +149,7 @@ def save_backtest_result(metrics, save_path):
     result.append(result11)
     result.append(result12)
     result.append(result13)
+    result.append("------------" + "choice_symbols:{}".format(choice_symbols) + "-------------42非动态均线----------------")
     string = "\n"
     # with open('../todolist/stock_us_pool_backtest.txt', 'a', encoding='utf-8') as f:
     with open(save_path, 'a', encoding='utf-8') as f:
@@ -152,5 +157,5 @@ def save_backtest_result(metrics, save_path):
 
 
 if __name__ == "__main__":
-    execute_stock_us_back_test('../todolist/stock_us_pool.csv', '../todolist/stock_us_pool_backtest.txt')
-    # execute_stock_us_back_test('../todolist/stock_us_grid_pool.csv', '../todolist/stock_us_grid_pool_backtest.txt', hand_type=1)
+    # execute_stock_us_back_test('../todolist/stock_us_pool.csv', '../todolist/stock_us_pool_backtest.txt')
+    execute_stock_us_back_test('../todolist/stock_us_grid_pool.csv', '../todolist/stock_us_grid_pool_backtest.txt', hand_type=1)

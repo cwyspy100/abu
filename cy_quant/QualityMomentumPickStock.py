@@ -31,10 +31,11 @@ warnings.filterwarnings('ignore')
 class QualityMomentumStockPicker:
     """高质量+高动量因子选股器"""
     
-    def __init__(self, token=None):
+    def __init__(self, token=None, use_local_only=False):
         """
         初始化选股器
         :param token: tushare token，如果为None则从配置文件读取
+        :param use_local_only: 是否只使用本地缓存数据，不访问外部API。True=仅本地，False=本地+外部
         """
         if token is None:
             # 从配置文件读取token
@@ -50,6 +51,9 @@ class QualityMomentumStockPicker:
         self.cache_dir = os.path.expanduser('~/abu/tushare')
         os.makedirs(self.cache_dir, exist_ok=True)
         
+        # 设置数据获取模式
+        self.use_local_only = use_local_only  # True=仅本地，False=本地+外部
+        
         # 因子权重配置（可根据回测结果调整）
         self.quality_weights = {
             'roe': 0.3,      # ROE权重
@@ -60,10 +64,10 @@ class QualityMomentumStockPicker:
         }
         
         self.momentum_weights = {
-            'return_1m': 0.2,   # 1个月收益率权重
+            'return_1m': 0.3,   # 1个月收益率权重
             'return_3m': 0.3,   # 3个月收益率权重
             'return_6m': 0.3,   # 6个月收益率权重
-            'return_12m': 0.2   # 12个月收益率权重
+            'return_12m': 0.1   # 12个月收益率权重
         }
         
         # 质量因子和动量因子的综合权重
@@ -158,12 +162,16 @@ class QualityMomentumStockPicker:
         :param cache_key: 缓存键（由调用者生成）
         :param fetch_func: 实际的数据获取函数（无参数）
         :param func_name: 函数名（用于确定文件夹）
-        :return: DataFrame
+        :return: (DataFrame, bool) 元组，DataFrame为数据，bool为是否从本地获取（True=本地，False=外部）
         """
         # 尝试从缓存加载
         cached_data = self._load_from_cache(cache_key, func_name)
         if cached_data is not None:
-            return cached_data
+            return cached_data, True  # 从本地获取
+        
+        # 如果设置为仅本地模式，且缓存中没有数据，返回空DataFrame
+        if self.use_local_only:
+            return pd.DataFrame(), True  # 标记为本地获取（虽然为空）
         
         # 从网络获取
         data = fetch_func()
@@ -172,7 +180,7 @@ class QualityMomentumStockPicker:
         if data is not None and not data.empty:
             self._save_to_cache(cache_key, data, func_name)
         
-        return data
+        return data, False  # 从外部获取
     
     def get_stock_basic(self, exchange='', list_status='L', fields='ts_code,symbol,name,market,list_date'):
         """
@@ -187,7 +195,8 @@ class QualityMomentumStockPicker:
                 fields=fields
             )
         
-        return self._get_data_with_cache(cache_key, fetch, 'stock_basic')
+        data, _ = self._get_data_with_cache(cache_key, fetch, 'stock_basic')
+        return data
     
     def get_trade_cal(self, exchange='', start_date='', end_date=''):
         """
@@ -198,7 +207,8 @@ class QualityMomentumStockPicker:
         def fetch():
             return self.pro.trade_cal(exchange=exchange, start_date=start_date, end_date=end_date)
         
-        return self._get_data_with_cache(cache_key, fetch, 'trade_cal')
+        data, _ = self._get_data_with_cache(cache_key, fetch, 'trade_cal')
+        return data
     
     def get_finance_data(self, ts_code, start_date='', end_date=''):
         """
@@ -253,7 +263,8 @@ class QualityMomentumStockPicker:
             
             return merged
         
-        return self._get_data_with_cache(cache_key, fetch, 'finance')
+        data, _ = self._get_data_with_cache(cache_key, fetch, 'finance')
+        return data
     
     def _load_from_abu_csv(self, ts_code, start_date, end_date):
         """
@@ -319,7 +330,8 @@ class QualityMomentumStockPicker:
                 end_date=end_date
             )
         
-        return self._get_data_with_cache(cache_key, fetch, 'daily')
+        data, _ = self._get_data_with_cache(cache_key, fetch, 'daily')
+        return data
     
     def get_index_daily(self, ts_code, start_date='', end_date=''):
         """
@@ -343,7 +355,8 @@ class QualityMomentumStockPicker:
                 end_date=end_date
             )
         
-        return self._get_data_with_cache(cache_key, fetch, 'index_daily')
+        data, _ = self._get_data_with_cache(cache_key, fetch, 'index_daily')
+        return data
     
     def get_stock_list(self, exchange='', list_status='L'):
         """
@@ -379,14 +392,59 @@ class QualityMomentumStockPicker:
         quality_data = []
         
         # 按股票代码逐个获取财务数据
-        for i, ts_code in enumerate(ts_code_list[:500]):  # 限制数量，避免接口调用过多
+        external_fetch_count = 0  # 记录从外部获取的次数
+        for i, ts_code in enumerate(ts_code_list[:]):  # 限制数量，避免接口调用过多
             try:
                 # 获取合并后的财务数据（包含财务指标和利润表），使用指定的起止日期
-                finance_data = self.get_finance_data(
-                    ts_code=ts_code,
-                    start_date=start_date_str,
-                    end_date=end_date_str
-                )
+                cache_key = self._get_cache_key('finance', ts_code=ts_code, start_date=start_date_str, end_date=end_date_str)
+                
+                def fetch():
+                    # 获取财务指标
+                    fina_indicator = self.pro.fina_indicator(
+                        ts_code=ts_code,
+                        start_date=start_date_str,
+                        end_date=end_date_str,
+                    )
+
+                    # 获取利润表数据
+                    income = self.pro.income(
+                        ts_code=ts_code,
+                        start_date=start_date_str,
+                        end_date=end_date_str,
+                    )
+                    
+                    # 按ann_date去重（如果有ann_date字段）
+                    if not fina_indicator.empty and 'ann_date' in fina_indicator.columns:
+                        # 按ann_date去重，保留最新的记录
+                        fina_indicator = fina_indicator.sort_values('ann_date', ascending=False).drop_duplicates(subset=['ann_date'], keep='first')
+                    
+                    if not income.empty and 'ann_date' in income.columns:
+                        # 按ann_date去重，保留最新的记录
+                        income = income.sort_values('ann_date', ascending=False).drop_duplicates(subset=['ann_date'], keep='first')
+                    
+                    # 合并数据
+                    if not fina_indicator.empty and not income.empty:
+                        # 按end_date合并
+                        merged = pd.merge(fina_indicator, income, on=['ts_code', 'end_date'], how='outer')
+                    elif not fina_indicator.empty:
+                        merged = fina_indicator.copy()
+                        merged['n_income'] = np.nan
+                    elif not income.empty:
+                        merged = income.copy()
+                        merged['roe'] = np.nan
+                        merged['roa'] = np.nan
+                        merged['grossprofit_margin'] = np.nan
+                        merged['netprofit_margin'] = np.nan
+                    else:
+                        merged = pd.DataFrame()
+                    
+                    return merged
+                
+                finance_data, is_local = self._get_data_with_cache(cache_key, fetch, 'finance')
+                
+                # 如果从外部获取，增加计数
+                if not is_local:
+                    external_fetch_count += 1
                 
                 if finance_data.empty:
                     continue
@@ -445,10 +503,14 @@ class QualityMomentumStockPicker:
                     'profit_growth': profit_growth if not pd.isna(profit_growth) else 0
                 })
                 
-                # 每100个股票延迟1秒，避免接口限流
-                if (i + 1) % 50 == 0:
-                    time.sleep(1)
-                    print(f"已处理 {i + 1} 只股票的质量因子...")
+                # 只有从外部获取时才延迟，避免接口限流
+                # 每50个外部获取延迟18秒
+                if not is_local and external_fetch_count % 50 == 0 and external_fetch_count > 0:
+                    time.sleep(18)
+                    print(f"已处理 {i + 1} 只股票的质量因子（其中 {external_fetch_count} 次从外部获取）...")
+                elif is_local and (i + 1) % 100 == 0:
+                    # 从本地获取时，每100个打印一次进度，不延迟
+                    print(f"已处理 {i + 1} 只股票的质量因子（从本地缓存）...")
                     
             except Exception as e:
                 print(f"处理 {ts_code} 质量因子时出错: {e}")
@@ -510,14 +572,46 @@ class QualityMomentumStockPicker:
             market_return_1m = market_return_3m = market_return_6m = market_return_12m = 0
         
         # 获取每只股票的日线数据
-        for ts_code in ts_code_list[:500]:  # 限制数量
+        external_fetch_count = 0  # 记录从外部获取的次数
+        for idx, ts_code in enumerate(ts_code_list[:]):  # 限制数量
             try:
-                # 获取日线数据（使用指定的起止日期）
-                daily = self.get_daily(
-                    ts_code=ts_code,
-                    start_date=start_date_str,
-                    end_date=end_date_str,
-                )
+                # 先尝试从abu/data/csv读取
+                is_local = False
+                if start_date_str and end_date_str:
+                    abu_data = self._load_from_abu_csv(ts_code, start_date_str, end_date_str)
+                    if abu_data is not None and not abu_data.empty:
+                        daily = abu_data
+                        is_local = True
+                    else:
+                        # 如果abu目录没有数据，使用原来的方法（tushare + 缓存）
+                        cache_key = self._get_cache_key('daily', ts_code=ts_code, start_date=start_date_str,
+                                                        end_date=end_date_str)
+                        
+                        def fetch():
+                            return self.pro.daily(
+                                ts_code=ts_code,
+                                start_date=start_date_str,
+                                end_date=end_date_str
+                            )
+                        
+                        daily, is_local = self._get_data_with_cache(cache_key, fetch, 'daily')
+                else:
+                    # 如果没有起止日期，使用原来的方法
+                    cache_key = self._get_cache_key('daily', ts_code=ts_code, start_date=start_date_str,
+                                                    end_date=end_date_str)
+                    
+                    def fetch():
+                        return self.pro.daily(
+                            ts_code=ts_code,
+                            start_date=start_date_str,
+                            end_date=end_date_str
+                        )
+                    
+                    daily, is_local = self._get_data_with_cache(cache_key, fetch, 'daily')
+                
+                # 如果从外部获取，增加计数
+                if not is_local:
+                    external_fetch_count += 1
                 
                 if daily.empty or len(daily) < 2:
                     continue
@@ -526,9 +620,9 @@ class QualityMomentumStockPicker:
                 latest_close = daily.iloc[-1]['close']
                 
                 # 计算各个时间段的收益率
-                return_1m = 0
-                return_3m = 0
-                return_6m = 0
+                return_1m = 0.4
+                return_3m = 0.3
+                return_6m = 0.3
                 return_12m = 0
                 
                 # 1个月收益率
@@ -572,10 +666,14 @@ class QualityMomentumStockPicker:
                     'relative_strength_12m': relative_strength_12m
                 })
                 
-                # 每100个股票延迟1秒
-                if len(momentum_data) % 100 == 0:
+                # 只有从外部获取时才延迟，避免接口限流
+                # 每100个外部获取延迟1秒
+                if not is_local and external_fetch_count % 100 == 0 and external_fetch_count > 0:
                     time.sleep(1)
-                    print(f"已处理 {len(momentum_data)} 只股票的动量因子...")
+                    print(f"已处理 {len(momentum_data)} 只股票的动量因子（其中 {external_fetch_count} 次从外部获取）...")
+                elif is_local and len(momentum_data) % 200 == 0:
+                    # 从本地获取时，每200个打印一次进度，不延迟
+                    print(f"已处理 {len(momentum_data)} 只股票的动量因子（从本地缓存）...")
                     
             except Exception as e:
                 print(f"处理 {ts_code} 动量因子时出错: {e}")
@@ -662,7 +760,7 @@ class QualityMomentumStockPicker:
         
         return df
     
-    def pick_stocks(self, top_n=50, min_quality_score=0.5, min_momentum_score=0.5, stock_list=None):
+    def pick_stocks(self, top_n=50, min_quality_score=0.5, min_momentum_score=0.5, stock_list=None, start_date='20210101', end_date='20251217'):
         """
         执行选股
         :param top_n: 返回前N只股票
@@ -695,7 +793,7 @@ class QualityMomentumStockPicker:
         
         # 3. 获取动量因子（获取排名列表的所有股票数据）
         print("\n步骤3: 获取动量因子...")
-        momentum_df = self.get_momentum_factors(rank_stock_list, start_date='20240703', end_date='20251217')
+        momentum_df = self.get_momentum_factors(rank_stock_list, start_date=start_date, end_date=end_date)
         
         # 4. 合并数据
         print("\n步骤4: 合并因子数据...")
@@ -778,20 +876,23 @@ class QualityMomentumStockPicker:
         print(f"\n选股结果已保存至: {filename}")
 
 
-def main(stock_list=None):
+def main(stock_list=None, use_local_only=True):
     """
     主函数
     :param stock_list: 股票代码列表，如果提供则使用该列表计算排名，否则获取所有股票
+    :param use_local_only: 是否只使用本地缓存数据，不访问外部API。True=仅本地，False=本地+外部
     """
     # 创建选股器
-    picker = QualityMomentumStockPicker()
+    picker = QualityMomentumStockPicker(use_local_only=use_local_only)
     
     # 执行选股（选出前50只股票）
     result_df = picker.pick_stocks(
-        top_n=50, 
+        top_n=500,
         min_quality_score=0.5,
         min_momentum_score=0.5,
-        stock_list=stock_list
+        stock_list=stock_list,
+        start_date='20240703',
+        end_date='20251220'
     )
     
     # 显示结果

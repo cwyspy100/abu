@@ -176,7 +176,7 @@ def analyze_dca_strategy(csv_path, investment_amount=1000, frequency='M', price_
 # 示例使用
 if __name__ == "__main__":
     # 请替换为你的CSV文件路径
-    csv_file = "~/abu/data/csv/usTQQQ_20220606_20250628"
+    csv_file = "~/abu/data/csv/usUPRO_20220606_20251220"
 
     # 分析月定投策略，每月投入1000元
     analyze_dca_strategy(csv_file, investment_amount=1000, frequency='M')

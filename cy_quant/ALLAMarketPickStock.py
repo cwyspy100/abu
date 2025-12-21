@@ -38,8 +38,8 @@ def pick_stock_in_A_stock():
     stock_pickers = [
         {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 1.0, 'xd': 60, 'reversed': False},
         {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 500,   'reversed': False},
-        {'class': AbuPickStockByMean, 'mean_xd': 60},
-        {'class': AbuPickStockByGrow, 'grow_num': 0},
+        # {'class': AbuPickStockByMean, 'mean_xd': 60},
+        {'class': AbuPickStockByGrow, 'grow_num': 10},
                      ]
 
     benchmark = AbuBenchmark()
@@ -116,10 +116,10 @@ def check_stock_in_A_stock(symbol):
 if __name__ == '__main__':
     # 1、更新所有数据
     start_time = time.time()
-    update_all_a_data()
+    # update_all_a_data()
 
     # 2、使用本地数据进行选股
-    # pick_stock_in_A_stock()
+    pick_stock_in_A_stock()
     # pick_stock_in_A_stock_mean()
 
     # 3、验证结果

@@ -338,17 +338,17 @@ if __name__ == "__main__":
     为什么会这样，60日均线还有很多因素。
     
     """
-    # kl_pd = ABuSymbolPd.make_kl_df('usTSLA', n_folds=2)
-    csv_file = "~/abu/data/csv/usTQQQ_20220606_20250628"
+    # kl_pd = ABuSymbolPd.make_kl_df('usFUTU', n_folds=2)
+    csv_file = "~/abu/data/csv/usFUTU_20190625_20250825"
 
     # 分析月定投策略，每月投入1000元
     # analyze_dca_strategy(csv_file, investment_amount=1000, frequency='M')
 
-    # fixed_results, smart_results = compare_strategies(
-    #     csv_path=csv_file,
-    #     base_investment=1000,
-    #     price_column='close'
-    # )
+    fixed_results, smart_results = compare_strategies(
+        csv_path=csv_file,
+        base_investment=1000,
+        price_column='close'
+    )
 
     # 如果你想分析周定投策略，可以取消下面这行的注释
-    analyze_dca_strategy(csv_file, investment_amount=250, frequency='W')
+    # analyze_dca_strategy(csv_file, investment_amount=1000, frequency='M')

@@ -12,15 +12,21 @@ class AbuFactorBuyGrid(AbuFactorBuyBase, BuyCallMixin):
     def _init_self(self, **kwargs):
         """初始化参数
         Args:
+            xd: 均线周期（兼容参数），如果提供则作为 ma_period 使用
             grid_count: 网格数量，默认5格
             grid_interval: 网格间距，默认5%
             invest_base_amount: 每格基准投资金额
             ma_period: 均线周期，默认120天
         """
+        # 兼容 xd 参数，如果提供了 xd 则作为 ma_period 使用
+        if 'xd' in kwargs and 'ma_period' not in kwargs:
+            self.ma_period = kwargs.get('xd', 120)
+        else:
+            self.ma_period = kwargs.get('ma_period', 120)
+        
         self.grid_count = kwargs.get('grid_count', 5)
         self.grid_interval = kwargs.get('grid_interval', 5)
         self.invest_base_amount = kwargs.get('invest_base_amount', 200000)
-        self.ma_period = kwargs.get('ma_period', 120)
         
         # 初始化网格状态字典
         if not hasattr(AbuFactorBuyGrid, '_grid_states'):
