@@ -16,12 +16,13 @@ warnings.filterwarnings('ignore')
 class Analyze120MA:
     """120日均线分析器"""
     
-    def __init__(self, prefixes=None, min_price=None, growth_weights=None):
+    def __init__(self, prefixes=None, min_price=None, growth_weights=None, input_csv=None):
         """
         初始化
         :param prefixes: 文件前缀列表，默认为['sh', 'sz']
         :param min_price: 最小价格阈值，过滤掉start_price小于此值的股票，默认为None（不过滤）
         :param growth_weights: 涨幅比重参数，默认为[0.3, 0.3, 0.4]，分别对应10、20、30日涨幅的权重
+        :param input_csv: 输入的CSV文件路径，如果提供则只分析该文件中的股票，否则分析所有股票
         """
         self.csv_dir = os.path.expanduser('~/abu/data/csv')
         self.results = []
@@ -34,12 +35,89 @@ class Analyze120MA:
         if growth_weights is None:
             growth_weights = [0.3, 0.3, 0.4]
         self.growth_weights = growth_weights
+        self.input_csv = input_csv
+        self.input_df = None  # 存储输入的CSV数据
+    
+    def load_input_csv(self):
+        """
+        从CSV文件加载股票列表
+        :return: DataFrame或None
+        """
+        if self.input_csv is None or not os.path.exists(self.input_csv):
+            return None
+        
+        try:
+            # 尝试不同的编码
+            try:
+                df = pd.read_csv(self.input_csv, encoding='utf-8-sig')
+            except:
+                try:
+                    df = pd.read_csv(self.input_csv, encoding='gbk')
+                except:
+                    df = pd.read_csv(self.input_csv, encoding='utf-8')
+            
+            if df.empty:
+                return None
+            
+            print(f"成功加载输入CSV文件: {self.input_csv}，共 {len(df)} 条记录")
+            return df
+        except Exception as e:
+            print(f"加载输入CSV文件失败: {e}")
+            return None
     
     def get_stock_files(self):
         """
         获取所有指定前缀开头的文件（支持有或无.csv扩展名）
+        如果指定了input_csv，则只返回该CSV中股票对应的文件
         :return: 文件路径列表
         """
+        # 如果指定了输入CSV，先加载
+        if self.input_csv:
+            self.input_df = self.load_input_csv()
+            if self.input_df is None or self.input_df.empty:
+                print("警告：输入CSV文件为空或加载失败，将分析所有股票")
+                self.input_df = None
+        
+        # 如果从CSV读取股票列表，需要根据股票代码找到对应的文件
+        if self.input_df is not None and 'ts_code' in self.input_df.columns:
+            # 从CSV中提取股票代码，找到对应的文件
+            stock_codes = self.input_df['ts_code'].unique().tolist()
+            valid_files = []
+            
+            for ts_code in stock_codes:
+                # 将ts_code转换为文件名格式：000001.SZ -> sz000001, 600000.SH -> sh600000
+                if '.' in ts_code:
+                    code, market = ts_code.split('.')
+                    if market == 'SH':
+                        file_prefix = f"sh{code}"
+                    elif market == 'SZ':
+                        file_prefix = f"sz{code}"
+                    else:
+                        file_prefix = f"{code}_{market.lower()}"
+                else:
+                    file_prefix = ts_code
+                
+                # 查找匹配的文件
+                patterns = [
+                    os.path.join(self.csv_dir, f'{file_prefix}_*.csv'),
+                    os.path.join(self.csv_dir, f'{file_prefix}_*')
+                ]
+                
+                for pattern in patterns:
+                    files = glob.glob(pattern)
+                    for f in files:
+                        filename = os.path.basename(f)
+                        name_without_ext = filename.replace('.csv', '')
+                        parts = name_without_ext.split('_')
+                        # 检查是否符合命名格式（至少3部分：代码_开始日期_结束日期）
+                        if len(parts) >= 3 and name_without_ext.startswith(file_prefix):
+                            if f not in valid_files:
+                                valid_files.append(f)
+            
+            print(f"从输入CSV中找到 {len(valid_files)} 个股票数据文件")
+            return valid_files
+        
+        # 如果没有输入CSV或CSV中没有ts_code列，使用原来的方法：获取所有文件
         all_files = []
         
         # 根据前缀动态生成文件模式
@@ -376,10 +454,14 @@ class Analyze120MA:
     def analyze_all(self):
         """
         分析所有股票文件
+        如果指定了input_csv，会将120MA分析结果追加到原始数据后面
         :return: 结果DataFrame
         """
         print("=" * 60)
-        print("开始分析120日均线突破")
+        if self.input_csv:
+            print(f"开始分析120日均线突破（从CSV文件读取股票列表: {self.input_csv}）")
+        else:
+            print("开始分析120日均线突破（分析所有股票）")
         print("=" * 60)
         
         # 获取所有股票文件
@@ -402,23 +484,64 @@ class Analyze120MA:
         
         if not results:
             print("未找到任何突破120日均线的股票")
+            # 如果是从CSV读取，返回原始数据
+            if self.input_df is not None:
+                return self.input_df.copy()
             return pd.DataFrame()
         
         # 转换为DataFrame
-        result_df = pd.DataFrame(results)
+        ma_result_df = pd.DataFrame(results)
         
         # 确保数值字段为正确的数值类型，以便排序
         numeric_columns = ['growth_rate', 'days', 'year_to_date_growth', 
                           'growth_10d', 'growth_20d', 'growth_30d', 'growth_40d', 'growth_50d',
                           'score']
         for col in numeric_columns:
-            if col in result_df.columns:
-                result_df[col] = pd.to_numeric(result_df[col], errors='coerce')
+            if col in ma_result_df.columns:
+                ma_result_df[col] = pd.to_numeric(ma_result_df[col], errors='coerce')
         
-        # 按突破日期排序（最新的在前）
-        result_df = result_df.sort_values('breakthrough_date', ascending=False)
+        # 如果指定了输入CSV，将120MA分析结果追加到原始数据后面
+        if self.input_df is not None:
+            # 按ts_code合并，保留原始数据的所有列，追加120MA分析结果
+            # 使用左连接，保留原始数据的所有行
+            result_df = pd.merge(
+                self.input_df,
+                ma_result_df,
+                on='ts_code',
+                how='left',
+                suffixes=('', '_ma')
+            )
+            
+            # 如果原始数据中已经有这些列，使用_ma后缀的列覆盖
+            ma_columns = ['breakthrough_date', 'start_price', 'current_price', 'growth_rate', 
+                         'days', 'year_start_price', 'year_to_date_growth',
+                         'growth_10d', 'growth_20d', 'growth_30d', 'score']
+            
+            for col in ma_columns:
+                if f'{col}_ma' in result_df.columns:
+                    # 使用120MA分析结果覆盖原始数据（如果存在）
+                    result_df[col] = result_df[f'{col}_ma']
+                    result_df = result_df.drop(columns=[f'{col}_ma'])
+                elif col not in result_df.columns:
+                    # 如果原始数据中没有该列，添加该列并填充NaN
+                    result_df[col] = np.nan
+            
+            # 对于没有突破120日均线的股票，填充默认值
+            numeric_ma_columns = ['start_price', 'current_price', 'growth_rate', 'days', 
+                                 'year_start_price', 'year_to_date_growth',
+                                 'growth_10d', 'growth_20d', 'growth_30d', 'score']
+            for col in numeric_ma_columns:
+                if col in result_df.columns:
+                    result_df[col] = result_df[col].fillna(0)
+            
+            print(f"\n分析完成！共分析 {len(ma_result_df)} 只股票突破120日均线，已追加到原始数据（共 {len(result_df)} 条记录）")
+        else:
+            # 如果没有输入CSV，直接返回120MA分析结果
+            result_df = ma_result_df.copy()
+            # 按突破日期排序（最新的在前）
+            result_df = result_df.sort_values('breakthrough_date', ascending=False)
+            print(f"\n分析完成！共找到 {len(result_df)} 只股票突破120日均线")
         
-        print(f"\n分析完成！共找到 {len(result_df)} 只股票突破120日均线")
         print("=" * 60)
         
         return result_df
@@ -435,12 +558,17 @@ class Analyze120MA:
         
         if filename is None:
             today = datetime.now().strftime('%Y%m%d')
-            # 获取前缀，如果有多个前缀，取第一个
-            prefix = self.prefixes[0] if self.prefixes else ''
-            if prefix:
-                filename = f'{prefix}_120ma_breakthrough_{today}.csv'
+            # 如果有输入CSV，基于输入文件名生成新文件名
+            if self.input_csv:
+                base_name = os.path.splitext(os.path.basename(self.input_csv))[0]
+                filename = f'{base_name}_with_120ma_{today}.csv'
             else:
-                filename = f'120ma_breakthrough_{today}.csv'
+                # 获取前缀，如果有多个前缀，取第一个
+                prefix = self.prefixes[0] if self.prefixes else ''
+                if prefix:
+                    filename = f'{prefix}_120ma_breakthrough_{today}.csv'
+                else:
+                    filename = f'120ma_breakthrough_{today}.csv'
         
         result_df.to_csv(filename, index=False, encoding='utf-8-sig')
         print(f"\n结果已保存至: {filename}")
@@ -450,20 +578,21 @@ class Analyze120MA:
         print(result_df.head(20).to_string(index=False))
 
 
-def main(prefixes=None, min_price=1.0, growth_weights=None):
+def main(prefixes=None, min_price=1.0, growth_weights=None, input_csv=None):
     """
     主函数
     :param prefixes: 文件前缀列表，默认为None（使用默认的['sh', 'sz']）
                      可以传入 ['sh', 'sz'] 或 ['sh'] 或 ['sz'] 等
     :param min_price: 最小价格阈值，过滤掉start_price小于此值的股票，默认为None（不过滤）
     :param growth_weights: 涨幅比重参数，默认为None（使用默认的[0.3, 0.3, 0.4]），分别对应10、20、30日涨幅的权重
+    :param input_csv: 输入的CSV文件路径，如果提供则只分析该文件中的股票，否则分析所有股票
     """
-    analyzer = Analyze120MA(prefixes=prefixes, min_price=min_price, growth_weights=growth_weights)
+    analyzer = Analyze120MA(prefixes=prefixes, min_price=min_price, growth_weights=growth_weights, input_csv=input_csv)
 
     # 测试流程
     # result_df = analyzer.analyze_stock(filepath='~/abu/data/csv/hk09992_20220606_20250624')
 
-    # 分析所有股票
+    # 分析所有股票（如果指定了input_csv，会追加到原始数据）
     result_df = analyzer.analyze_all()
 
     # 保存结果
@@ -477,7 +606,7 @@ if __name__ == '__main__':
     import time
     start = time.time()
     
-    result = main()
+    result = main(input_csv="../todolist/quality_momentum_pick_20251221.csv")
     
     print(f"\n处理完成，耗时 {time.time() - start:.2f} 秒")
 

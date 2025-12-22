@@ -867,20 +867,28 @@ class QualityMomentumStockPicker:
         保存选股结果
         :param result_df: 选股结果DataFrame
         :param filename: 保存文件名，None则自动生成
+        :return: 保存的文件路径（绝对路径）
         """
         if filename is None:
             today = datetime.now().strftime('%Y%m%d')
             filename = f'quality_momentum_pick_{today}.csv'
         
+        # 如果文件名不是绝对路径，转换为绝对路径
+        if not os.path.isabs(filename):
+            filename = os.path.abspath(filename)
+        
         result_df.to_csv(filename, index=False, encoding='utf-8-sig')
         print(f"\n选股结果已保存至: {filename}")
+        
+        return filename
 
 
-def main(stock_list=None, use_local_only=True):
+def main(stock_list=None, use_local_only=True, auto_analyze_120ma=True):
     """
     主函数
     :param stock_list: 股票代码列表，如果提供则使用该列表计算排名，否则获取所有股票
     :param use_local_only: 是否只使用本地缓存数据，不访问外部API。True=仅本地，False=本地+外部
+    :param auto_analyze_120ma: 是否自动调用120MA分析，默认为True
     """
     # 创建选股器
     picker = QualityMomentumStockPicker(use_local_only=use_local_only)
@@ -900,7 +908,29 @@ def main(stock_list=None, use_local_only=True):
     print(result_df.head(20).to_string(index=False))
     
     # 保存结果
-    picker.save_results(result_df)
+    csv_file = picker.save_results(result_df)
+    
+    # 如果启用自动分析120MA，调用Analyze120MA进行分析
+    if auto_analyze_120ma and csv_file:
+        print("\n" + "=" * 60)
+        print("开始自动调用120MA分析...")
+        print("=" * 60)
+        try:
+            # 导入Analyze120MA模块（使用相对导入或绝对导入）
+            import sys
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            if current_dir not in sys.path:
+                sys.path.insert(0, current_dir)
+            
+            from Analyze120MA import main as analyze_120ma_main
+            
+            # 调用120MA分析
+            ma_result_df = analyze_120ma_main(input_csv=csv_file)
+            print("\n120MA分析完成！")
+        except Exception as e:
+            print(f"调用120MA分析时出错: {e}")
+            import traceback
+            traceback.print_exc()
     
     return result_df
 
