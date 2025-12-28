@@ -18,7 +18,7 @@ import os
 
 class ALLUsMonitorUpInfo:
     def __init__(self):
-        self.benchmark = AbuBenchmark()
+        self.benchmark = AbuBenchmark(start='20240309', end='20251220')
         self.capital = AbuCapital(1000000, self.benchmark)
         self.kl_pd_manager = AbuKLManager(self.benchmark, self.capital)
 
@@ -29,7 +29,7 @@ class ALLUsMonitorUpInfo:
         abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
         abupy.env.g_data_cache_type = EDataCacheType.E_DATA_CACHE_CSV
         abupy.env.g_market_target = EMarketTargetType.E_MARKET_TARGET_US
-        abu.run_kl_update(n_folds=1, market=EMarketTargetType.E_MARKET_TARGET_US, n_jobs=2)
+        abu.run_kl_update(n_folds=2, market=EMarketTargetType.E_MARKET_TARGET_US, n_jobs=2)
 
     def _setup_environment(self):
         """
@@ -204,8 +204,7 @@ if __name__ == '__main__':
     # result = monitor.test_single_stock(test_symbol)
 
     # 1、更新所有数据（可选，如果本地已有数据可以注释掉）
-    # monitor.update_all_us_data()
-
+    monitor.update_all_us_data()
     # 2、使用本地数据进行统计
     results = monitor.cal_us_up_days(5,5)
 

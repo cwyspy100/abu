@@ -319,6 +319,77 @@ class Analyze120MA:
         
         return result
     
+    def calculate_up_down_stats(self, df, breakthrough_date):
+        """
+        计算从超过120日均线之后，上涨的天数和下跌的天数，以及它们的比例和比率
+        :param df: 包含trade_date和close的DataFrame，已按日期排序
+        :param breakthrough_date: 突破日期（字符串格式，如'20250101'）
+        :return: 字典，包含上涨/下跌统计信息
+        """
+        # 确保数据按日期排序并重置索引
+        df_sorted = df.sort_values('trade_date').reset_index(drop=True)
+        df_sorted['trade_date'] = df_sorted['trade_date'].astype(str)
+        
+        # 找到突破日期在DataFrame中的位置
+        breakthrough_idx = None
+        for idx, row in df_sorted.iterrows():
+            if row['trade_date'] == breakthrough_date:
+                breakthrough_idx = idx
+                break
+        
+        if breakthrough_idx is None or breakthrough_idx >= len(df_sorted) - 1:
+            return {
+                'up_days': 0,
+                'down_days': 0,
+                'up_down_ratio': 0.0,
+                'up_rate_sum': 0.0,
+                'down_rate_sum': 0.0,
+                'rate_sum': 0.0
+            }
+        
+        # 从突破日期之后开始统计（不包含突破当天）
+        # 计算每日涨跌幅
+        up_days = 0  # 上涨天数
+        down_days = 0  # 下跌天数
+        up_rate_sum = 0.0  # 上涨比率总和
+        down_rate_sum = 0.0  # 下跌比率总和（绝对值）
+        
+        # 从突破日期的下一天开始统计
+        for i in range(breakthrough_idx + 1, len(df_sorted)):
+            prev_close = df_sorted.iloc[i - 1]['close']
+            curr_close = df_sorted.iloc[i]['close']
+            
+            if prev_close > 0:
+                daily_rate = (curr_close - prev_close) / prev_close * 100
+                
+                if daily_rate > 0:
+                    # 上涨
+                    up_days += 1
+                    up_rate_sum += daily_rate
+                elif daily_rate < 0:
+                    # 下跌
+                    down_days += 1
+                    down_rate_sum += abs(daily_rate)  # 下跌比率取绝对值
+        
+        # 计算比例
+        total_days = up_days + down_days
+        if total_days > 0:
+            up_down_ratio = up_days / down_days if down_days > 0 else float('inf')
+        else:
+            up_down_ratio = 0.0
+        
+        # 计算比率总和
+        rate_sum = up_rate_sum + down_rate_sum
+        
+        return {
+            'up_days': up_days,
+            'down_days': down_days,
+            'up_down_ratio': round(up_down_ratio, 2) if up_down_ratio != float('inf') else 9999.99,
+            'up_rate_sum': round(up_rate_sum, 2),
+            'down_rate_sum': round(down_rate_sum, 2),
+            'rate_sum': round(rate_sum, 2)
+        }
+    
     def analyze_stock(self, filepath):
         """
         分析单个股票文件
@@ -445,6 +516,10 @@ class Analyze120MA:
                         growth_30d * self.growth_weights[2])
             result['score'] = round(score, 2)
             
+            # 计算上涨/下跌天数统计
+            up_down_stats = self.calculate_up_down_stats(df_sorted, breakthrough_date_str)
+            result.update(up_down_stats)
+            
             return result
             
         except Exception as e:
@@ -495,7 +570,8 @@ class Analyze120MA:
         # 确保数值字段为正确的数值类型，以便排序
         numeric_columns = ['growth_rate', 'days', 'year_to_date_growth', 
                           'growth_10d', 'growth_20d', 'growth_30d', 'growth_40d', 'growth_50d',
-                          'score']
+                          'score', 'up_days', 'down_days', 'up_down_ratio', 
+                          'up_rate_sum', 'down_rate_sum', 'rate_sum']
         for col in numeric_columns:
             if col in ma_result_df.columns:
                 ma_result_df[col] = pd.to_numeric(ma_result_df[col], errors='coerce')
@@ -515,7 +591,9 @@ class Analyze120MA:
             # 如果原始数据中已经有这些列，使用_ma后缀的列覆盖
             ma_columns = ['breakthrough_date', 'start_price', 'current_price', 'growth_rate', 
                          'days', 'year_start_price', 'year_to_date_growth',
-                         'growth_10d', 'growth_20d', 'growth_30d', 'score']
+                         'growth_10d', 'growth_20d', 'growth_30d', 'score',
+                         'up_days', 'down_days', 'up_down_ratio', 
+                         'up_rate_sum', 'down_rate_sum', 'rate_sum']
             
             for col in ma_columns:
                 if f'{col}_ma' in result_df.columns:
@@ -529,7 +607,9 @@ class Analyze120MA:
             # 对于没有突破120日均线的股票，填充默认值
             numeric_ma_columns = ['start_price', 'current_price', 'growth_rate', 'days', 
                                  'year_start_price', 'year_to_date_growth',
-                                 'growth_10d', 'growth_20d', 'growth_30d', 'score']
+                                 'growth_10d', 'growth_20d', 'growth_30d', 'score',
+                                 'up_days', 'down_days', 'up_down_ratio', 
+                                 'up_rate_sum', 'down_rate_sum', 'rate_sum']
             for col in numeric_ma_columns:
                 if col in result_df.columns:
                     result_df[col] = result_df[col].fillna(0)
@@ -606,7 +686,8 @@ if __name__ == '__main__':
     import time
     start = time.time()
     
-    result = main(input_csv="../todolist/quality_momentum_pick_20251221.csv")
-    
+    # result = main(input_csv="../todolist/quality_momentum_pick_20251221.csv")
+    result = main()
+
     print(f"\n处理完成，耗时 {time.time() - start:.2f} 秒")
 
