@@ -71,7 +71,7 @@ def pick_stock_in_hk_stock_mean():
 
     # 选股条件threshold_ang_min=0.0, 即要求股票走势为向上上升趋势
     stock_pickers = [
-        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 5.0, 'xd': 250, 'reversed': False},
+        {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 5.0, 'xd': 120, 'reversed': False},
         {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 500, 'reversed': False},
         {'class': AbuPickStockByMean, 'mean_xd': 120},
     ]
@@ -115,9 +115,10 @@ if __name__ == '__main__':
     # 1、更新所有数据
     start_time = time.time()
     # 1、更新所有数据
-    update_all_hk_data()
+    # update_all_hk_data()
     # 2、使用本地数据进行选股
     # pick_stock_in_hk_stock()
+    pick_stock_in_hk_stock_mean()
     # 3、验证结果
-    # check_stock_in_hk_stock("hk00700")
+    # check_stock_in_hk_stock("hk00981")
     print("cost time {}".format(time.time() - start_time))

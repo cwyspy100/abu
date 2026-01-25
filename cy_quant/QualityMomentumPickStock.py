@@ -531,28 +531,28 @@ class QualityMomentumStockPicker:
         :return: DataFrame，包含动量因子
         """
         print("正在获取动量因子数据...")
-        
+
         if end_date is None:
             end_date = datetime.now()
         else:
             end_date = datetime.strptime(end_date, '%Y%m%d')
-        
+
         # 如果没有指定开始日期，默认使用12个月前
         if start_date is None:
             start_date_dt = end_date - timedelta(days=365)
             start_date_str = start_date_dt.strftime('%Y%m%d')
         else:
             start_date_str = start_date
-        
+
         # 计算各个时间段的起始日期
         date_1m = (end_date - timedelta(days=30)).strftime('%Y%m%d')
         date_3m = (end_date - timedelta(days=90)).strftime('%Y%m%d')
         date_6m = (end_date - timedelta(days=180)).strftime('%Y%m%d')
         date_12m = start_date_str  # 使用指定的开始日期
         end_date_str = end_date.strftime('%Y%m%d')
-        
+
         momentum_data = []
-        
+
         # 获取市场基准收益率（使用沪深300指数）
         try:
             index_daily = self.get_index_daily(
@@ -570,7 +570,7 @@ class QualityMomentumStockPicker:
                 market_return_1m = market_return_3m = market_return_6m = market_return_12m = 0
         except:
             market_return_1m = market_return_3m = market_return_6m = market_return_12m = 0
-        
+
         # 获取每只股票的日线数据
         external_fetch_count = 0  # 记录从外部获取的次数
         for idx, ts_code in enumerate(ts_code_list[:]):  # 限制数量
@@ -586,74 +586,74 @@ class QualityMomentumStockPicker:
                         # 如果abu目录没有数据，使用原来的方法（tushare + 缓存）
                         cache_key = self._get_cache_key('daily', ts_code=ts_code, start_date=start_date_str,
                                                         end_date=end_date_str)
-                        
+
                         def fetch():
                             return self.pro.daily(
                                 ts_code=ts_code,
                                 start_date=start_date_str,
                                 end_date=end_date_str
                             )
-                        
+
                         daily, is_local = self._get_data_with_cache(cache_key, fetch, 'daily')
                 else:
                     # 如果没有起止日期，使用原来的方法
                     cache_key = self._get_cache_key('daily', ts_code=ts_code, start_date=start_date_str,
                                                     end_date=end_date_str)
-                    
+
                     def fetch():
                         return self.pro.daily(
                             ts_code=ts_code,
                             start_date=start_date_str,
                             end_date=end_date_str
                         )
-                    
+
                     daily, is_local = self._get_data_with_cache(cache_key, fetch, 'daily')
-                
+
                 # 如果从外部获取，增加计数
                 if not is_local:
                     external_fetch_count += 1
-                
+
                 if daily.empty or len(daily) < 2:
                     continue
-                
+
                 daily = daily.sort_values('trade_date')
                 latest_close = daily.iloc[-1]['close']
-                
+
                 # 计算各个时间段的收益率
                 return_1m = 0.4
                 return_3m = 0.3
                 return_6m = 0.3
                 return_12m = 0
-                
+
                 # 1个月收益率
                 if len(daily) >= 21:
                     close_1m_ago = daily.iloc[-21]['close']
                     if close_1m_ago > 0:
                         return_1m = (latest_close / close_1m_ago - 1) * 100
-                
+
                 # 3个月收益率
                 if len(daily) >= 63:
                     close_3m_ago = daily.iloc[-63]['close']
                     if close_3m_ago > 0:
                         return_3m = (latest_close / close_3m_ago - 1) * 100
-                
+
                 # 6个月收益率
                 if len(daily) >= 126:
                     close_6m_ago = daily.iloc[-126]['close']
                     if close_6m_ago > 0:
                         return_6m = (latest_close / close_6m_ago - 1) * 100
-                
+
                 # 12个月收益率
                 close_12m_ago = daily.iloc[0]['close']
                 if close_12m_ago > 0:
                     return_12m = (latest_close / close_12m_ago - 1) * 100
-                
+
                 # 计算相对强度（相对于市场）
                 relative_strength_1m = return_1m - market_return_1m
                 relative_strength_3m = return_3m - market_return_3m
                 relative_strength_6m = return_6m - market_return_6m
                 relative_strength_12m = return_12m - market_return_12m
-                
+
                 momentum_data.append({
                     'ts_code': ts_code,
                     'return_1m': return_1m,
@@ -665,7 +665,7 @@ class QualityMomentumStockPicker:
                     'relative_strength_6m': relative_strength_6m,
                     'relative_strength_12m': relative_strength_12m
                 })
-                
+
                 # 只有从外部获取时才延迟，避免接口限流
                 # 每100个外部获取延迟1秒
                 if not is_local and external_fetch_count % 100 == 0 and external_fetch_count > 0:
@@ -674,11 +674,11 @@ class QualityMomentumStockPicker:
                 elif is_local and len(momentum_data) % 200 == 0:
                     # 从本地获取时，每200个打印一次进度，不延迟
                     print(f"已处理 {len(momentum_data)} 只股票的动量因子（从本地缓存）...")
-                    
+
             except Exception as e:
                 print(f"处理 {ts_code} 动量因子时出错: {e}")
                 continue
-        
+
         momentum_df = pd.DataFrame(momentum_data)
         # 将所有NaN值填充为0
         momentum_df = momentum_df.fillna(0)
@@ -692,10 +692,10 @@ class QualityMomentumStockPicker:
         :return: 添加了quality_score列的DataFrame
         """
         df = quality_df.copy()
-        
+
         # 对每个质量因子进行标准化（使用分位数排名）
         quality_factors = ['roe', 'roa', 'gross_profit_margin', 'net_profit_margin', 'profit_growth']
-        
+
         for factor in quality_factors:
             if factor in df.columns:
                 # 使用分位数排名，值越大排名越高，NaN值排名为0
@@ -722,7 +722,7 @@ class QualityMomentumStockPicker:
         # 4. 根据需求，也可以采用rolling/expanding window对历史数据分批排名，聚焦近一段时期的相对优势。
         #
         # 但通常情况下，对于100只甚至数千只股票，直接用当前的数据集全量排名即可，pandas的rank方法自动适配样本量大小，越多数据排名越精准。
-        
+
         # 计算加权质量得分，确保NaN被填充为0
         df['quality_score'] = (
             df['roe_rank'].fillna(0) * self.quality_weights['roe'] +
@@ -731,9 +731,9 @@ class QualityMomentumStockPicker:
             df['net_profit_margin_rank'].fillna(0) * self.quality_weights['net_profit_margin'] +
             df['profit_growth_rank'].fillna(0) * self.quality_weights['profit_growth']
         )
-        
+
         return df
-    
+
     def calculate_momentum_score(self, momentum_df):
         """
         计算动量因子得分
@@ -741,15 +741,15 @@ class QualityMomentumStockPicker:
         :return: 添加了momentum_score列的DataFrame
         """
         df = momentum_df.copy()
-        
+
         # 对每个动量因子进行标准化（使用分位数排名）
         momentum_factors = ['return_1m', 'return_3m', 'return_6m', 'return_12m']
-        
+
         for factor in momentum_factors:
             if factor in df.columns:
                 # 使用分位数排名，值越大排名越高，NaN值排名为0
                 df[f'{factor}_rank'] = df[factor].rank(pct=True, na_option='keep').fillna(0)
-        
+
         # 计算加权动量得分，确保NaN被填充为0
         df['momentum_score'] = (
             df['return_1m_rank'].fillna(0) * self.momentum_weights['return_1m'] +
@@ -757,7 +757,7 @@ class QualityMomentumStockPicker:
             df['return_6m_rank'].fillna(0) * self.momentum_weights['return_6m'] +
             df['return_12m_rank'].fillna(0) * self.momentum_weights['return_12m']
         )
-        
+
         return df
     
     def pick_stocks(self, top_n=50, min_quality_score=0.5, min_momentum_score=0.5, stock_list=None, start_date='20210101', end_date='20251217'):
@@ -900,7 +900,7 @@ def main(stock_list=None, use_local_only=True, auto_analyze_120ma=True):
         min_momentum_score=0.5,
         stock_list=stock_list,
         start_date='20240703',
-        end_date='20251220'
+        end_date='20260111'
     )
     
     # 显示结果

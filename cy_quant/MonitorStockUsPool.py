@@ -45,9 +45,9 @@ def execute_stock_us_back_test(read_path, save_path, hand_type=0):
     choice_symbols_pd = pd.read_csv(read_path)
     choice_symbols = choice_symbols_pd['symbol']
     choice_symbols = ['usFUTU']
-    choice_symbols = ['usTQQQ']
-    choice_symbols = ['usUPRO']
-    choice_symbols = ['usYINN']
+    # choice_symbols = ['usTQQQ']
+    # choice_symbols = ['usUPRO']
+    # choice_symbols = ['usYINN']
     print("choice_symbols:{}".format(choice_symbols))
 
     # 设置初始资金数
@@ -61,7 +61,7 @@ def execute_stock_us_back_test(read_path, save_path, hand_type=0):
         # {'fast': 5, 'slow': 90, 'class': AbuDoubleMaBuy},
         # {'class': AbuDoubleMaBuy, 'position': AbuPtPosition},
         # {'xd': 60, 'class': AbuFactorBuyMean},
-        {'xd': 60, 'class': AbuFactorBuyFixedInvest},
+        {'xd': 120, 'class': AbuFactorBuyFixedInvest},
         # {'xd': 120, 'class': AbuFactorBuyMeanAng},
     ]
 
@@ -77,7 +77,7 @@ def execute_stock_us_back_test(read_path, save_path, hand_type=0):
     # 网格交易法
     if hand_type == 1:
         buy_factors = [
-            {'xd': 20, 'class': AbuFactorBuyFixedInvest},
+            {'xd': 120, 'class': AbuFactorBuyFixedInvest},
             # {'xd': 100, 'class': AbuFactorBuyGrid},
         ]
 

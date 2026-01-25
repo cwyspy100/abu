@@ -21,7 +21,7 @@ class Analyze120MA:
         初始化
         :param prefixes: 文件前缀列表，默认为['sh', 'sz']
         :param min_price: 最小价格阈值，过滤掉start_price小于此值的股票，默认为None（不过滤）
-        :param growth_weights: 涨幅比重参数，默认为[0.3, 0.3, 0.4]，分别对应10、20、30日涨幅的权重
+        :param growth_weights: 涨幅比重参数，默认为[0.2, 0.3, 0.3, 0.2]，分别对应5、10、20、30日涨幅的权重
         :param input_csv: 输入的CSV文件路径，如果提供则只分析该文件中的股票，否则分析所有股票
         """
         self.csv_dir = os.path.expanduser('~/abu/data/csv')
@@ -31,9 +31,9 @@ class Analyze120MA:
             prefixes = ['sh', 'sz']
         self.prefixes = prefixes if isinstance(prefixes, list) else [prefixes]
         self.min_price = min_price
-        # 如果没有指定比重，默认使用[0.3, 0.3, 0.4]
+        # 如果没有指定比重，默认使用[0.2, 0.3, 0.3, 0.2]，分别对应5、10、20、30日涨幅
         if growth_weights is None:
-            growth_weights = [0.3, 0.3, 0.4]
+            growth_weights = [0.2, 0.3, 0.3, 0.2]
         self.growth_weights = growth_weights
         self.input_csv = input_csv
         self.input_df = None  # 存储输入的CSV数据
@@ -276,13 +276,13 @@ class Analyze120MA:
         
         return start_date, start_price, current_price, growth_rate, trading_days
     
-    def calculate_growth_at_days(self, df, breakthrough_date, breakthrough_price, days_list=[10, 20, 30]):
+    def calculate_growth_at_days(self, df, breakthrough_date, breakthrough_price, days_list=[5, 10, 20, 30]):
         """
         计算突破120日均线后，指定天数的累计增长
         :param df: 包含trade_date和close的DataFrame，已按日期排序
         :param breakthrough_date: 突破日期（字符串格式，如'20250101'）
         :param breakthrough_price: 突破时的价格
-        :param days_list: 要统计的天数列表，默认[10, 20, 30, 40, 50]
+        :param days_list: 要统计的天数列表，默认[5, 10, 20, 30]
         :return: 字典，包含各天数的涨幅
         """
         # 确保数据按日期排序并重置索引
@@ -473,14 +473,14 @@ class Analyze120MA:
                 else:
                     year_to_date_growth = 0
             
-            # 计算突破后10、20、30、40、50天的累计增长
+            # 计算突破后5、10、20、30天的累计增长
             # 确保突破日期是字符串格式
             breakthrough_date_str = str(start_date_breakthrough)
             growth_at_days = self.calculate_growth_at_days(
                 df_sorted, 
                 breakthrough_date_str, 
                 start_price,
-                days_list=[10, 20, 30]
+                days_list=[5, 10, 20, 30]
             )
             
             result = {
@@ -505,15 +505,17 @@ class Analyze120MA:
             # 添加突破后不同天数的累计增长数据
             result.update(growth_at_days)
             
-            # 计算积分：10、20、30日涨幅与比重相乘
+            # 计算积分：5、10、20、30日涨幅与比重相乘
             score = 0.0
-            if len(self.growth_weights) >= 3:
+            if len(self.growth_weights) >= 4:
+                growth_5d = growth_at_days.get('growth_5d', 0.0)
                 growth_10d = growth_at_days.get('growth_10d', 0.0)
                 growth_20d = growth_at_days.get('growth_20d', 0.0)
                 growth_30d = growth_at_days.get('growth_30d', 0.0)
-                score = (growth_10d * self.growth_weights[0] + 
-                        growth_20d * self.growth_weights[1] + 
-                        growth_30d * self.growth_weights[2])
+                score = (growth_5d * self.growth_weights[0] + 
+                        growth_10d * self.growth_weights[1] + 
+                        growth_20d * self.growth_weights[2] + 
+                        growth_30d * self.growth_weights[3])
             result['score'] = round(score, 2)
             
             # 计算上涨/下跌天数统计
@@ -569,7 +571,7 @@ class Analyze120MA:
         
         # 确保数值字段为正确的数值类型，以便排序
         numeric_columns = ['growth_rate', 'days', 'year_to_date_growth', 
-                          'growth_10d', 'growth_20d', 'growth_30d', 'growth_40d', 'growth_50d',
+                          'growth_5d', 'growth_10d', 'growth_20d', 'growth_30d', 'growth_40d', 'growth_50d',
                           'score', 'up_days', 'down_days', 'up_down_ratio', 
                           'up_rate_sum', 'down_rate_sum', 'rate_sum']
         for col in numeric_columns:
@@ -591,7 +593,7 @@ class Analyze120MA:
             # 如果原始数据中已经有这些列，使用_ma后缀的列覆盖
             ma_columns = ['breakthrough_date', 'start_price', 'current_price', 'growth_rate', 
                          'days', 'year_start_price', 'year_to_date_growth',
-                         'growth_10d', 'growth_20d', 'growth_30d', 'score',
+                         'growth_5d', 'growth_10d', 'growth_20d', 'growth_30d', 'score',
                          'up_days', 'down_days', 'up_down_ratio', 
                          'up_rate_sum', 'down_rate_sum', 'rate_sum']
             
@@ -607,7 +609,7 @@ class Analyze120MA:
             # 对于没有突破120日均线的股票，填充默认值
             numeric_ma_columns = ['start_price', 'current_price', 'growth_rate', 'days', 
                                  'year_start_price', 'year_to_date_growth',
-                                 'growth_10d', 'growth_20d', 'growth_30d', 'score',
+                                 'growth_5d', 'growth_10d', 'growth_20d', 'growth_30d', 'score',
                                  'up_days', 'down_days', 'up_down_ratio', 
                                  'up_rate_sum', 'down_rate_sum', 'rate_sum']
             for col in numeric_ma_columns:
@@ -664,7 +666,7 @@ def main(prefixes=None, min_price=1.0, growth_weights=None, input_csv=None):
     :param prefixes: 文件前缀列表，默认为None（使用默认的['sh', 'sz']）
                      可以传入 ['sh', 'sz'] 或 ['sh'] 或 ['sz'] 等
     :param min_price: 最小价格阈值，过滤掉start_price小于此值的股票，默认为None（不过滤）
-    :param growth_weights: 涨幅比重参数，默认为None（使用默认的[0.3, 0.3, 0.4]），分别对应10、20、30日涨幅的权重
+    :param growth_weights: 涨幅比重参数，默认为None（使用默认的[0.2, 0.3, 0.3, 0.2]），分别对应5、10、20、30日涨幅的权重
     :param input_csv: 输入的CSV文件路径，如果提供则只分析该文件中的股票，否则分析所有股票
     """
     analyzer = Analyze120MA(prefixes=prefixes, min_price=min_price, growth_weights=growth_weights, input_csv=input_csv)

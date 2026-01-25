@@ -32,14 +32,14 @@ def pick_stock_in_A_stock():
     # 关闭沙盒后，首先基准要从非沙盒环境换取，否则数据对不齐，无法正常运行
     choice_symbols = ABuMarket.all_symbol()
 
-    # choice_symbols = {"sh600119"}
+    choice_symbols = {"sh600119"}
 
     # 选股条件threshold_ang_min=0.0, 即要求股票走势为向上上升趋势
     stock_pickers = [
         {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 1.0, 'xd': 60, 'reversed': False},
         {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 500,   'reversed': False},
         # {'class': AbuPickStockByMean, 'mean_xd': 60},
-        {'class': AbuPickStockByGrow, 'grow_num': 10},
+        # {'class': AbuPickStockByGrow, 'grow_num': 10},
                      ]
 
     benchmark = AbuBenchmark()
@@ -71,8 +71,8 @@ def pick_stock_in_A_stock_mean():
     stock_pickers = [
         {'class': AbuPickRegressAngMinMax, 'threshold_ang_min': 1.0, 'xd': 60, 'reversed': False},
         {'class': AbuPickStockPriceMinMax, 'threshold_price_min': 5, 'threshold_price_max': 500,  'reversed': False},
-        {'class': AbuPickStockByMean, 'mean_xd': 120},
-        {'class': AbuPickStockByGrow, 'grow_num': 20},
+        # {'class': AbuPickStockByMean, 'mean_xd': 120},
+        # {'class': AbuPickStockByGrow, 'grow_num': 20},
     ]
 
     benchmark = AbuBenchmark()
@@ -119,11 +119,11 @@ if __name__ == '__main__':
     # update_all_a_data()
 
     # 2、使用本地数据进行选股
-    pick_stock_in_A_stock()
+    # pick_stock_in_A_stock()
     # pick_stock_in_A_stock_mean()
 
     # 3、验证结果
-    # check_stock_in_A_stock("sh601088")
+    check_stock_in_A_stock("sh601088")
 
     # test
     # save_stock_info(['123', '456'])

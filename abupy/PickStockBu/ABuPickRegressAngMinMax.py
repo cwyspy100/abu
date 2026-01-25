@@ -36,6 +36,7 @@ class AbuPickRegressAngMinMax(AbuPickStockBase):
 
         # 计算走势角度
         ang = ABuRegUtil.calc_regress_deg(kl_pd.close, show=False)
+        print("current ang {} ".format(ang))
         # 根据参数进行角度条件判断
         if self.threshold_ang_min < ang < self.threshold_ang_max:
             return True
