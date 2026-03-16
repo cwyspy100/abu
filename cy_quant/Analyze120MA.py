@@ -256,11 +256,11 @@ class Analyze120MA:
             start_idx = 0
         
         # 获取开始点的信息
-        start_date = df.iloc[start_idx]['trade_date']
+        start_date = str(df.iloc[start_idx]['trade_date'])  # 确保是字符串格式
         start_price = df.iloc[start_idx]['close']
         
         # 结束日期是最后一天（当前最新日期）
-        end_date = df.iloc[-1]['trade_date']
+        end_date = str(df.iloc[-1]['trade_date'])  # 确保是字符串格式
         current_price = df.iloc[-1]['close']
         
         # 计算增长率
@@ -390,6 +390,30 @@ class Analyze120MA:
             'rate_sum': round(rate_sum, 2)
         }
     
+    def calculate_recent_5d_growth(self, df, current_price):
+        """
+        计算最近5个交易日的涨跌幅
+        :param df: 包含trade_date和close的DataFrame，已按日期排序
+        :param current_price: 当前价格（最后一个交易日的收盘价）
+        :return: 最近5天的涨跌幅（百分比），如果数据不足5天则返回None
+        """
+        if df is None or df.empty or len(df) < 5:
+            return None
+        
+        # 确保数据按日期排序并重置索引
+        df_sorted = df.sort_values('trade_date').reset_index(drop=True)
+        
+        # 获取倒数第5个交易日的收盘价
+        price_5d_ago = df_sorted.iloc[-5]['close']
+        
+        # 计算涨跌幅
+        if price_5d_ago > 0:
+            growth_rate = (current_price - price_5d_ago) / price_5d_ago * 100
+            # print("current_price " + current_price + "  price_5d_ago :" + price_5d_ago)
+            return round(growth_rate, 2)
+        
+        return None
+    
     def analyze_stock(self, filepath):
         """
         分析单个股票文件
@@ -403,6 +427,9 @@ class Analyze120MA:
                 return None
             
             ts_code, start_date, end_date = parse_result
+            
+            # 去掉股票代码的后缀（.SZ、.SH、.HK、.US等）
+            stock_code = ts_code.split('.')[0] if '.' in ts_code else ts_code
             
             # 读取CSV文件（尝试不同的编码）
             try:
@@ -444,6 +471,10 @@ class Analyze120MA:
             if growth_rate < 5:
                 return None
             
+            # 过滤掉current_price小于5或大于1000的股票
+            if current_price < 5 or current_price > 1000:
+                return None
+            
             # 如果设置了最小价格阈值，过滤掉start_price小于阈值的股票
             if self.min_price is not None and start_price < self.min_price:
                 return None
@@ -455,23 +486,40 @@ class Analyze120MA:
             # 确保trade_date列是字符串类型，以便进行比较
             df_sorted['trade_date'] = df_sorted['trade_date'].astype(str)
             
-            # 获取当前年份（从结束日期获取）
-            current_year = int(end_date[:4])
+            # 计算年度增长率：使用当前年份第一个交易日的价格和当前价格（数据文件中最后一个交易日）
+            # 动态获取当前年份
+            from datetime import datetime
+            current_year = datetime.now().year
             year_start_str = f"{current_year}0101"
             
-            # 找到年初的第一个交易日（大于等于年初日期的第一条记录）
+            # 获取数据文件中最后一个交易日的日期和价格
+            last_trade_date = str(df_sorted.iloc[-1]['trade_date'])
+            last_trade_price = df_sorted.iloc[-1]['close']
+            
+            # 检查最后一个交易日是否是当前年份的
+            is_current_year_data = last_trade_date >= year_start_str
+            
             year_start_price = None
             year_to_date_growth = None
             
-            # 查找年初第一个交易日
-            year_start_records = df_sorted[df_sorted['trade_date'] >= year_start_str]
-            if not year_start_records.empty:
-                year_start_price = year_start_records.iloc[0]['close']
-                # 计算年初到当前的涨幅
-                if year_start_price > 0:
-                    year_to_date_growth = (current_price - year_start_price) / year_start_price * 100
+            if is_current_year_data:
+                # 找到当前年份第一个交易日的价格
+                year_start_records = df_sorted[df_sorted['trade_date'] >= year_start_str]
+                if not year_start_records.empty:
+                    year_start_price = year_start_records.iloc[0]['close']
+                    # 计算当前年份年初到当前（最后一个交易日）的涨幅
+                    if year_start_price > 0:
+                        year_to_date_growth = (last_trade_price - year_start_price) / year_start_price * 100
+                    else:
+                        year_to_date_growth = 0
                 else:
-                    year_to_date_growth = 0
+                    # 如果找不到当前年份第一个交易日，无法计算
+                    year_start_price = None
+                    year_to_date_growth = None
+            else:
+                # 如果数据文件中最后一个交易日不是当前年份的，无法计算年收益率
+                year_start_price = None
+                year_to_date_growth = None
             
             # 计算突破后5、10、20、30天的累计增长
             # 确保突破日期是字符串格式
@@ -484,7 +532,7 @@ class Analyze120MA:
             )
             
             result = {
-                'ts_code': ts_code,
+                'ts_code': stock_code,
                 'start_date': start_date,
                 'end_date': end_date,
                 'breakthrough_date': start_date_breakthrough,
@@ -522,6 +570,10 @@ class Analyze120MA:
             up_down_stats = self.calculate_up_down_stats(df_sorted, breakthrough_date_str)
             result.update(up_down_stats)
             
+            # 计算最近5天的涨跌幅
+            recent_5d_growth = self.calculate_recent_5d_growth(df_sorted, current_price)
+            result['recent_5d_growth'] = recent_5d_growth if recent_5d_growth is not None else 0.0
+            
             return result
             
         except Exception as e:
@@ -556,7 +608,7 @@ class Analyze120MA:
                 results.append(result)
             
             # 每处理50个文件显示进度
-            if (i + 1) % 50 == 0:
+            if (i + 1) % 100 == 0:
                 print(f"已处理 {i + 1}/{len(stock_files)} 个文件...")
         
         if not results:
@@ -573,17 +625,24 @@ class Analyze120MA:
         numeric_columns = ['growth_rate', 'days', 'year_to_date_growth', 
                           'growth_5d', 'growth_10d', 'growth_20d', 'growth_30d', 'growth_40d', 'growth_50d',
                           'score', 'up_days', 'down_days', 'up_down_ratio', 
-                          'up_rate_sum', 'down_rate_sum', 'rate_sum']
+                          'up_rate_sum', 'down_rate_sum', 'rate_sum', 'recent_5d_growth']
         for col in numeric_columns:
             if col in ma_result_df.columns:
                 ma_result_df[col] = pd.to_numeric(ma_result_df[col], errors='coerce')
         
         # 如果指定了输入CSV，将120MA分析结果追加到原始数据后面
         if self.input_df is not None:
+            # 处理输入CSV中的ts_code，去掉后缀，确保能正确合并
+            input_df_copy = self.input_df.copy()
+            if 'ts_code' in input_df_copy.columns:
+                input_df_copy['ts_code'] = input_df_copy['ts_code'].apply(
+                    lambda x: x.split('.')[0] if '.' in str(x) else x
+                )
+            
             # 按ts_code合并，保留原始数据的所有列，追加120MA分析结果
             # 使用左连接，保留原始数据的所有行
             result_df = pd.merge(
-                self.input_df,
+                input_df_copy,
                 ma_result_df,
                 on='ts_code',
                 how='left',
@@ -595,7 +654,7 @@ class Analyze120MA:
                          'days', 'year_start_price', 'year_to_date_growth',
                          'growth_5d', 'growth_10d', 'growth_20d', 'growth_30d', 'score',
                          'up_days', 'down_days', 'up_down_ratio', 
-                         'up_rate_sum', 'down_rate_sum', 'rate_sum']
+                         'up_rate_sum', 'down_rate_sum', 'rate_sum', 'recent_5d_growth']
             
             for col in ma_columns:
                 if f'{col}_ma' in result_df.columns:
@@ -611,7 +670,7 @@ class Analyze120MA:
                                  'year_start_price', 'year_to_date_growth',
                                  'growth_5d', 'growth_10d', 'growth_20d', 'growth_30d', 'score',
                                  'up_days', 'down_days', 'up_down_ratio', 
-                                 'up_rate_sum', 'down_rate_sum', 'rate_sum']
+                                 'up_rate_sum', 'down_rate_sum', 'rate_sum', 'recent_5d_growth']
             for col in numeric_ma_columns:
                 if col in result_df.columns:
                     result_df[col] = result_df[col].fillna(0)
@@ -689,7 +748,7 @@ if __name__ == '__main__':
     start = time.time()
     
     # result = main(input_csv="../todolist/quality_momentum_pick_20251221.csv")
-    result = main()
+    result = main(prefixes=['us'])
 
     print(f"\n处理完成，耗时 {time.time() - start:.2f} 秒")
 

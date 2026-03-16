@@ -52,6 +52,7 @@ def execute_stock_hk_back_test(read_path, save_path, hand_type=0):
     # choice_symbols_pd = pd.read_csv('../todolist/stock_hk_pool.csv')
     choice_symbols_pd = pd.read_csv(read_path)
     choice_symbols = choice_symbols_pd['symbol']
+    # choice_symbols = ['hk00700']
     print("choice_symbols:{}".format(choice_symbols))
     # choice_symbols = ['00551']
     # 设置初始资金数
@@ -78,20 +79,20 @@ def execute_stock_hk_back_test(read_path, save_path, hand_type=0):
     # 网格交易法
     if hand_type == 1:
         buy_factors = [
-            # {'xd': 20, 'class': AbuFactorBuyFixedInvest},
-            {'xd': 20, 'class': AbuFactorBuyGrid},
+            {'xd': 20, 'class': AbuFactorBuyFixedInvest},
+            # {'xd': 20, 'class': AbuFactorBuyGrid},
         ]
 
         # 卖出因子继续使用上一节使用的因子
         sell_factors = [
-            {'xd': 20, 'class': AbuFactorSellGrid},
+            # {'xd': 20, 'class': AbuFactorSellGrid},
         ]
 
     # 使用run_loop_back运行策略
     abu_result_tuple, kl_pd_manger = abu.run_loop_back(read_cash,
                                                        buy_factors,
                                                        sell_factors,
-                                                       n_folds=1,
+                                                       n_folds=2,
                                                        choice_symbols=choice_symbols)
     ABuProgress.clear_output()
     metrics = AbuMetricsBase(*abu_result_tuple)
@@ -151,9 +152,8 @@ def save_backtest_result(metrics, save_path):
 
 
 if __name__ == "__main__":
-    # execute_stock_us_back_test('../todolist/stock_us_pool.csv', '../todolist/stock_us_pool_backtest.txt')
-    execute_stock_hk_back_test('../todolist/stock_hk_grid_pool.csv', '../todolist/stock_hk_grid_pool_backtest.txt', hand_type=1)
-    # execute_stock_hk_back_test('../todolist/stock_hk_pool.csv', '../todolist/stock_hk_pool_backtest.txt', hand_type=0)
+    # execute_stock_hk_back_test('../todolist/stock_hk_grid_pool.csv', '../todolist/stock_hk_grid_pool_backtest.txt', hand_type=1)
+    execute_stock_hk_back_test('../todolist/stock_hk_pool.csv', '../todolist/stock_hk_pool_backtest.txt', hand_type=0)
     print("work test")
     # stock_a_pd = pd.read_csv('stock_a_pool.csv')
     # print(stock_a_pd['symbol'])

@@ -116,14 +116,14 @@ def check_stock_in_A_stock(symbol):
 if __name__ == '__main__':
     # 1、更新所有数据
     start_time = time.time()
-    # update_all_a_data()
+    update_all_a_data()
 
     # 2、使用本地数据进行选股
     # pick_stock_in_A_stock()
-    # pick_stock_in_A_stock_mean()
+    pick_stock_in_A_stock_mean()
 
     # 3、验证结果
-    check_stock_in_A_stock("sh601088")
+    # check_stock_in_A_stock("sh601088")
 
     # test
     # save_stock_info(['123', '456'])

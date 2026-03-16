@@ -22,7 +22,7 @@ from abupy import abu
 warnings.filterwarnings('ignore')
 sns.set_context(rc={'figure.figsize': (14, 7)})
 # 使用沙盒数据，目的是和书中一样的数据环境
-abupy.env.enable_example_env_ipython()
+abupy.env.disable_example_env_ipython()
 
 # 设置选股因子，None为不使用选股因子
 stock_pickers = None
@@ -57,6 +57,8 @@ def sample_91(show=True):
     # 择时股票池
     choice_symbols = ['usNOAH', 'usSFUN', 'usBIDU', 'usAAPL', 'usGOOG',
                       'usTSLA', 'usWUBA', 'usVIPS']
+
+    choice_symbols = ['usFUTU']
     # 使用run_loop_back运行策略
     abu_result_tuple, kl_pd_manager = abu.run_loop_back(read_cash,
                                                         buy_factors,
