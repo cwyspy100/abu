@@ -748,7 +748,7 @@ if __name__ == '__main__':
     start = time.time()
     
     # result = main(input_csv="../todolist/quality_momentum_pick_20251221.csv")
-    result = main(prefixes=['us'])
+    result = main()
 
     print(f"\n处理完成，耗时 {time.time() - start:.2f} 秒")
 

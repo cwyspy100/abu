@@ -10,6 +10,7 @@ from . import ABuXqFile
 from ..CoreBu import env
 # noinspection PyUnresolvedReferences
 from ..CoreBu.ABuFixes import map, reduce, filter
+from selenium.webdriver.common.by import By
 from .ABuXqApi import BASE_XQ_HQ_URL
 from .ABuXqApi import BASE_XQ_STOCK_INFO
 __author__ = '小青蛙'
@@ -53,7 +54,11 @@ class BaseXQCrawlBrower(object, metaclass=ABCMeta):
         from selenium.webdriver.support import ui
         # noinspection PyUnresolvedReferences
         from selenium import webdriver
-        self.driver = webdriver.Chrome(self.driver_path)
+        try:
+            from selenium.webdriver.chrome.service import Service
+            self.driver = webdriver.Chrome(service=Service(self.driver_path))
+        except (ImportError, TypeError):
+            self.driver = webdriver.Chrome(executable_path=self.driver_path)
         self.wait = ui.WebDriverWait(self.driver, 10)
 
     @abstractmethod
@@ -116,7 +121,7 @@ class StockListCrawlBrower(BaseHQCrawlBrower):
         """
         使每页展示的stock数最多，总页数变少，使网络请求数变少
         """
-        max_page_tag = self.driver.find_element_by_xpath('//*[@id="stockList-header"]/div[2]/a[3]')
+        max_page_tag = self.driver.find_element(By.XPATH, '//*[@id="stockList-header"]/div[2]/a[3]')
         max_page_tag.click()
         time_out = 30
         while time_out:
@@ -156,7 +161,7 @@ class StockListCrawlBrower(BaseHQCrawlBrower):
         return name, code
 
     def _goto_next_page(self):
-        next_page = self.driver.find_element_by_xpath('//*[@id="pageList"]/div/ul/li[@class="next"]/a')
+        next_page = self.driver.find_element(By.XPATH, '//*[@id="pageList"]/div/ul/li[@class="next"]/a')
         if next_page is not None:
             # 滚动到next_page 标签显示出来，否则click可能会报错
             self.wait.until(lambda dr: next_page.is_enabled())
@@ -171,7 +176,7 @@ class StockListCrawlBrower(BaseHQCrawlBrower):
         symbols = []
         # page index start 1
         for page in range(1, total_page + 1):
-            self.wait.until(lambda dr: dr.find_element_by_xpath('//*[@id="stockList"]/div[1]/table').is_displayed())
+            self.wait.until(lambda dr: dr.find_element(By.XPATH, '//*[@id="stockList"]/div[1]/table').is_displayed())
             cur_page, _ = self._curr_total_page()
             temp_names, temp_symbols = self._curr_page_items()
             names += temp_names

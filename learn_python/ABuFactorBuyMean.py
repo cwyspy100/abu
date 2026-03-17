@@ -39,8 +39,18 @@ class AbuFactorBuyMean(AbuFactorBuyBase, BuyCallMixin):
         # self.kl_pd['EMA120'] = self.kl_pd['close'].ewm(span=self.xd, adjust=False).mean()
         self.kl_pd['ma_120'] = self.kl_pd['close'].rolling(window=self.xd).mean()
 
-        # 今天的收盘价格达到xd天内最高价格则符合买入条件
-        if today.close >= self.kl_pd['ma_120'].iloc[self.today_ind] and self.kl_pd.close[self.today_ind - 1] < self.kl_pd['ma_120'].iloc[self.today_ind - 1]:
+        # 判断均线是否朝上：当前均线值大于等于昨天的均线值
+        ma_today = self.kl_pd['ma_120'].iloc[self.today_ind]
+        ma_yesterday = self.kl_pd['ma_120'].iloc[self.today_ind - 1] if self.today_ind > 0 else ma_today
+        ma_upward = ma_today >= ma_yesterday  # 均线朝上或持平
+
+        # 买入条件：
+        # 1. 今天的收盘价格大于等于均线
+        # 2. 昨天的收盘价格小于昨天的均线（突破均线）
+        # 3. 均线朝上（当前均线值大于等于昨天的均线值）
+        if (today.close >= ma_today and 
+            self.kl_pd.close[self.today_ind - 1] < ma_yesterday and
+            ma_upward):
         # if today.close >= self.kl_pd['EMA120'].iloc[self.today_ind] and self.kl_pd.close[self.today_ind - 1] < self.kl_pd['EMA120'].iloc[self.today_ind - 1]:
             # 把突破新高参数赋值skip_days，这里也可以考虑make_buy_order确定是否买单成立，但是如果停盘太长时间等也不好
             # self.skip_days = self.xd

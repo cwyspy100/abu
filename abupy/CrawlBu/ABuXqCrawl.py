@@ -159,6 +159,10 @@ def ensure_symbol(symbol):
 
 
 def update_all(markets=('US', 'CN', 'HK')):
+    """
+    完整更新流程：抓取股票列表 -> 抓取每只股票详情 -> 合并 -> 统一列名
+    需要配置 g_crawl_chrome_driver（Chrome 驱动路径）
+    """
     crawl_stock_code(markets)
     crawl_stock_info(markets)
     ABuXqFile.merge_stock_info_to_stock_list(markets)
@@ -168,3 +172,16 @@ def update_all(markets=('US', 'CN', 'HK')):
 def query_symbol_info(symbol):
     m, symbol = ensure_symbol(symbol)
     return None if symbol is None else ABuXqFile.query_a_stock(m, symbol)
+
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description='通过雪球网页抓取更新 stock_code_CN.csv')
+    parser.add_argument('--market', type=str, default='CN', choices=['CN', 'HK', 'US'],
+                        help='市场: CN/HK/US，默认 CN')
+    parser.add_argument('--all', action='store_true', help='更新全部市场')
+    args = parser.parse_args()
+    markets = ('CN', 'HK', 'US') if args.all else (args.market,)
+    print('开始更新市场: {}'.format(markets))
+    update_all(markets)
+    print('更新完成')

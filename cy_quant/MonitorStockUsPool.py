@@ -47,7 +47,7 @@ def execute_stock_us_back_test(read_path, save_path, hand_type=0):
     # choice_symbols = ['usFUTU']
     # choice_symbols = ['usTQQQ']
     choice_symbols = ['usUPRO', 'usTQQQ', 'usIWM']
-    # choice_symbols = ['usIWM']
+    choice_symbols = ['usIWM']
     print("choice_symbols:{}".format(choice_symbols))
 
     # 设置初始资金数
@@ -157,7 +157,7 @@ def save_backtest_result(metrics, save_path, choice_symbols):
 
 
 if __name__ == "__main__":
-    execute_stock_us_back_test('../todolist/stock_us_pool.csv', '../todolist/stock_us_pool_backtest.txt')
-    # execute_stock_us_back_test('../todolist/stock_us_grid_pool.csv', '../todolist/stock_us_grid_pool_backtest.txt', hand_type=1)
+    # execute_stock_us_back_test('../todolist/stock_us_pool.csv', '../todolist/stock_us_pool_backtest.txt')
+    execute_stock_us_back_test('../todolist/stock_us_grid_pool.csv', '../todolist/stock_us_grid_pool_backtest.txt', hand_type=1)
     # kl_pd = ABuSymbolPd.make_kl_df('usFUTU', n_folds=2)
     # print(kl_pd)

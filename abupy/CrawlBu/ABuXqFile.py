@@ -114,10 +114,10 @@ def merge_stock_info_to_stock_list(market=('US', 'HK', 'CN')):
             if ABuFileUtil.file_exist(map_cache_stock_info(m, symbol)):
                 a_stock_info = pd.read_csv(map_cache_stock_info(m, symbol), dtype=str)
 
-                if a_stock_info is not None and not a_stock_info.empty:
-                    keys = a_stock_info.ix[:, 0].tolist()
+                if a_stock_info is not None and not a_stock_info.empty and a_stock_info.shape[1] >= 2:
+                    keys = a_stock_info.iloc[:, 0].astype(str).tolist()
                     _create_a_column(extra_info, keys, stock_df.shape[0])
-                    values = a_stock_info.ix[:, 1].tolist()
+                    values = a_stock_info.iloc[:, 1].astype(str).tolist()
                     for k, v in zip(keys, values):
                         extra_info[k][i] = v
 
@@ -127,7 +127,8 @@ def merge_stock_info_to_stock_list(market=('US', 'HK', 'CN')):
         stock_df.fillna('-', inplace=True)
         # 某些symbol的stockinfo为空，，stockinfp为空的原因是stockinfo页面404，因此可以丢弃
         valid_df = stock_df.loc[stock_df.symbol != '-']
-        valid_df.to_csv(map_stock_list_rom(m), index=False, encoding='utf-8')
+        valid_df.reset_index(drop=True, inplace=True)
+        valid_df.to_csv(map_stock_list_rom(m), index=True, encoding='utf-8')
 
 
 def del_columns(df, columns):
@@ -145,13 +146,27 @@ def drop_nuisance(df):
 
 def fix_xq_columns_name():
     """
-    雪球获取的数据的key都是中文，dataframe的columns不变与用中文
+    雪球获取的数据的key有中文和英文，将columns统一映射为英文列名，并确保CN表有完整列结构
     """
+    # CN 表需要的完整列（与 ABuSymbolCN 兼容）
+    CN_REQUIRED_COLUMNS = [
+        'co_name', 'symbol', 'market', 'asset', 'co_business', 'cc', 'amplitude',
+        'pe_s_d', 'co_intro', 'exchange', 'mv', 'pb_d', 'ps_d', 'equity', 'industry'
+    ]
     for m in ('US', 'CN', 'HK'):
-        stock_df = pd.read_csv(map_stock_list_rom(m), dtype=str)
+        rom_path = map_stock_list_rom(m)
+        if not os.path.exists(rom_path):
+            continue
+        stock_df = pd.read_csv(rom_path, dtype=str, index_col=0)
         unnecessary_columns = stock_df.columns.difference(columns_map.keys())
         columns_intersection = stock_df.columns & columns_map.keys()
         del_columns(stock_df, unnecessary_columns)
 
         stock_df.rename(columns={c: columns_map[c] for c in columns_intersection}, inplace=True)
-        stock_df.to_csv(map_stock_list_rom(m), index=True, encoding='utf-8')
+        if m == 'CN':
+            for col in CN_REQUIRED_COLUMNS:
+                if col not in stock_df.columns:
+                    stock_df[col] = '-'
+            stock_df = stock_df[[c for c in CN_REQUIRED_COLUMNS]]
+        stock_df = stock_df.fillna('-')
+        stock_df.to_csv(rom_path, index=True, encoding='utf-8')
