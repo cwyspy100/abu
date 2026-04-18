@@ -31,10 +31,10 @@ class SuperpowersConfig:
         cfg_ai = _load_json(os.path.join(root, "todolist", "llm_config.json"))
 
         # 可在 llm_config.json 中配置默认 provider/model
-        self.cheap_provider = cfg_ai.get("cheap_provider", "deepseek")
-        self.cheap_model = cfg_ai.get("cheap_model", "deepseek-chat")
-        self.strong_provider = cfg_ai.get("strong_provider", "deepseek")
-        self.strong_model = cfg_ai.get("strong_model", "deepseek-reasoner")
+        self.cheap_provider = cfg_ai.get("cheap_provider", "aihubmix")
+        self.cheap_model = cfg_ai.get("cheap_model", "glm-4-flash")
+        self.strong_provider = cfg_ai.get("strong_provider", "aihubmix")
+        self.strong_model = cfg_ai.get("strong_model", "glm-4-flash")
 
         self.timeout = int(cfg_ai.get("timeout", 90))
         self.max_retries = int(cfg_ai.get("max_retries", 3))
@@ -44,21 +44,23 @@ class SuperpowersConfig:
         self.deepseek_api_key = os.getenv("DEEPSEEK_API_KEY", (cfg_main.get("deepseek_api_key") or "").strip())
         self.doubao_api_key = os.getenv("DOUBAO_API_KEY", (cfg_main.get("doubao_api_key") or "").strip())
         self.minimax_api_key = os.getenv("MINIMAX_API_KEY", (cfg_main.get("minimax_api_key") or "").strip())
+        self.aihubmix_api_key = os.getenv("AIHUBMIX_API_KEY", (cfg_main.get("aihubmix_api_key") or "").strip())
 
         # endpoint 可在 llm_config.json 覆盖
         self.endpoints = {
             "deepseek": cfg_ai.get("deepseek_base_url", "https://api.deepseek.com/v1/chat/completions"),
             "doubao": cfg_ai.get("doubao_base_url", "https://ark.cn-beijing.volces.com/api/v3/chat/completions"),
             "minimax": cfg_ai.get("minimax_base_url", "https://api.minimaxi.com/v1/text/chatcompletion_v2"),
+            "aihubmix": cfg_ai.get("aihubmix_base_url", "https://aihubmix.com/v1/chat/completions"),
         }
 
-        # 若所选 provider 未配置 key，则自动回退到 minimax（若可用）
-        if not self.get_api_key(self.cheap_provider) and self.minimax_api_key:
-            self.cheap_provider = "minimax"
-            self.cheap_model = cfg_ai.get("minimax_cheap_model", "MiniMax-M2.5")
-        if not self.get_api_key(self.strong_provider) and self.minimax_api_key:
-            self.strong_provider = "minimax"
-            self.strong_model = cfg_ai.get("minimax_strong_model", "MiniMax-M2.5")
+        # 若所选 provider 未配置 key，则自动回退到 aihubmix（若可用）
+        if not self.get_api_key(self.cheap_provider) and self.aihubmix_api_key:
+            self.cheap_provider = "aihubmix"
+            self.cheap_model = "glm-4-flash"
+        if not self.get_api_key(self.strong_provider) and self.aihubmix_api_key:
+            self.strong_provider = "aihubmix"
+            self.strong_model = "glm-4-flash"
 
     def get_api_key(self, provider: str) -> str:
         if provider == "deepseek":
@@ -67,6 +69,8 @@ class SuperpowersConfig:
             return self.doubao_api_key
         if provider == "minimax":
             return self.minimax_api_key
+        if provider == "aihubmix":
+            return self.aihubmix_api_key
         return ""
 
     def get_endpoint(self, provider: str) -> str:
