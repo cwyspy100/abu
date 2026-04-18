@@ -122,6 +122,28 @@ def import_pool_csv(args: argparse.Namespace) -> bool:
         db.close()
 
 
+def normalize_db_data(args: argparse.Namespace) -> bool:
+    """修正历史数据中的 ts_code/name/industry"""
+    if not args.normalize_db:
+        return True
+
+    logger.info("=" * 60)
+    logger.info("修正数据库历史数据（ts_code 补齐6位 + name/industry 回填）...")
+    logger.info("=" * 60)
+
+    db = Database()
+    try:
+        importer = CSVImporter(db)
+        importer.normalize_existing_data()
+        logger.info("数据库历史数据修正完成")
+        return True
+    except Exception as e:
+        logger.error(f"数据库历史数据修正失败: {e}")
+        return False
+    finally:
+        db.close()
+
+
 def run_analysis(args: argparse.Namespace) -> bool:
     """执行 AI 分析"""
     if not args.analyze:
@@ -139,17 +161,56 @@ def run_analysis(args: argparse.Namespace) -> bool:
         delay = args.delay
         limit = args.limit
 
-        stats = analyzer.analyze_pool(delay_between=delay, limit=limit)
+        if args.superpowers_stage1:
+            stats = analyzer.superpowers_stage1_score(
+                delay_between=delay,
+                limit=limit,
+            )
+            print("\n" + "=" * 60)
+            print("Superpowers Stage1 Stats:")
+            print("  Total candidates: %s" % stats["total"])
+            print("  Scored and saved: %s" % stats["scored"])
+            print("  Failed: %s" % stats["failed"])
+            print("=" * 60)
+            return stats["failed"] == 0
+        elif args.superpowers_stage2:
+            stats = analyzer.superpowers_stage2_deep(
+                delay_between=delay,
+                top_n=args.top_n,
+            )
+            print("\n" + "=" * 60)
+            print("Superpowers Stage2 Stats:")
+            print("  Loaded from DB(top_n): %s" % stats["total"])
+            print("  Deep analyzed: %s" % stats["deep_analyzed"])
+            print("  Failed: %s" % stats["failed"])
+            print("=" * 60)
+            return stats["failed"] == 0
+        elif args.superpowers:
+            stats = analyzer.analyze_pool_superpowers(
+                delay_between=delay,
+                limit=limit,
+                top_n=args.top_n,
+            )
+            print("\n" + "=" * 60)
+            print("Superpowers Analysis Stats:")
+            print("  Total candidates: %s" % stats["total"])
+            print("  Scored: %s" % stats["scored"])
+            print("  Deep analyzed: %s" % stats["deep_analyzed"])
+            print("  Failed: %s" % stats["failed"])
+            print("=" * 60)
+            return stats["failed"] == 0
+        else:
+            stats = analyzer.analyze_pool(delay_between=delay, limit=limit)
 
-        print("\n" + "=" * 60)
-        print("分析统计:")
-        print(f"  待分析股票总数: {stats['total']}")
-        print(f"  已分析: {stats['analyzed']}")
-        print(f"  跳过(已有分析): {stats['skipped']}")
-        print(f"  失败: {stats['failed']}")
-        print("=" * 60)
+            print("\n" + "=" * 60)
+            print("分析统计:")
+            print(f"  待分析股票总数: {stats['total']}")
+            print(f"  已分析: {stats['analyzed']}")
+            print(f"  跳过(已有分析): {stats['skipped']}")
+            print(f"  失败: {stats['failed']}")
+            print("=" * 60)
 
-        return stats["failed"] == 0
+            return stats["failed"] == 0
 
     except Exception as e:
         logger.error(f"AI 分析过程异常: {e}")
@@ -201,8 +262,11 @@ def show_results(args: argparse.Namespace) -> bool:
     if not args.show:
         return True
 
+    import traceback as tb
     db = Database()
     try:
+        if args.limit is None:
+            args.limit = 100
         analyzer = StockAnalyzer(db)
         results = analyzer.get_analysis_results(
             invest_status=args.filter_status,
@@ -230,6 +294,7 @@ def show_results(args: argparse.Namespace) -> bool:
 
     except Exception as e:
         logger.error(f"显示结果失败: {e}")
+        tb.print_exc()
         return False
     finally:
         db.close()
@@ -286,11 +351,16 @@ def main():
     # CSV 导入
     parser.add_argument("--import-basic", metavar="FILE", help="导入股票基础信息 CSV")
     parser.add_argument("--import-pool", metavar="FILE", help="导入 120 日均线突破股票池 CSV")
+    parser.add_argument("--normalize-db", action="store_true", help="修正历史数据：ts_code 统一6位并回填 name/industry")
 
     # AI 分析
     parser.add_argument("--analyze", action="store_true", help="执行 AI 分析")
     parser.add_argument("--limit", type=int, default=None, metavar="N", help="限制分析股票数量")
     parser.add_argument("--delay", type=float, default=5.0, metavar="SEC", help="API 调用间隔（秒，默认 5）")
+    parser.add_argument("--superpowers", action="store_true", help="启用 superpowers 两阶段分析流程")
+    parser.add_argument("--superpowers-stage1", action="store_true", help="仅执行 superpowers 第一阶段：批量打分并写库")
+    parser.add_argument("--superpowers-stage2", action="store_true", help="仅执行 superpowers 第二阶段：从库读取前N做深度分析")
+    parser.add_argument("--top-n", type=int, default=20, metavar="N", help="superpowers 深度分析数量（默认20）")
 
     # 结果查看
     parser.add_argument("--show", action="store_true", help="显示分析结果")
@@ -304,7 +374,7 @@ def main():
     args = parser.parse_args()
 
     # 如果没有任何操作，显示帮助
-    if not any([args.init_db, args.import_basic, args.import_pool, args.analyze, args.show, args.show_pool, args.export]):
+    if not any([args.init_db, args.import_basic, args.import_pool, args.normalize_db, args.analyze, args.show, args.show_pool, args.export]):
         parser.print_help()
         return 0
 
@@ -319,6 +389,9 @@ def main():
 
     if args.import_pool:
         success = import_pool_csv(args) and success
+
+    if args.normalize_db:
+        success = normalize_db_data(args) and success
 
     if args.analyze:
         success = run_analysis(args) and success
@@ -340,5 +413,129 @@ def main():
     return 0 if success else 1
 
 
+def run_weekly_analysis():
+    """
+    每周股票池分析流程
+    1. CSV 导入一级筛选池
+    2. AIHubMix 阶段1初筛
+    3. MiniMax 阶段2深度分析
+    4. 同步到监控池
+    5. 飞书通知
+    """
+    import os
+    logger.info("=== 开始每周股票池分析 ===")
+
+    from .db import Database, init_tables
+    from .csv_importer import CSVImporter
+    from .analyzer import StockAnalyzer
+    from .pool_manager import PoolManager
+    from .notify import FeishuNotifier
+
+    db = Database()
+    init_tables(db)
+
+    try:
+        # 1. 导入一级筛选池（如果有 CSV 文件）
+        csv_path = os.getenv("MA120_POOL_CSV", "")
+        if csv_path and os.path.exists(csv_path):
+            importer = CSVImporter(db)
+            importer.import_ma120_pool(csv_path)
+            logger.info(f"已导入筛选池: {csv_path}")
+
+        # 2. 运行两阶段分析（使用现有 analyzer）
+        analyzer = StockAnalyzer(db)
+        stage1_stats = analyzer.superpowers_stage1_score(delay_between=1.0)
+        logger.info(f"阶段1完成: {stage1_stats}")
+
+        stage2_stats = analyzer.superpowers_stage2_deep(delay_between=2.0, top_n=20)
+        logger.info(f"阶段2完成: {stage2_stats}")
+
+        # 3. 同步到监控池
+        pool_manager = PoolManager(db)
+        sync_count = pool_manager.sync_to_watch_pool(min_score=60, max_count=100)
+        logger.info(f"已同步 {sync_count} 只到监控池")
+
+        # 4. 发送飞书通知
+        webhook = os.getenv("FEISHU_WEBHOOK_URL", "")
+        if webhook:
+            notifier = FeishuNotifier(webhook)
+            summary = pool_manager.get_watch_pool_summary()
+            top_stocks = db.query_all("""
+                SELECT ts_code, name, ai_confidence FROM stock_watch_pool
+                WHERE watch_status = 'active'
+                ORDER BY ai_confidence DESC LIMIT 5
+            """)
+            notifier.send_weekly_summary(
+                stage1_count=stage1_stats.get("scored", 0),
+                stage2_count=stage2_stats.get("deep_analyzed", 0),
+                watch_pool_count=sync_count,
+                top_stocks=top_stocks
+            )
+
+        logger.info("=== 每周分析完成 ===")
+
+    finally:
+        db.close()
+
+
+def run_monitoring():
+    """
+    启动实时监控服务
+    """
+    import os
+    from .monitor import StockMonitor
+
+    webhook = os.getenv("FEISHU_WEBHOOK_URL", "")
+    if not webhook:
+        logger.error("未配置 FEISHU_WEBHOOK_URL")
+        return
+
+    interval = int(os.getenv("MONITOR_INTERVAL_MINUTES", "30"))
+    monitor = StockMonitor(webhook)
+    monitor.start(interval_minutes=interval)
+
+    # 保持主线程运行
+    import time
+    while True:
+        time.sleep(60)
+
+
+def run_scan_once():
+    """
+    执行单次监控扫描
+    """
+    import os
+    from .monitor import StockMonitor
+
+    webhook = os.getenv("FEISHU_WEBHOOK_URL", "")
+    monitor = StockMonitor(webhook)
+
+    results = monitor.scan()
+    print(f"扫描完成：共{results['total']}只，触发告警{len(results['alerts'])}个")
+
+    for alert in results.get("alerts", []):
+        print(f"  - {alert['name']}: {alert['alert_type']} @ {alert['price']}")
+
+    monitor.db.close()
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    import sys
+
+    if len(sys.argv) > 1:
+        command = sys.argv[1]
+
+        if command == "weekly":
+            run_weekly_analysis()
+        elif command == "monitor":
+            run_monitoring()
+        elif command == "scan":
+            run_scan_once()
+        else:
+            print(f"未知命令: {command}")
+            print("可用命令: weekly | monitor | scan")
+    else:
+        print("用法:")
+        print("  python -m cy_ai.main weekly   # 运行每周分析")
+        print("  python -m cy_ai.main monitor  # 启动监控服务")
+        print("  python -m cy_ai.main scan     # 执行单次扫描")
