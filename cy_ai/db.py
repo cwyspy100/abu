@@ -21,7 +21,7 @@ class DatabaseConfig:
         "host": "localhost",
         "port": 3306,
         "user": "root",
-        "password": "root",
+        "password": "root1234",
         "database": "stock_analysis",
         "charset": "utf8mb4",
     }
@@ -132,7 +132,9 @@ TABLE_SCHEMAS = {
             name VARCHAR(30) COMMENT '股票名称',
             industry VARCHAR(50) COMMENT '行业',
             break_date DATE COMMENT '突破120日均线日期',
+            status TINYINT DEFAULT 0 COMMENT '分析状态：0=未分析，1=已分析',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             UNIQUE KEY uk_ts_code (ts_code)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='120日均线突破股票池'
     """,
@@ -152,10 +154,56 @@ TABLE_SCHEMAS = {
             risk_points TEXT COMMENT '风险点',
             analyzed_at DATETIME COMMENT '分析时间',
             is_valid TINYINT DEFAULT 1 COMMENT '是否有效',
+            analysis_stage TINYINT DEFAULT 1 COMMENT '分析阶段：1=初筛，2=深度',
+            stage1_score INT COMMENT '阶段1评分',
+            stage1_action VARCHAR(20) COMMENT '阶段1动作：买入/观察/放弃',
+            trend_score INT COMMENT '趋势评分0-100',
+            risk_score INT COMMENT '风险评分0-100',
+            quality_score INT COMMENT '质量评分0-100',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             UNIQUE KEY uk_ts_code (ts_code)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI分析结果表'
+    """,
+    "stock_watch_pool": """
+        CREATE TABLE IF NOT EXISTS stock_watch_pool (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            ts_code VARCHAR(20) NOT NULL COMMENT '股票代码',
+            name VARCHAR(50) COMMENT '股票名称',
+            industry VARCHAR(50) COMMENT '行业',
+            market VARCHAR(10) COMMENT '市场：A股/港股/美股',
+
+            ai_verdict VARCHAR(20) COMMENT 'AI评级：强烈推荐/推荐/观望',
+            ai_confidence INT COMMENT 'AI置信度0-100',
+            ai_summary TEXT COMMENT 'AI一句话总结',
+
+            buy_zone_low DECIMAL(10,2) COMMENT '建议买入价下限',
+            buy_zone_high DECIMAL(10,2) COMMENT '建议买入价上限',
+            buy_zone_ideal DECIMAL(10,2) COMMENT '理想买入价',
+
+            sell_zone_conservative DECIMAL(10,2) COMMENT '保守目标价',
+            sell_zone_aggressive DECIMAL(10,2) COMMENT '激进目标价',
+            stop_loss DECIMAL(10,2) COMMENT '止损价',
+
+            alert_config JSON COMMENT '告警配置',
+            current_price DECIMAL(10,2) COMMENT '最新价格',
+            price_updated_at DATETIME COMMENT '价格更新时间',
+            watch_status VARCHAR(20) DEFAULT 'active' COMMENT '监控状态：active/paused/removed',
+
+            buy_signal_sent TINYINT DEFAULT 0 COMMENT '是否已发送买入提醒',
+            sell_signal_sent TINYINT DEFAULT 0 COMMENT '是否已发送卖出提醒',
+            last_alert_at DATETIME COMMENT '最后提醒时间',
+
+            added_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '入池时间',
+            added_source VARCHAR(20) COMMENT '入池来源：manual/ai_analysis',
+            recheck_date DATE COMMENT 'AI建议复查日期',
+            analyzed_at DATETIME COMMENT 'AI分析时间',
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+            UNIQUE KEY uk_ts_code (ts_code),
+            INDEX idx_watch_status (watch_status),
+            INDEX idx_recheck_date (recheck_date)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='股票监控池'
     """,
 }
 
@@ -168,9 +216,26 @@ def init_tables(db: Database):
     """
     logger.info("正在初始化数据库表...")
 
-    # 先创建数据库（如果不存在）
-    db.execute("CREATE DATABASE IF NOT EXISTS stock_analysis")
-    db.commit()
+    # 先连接时不指定数据库，先创建数据库
+    config = db.config.copy()
+    database_name = config.pop("database", "stock_analysis")
+
+    # 连接到 MySQL 服务器（不指定数据库）
+    import pymysql
+    from pymysql.cursors import DictCursor
+    temp_conn = pymysql.connect(**config, cursorclass=DictCursor)
+
+    try:
+        with temp_conn.cursor() as cursor:
+            cursor.execute(f"CREATE DATABASE IF NOT EXISTS {database_name}")
+        temp_conn.commit()
+        logger.info(f"数据库 {database_name} 创建/检查完成")
+    finally:
+        temp_conn.close()
+
+    # 重新连接，指定数据库
+    db.config["database"] = database_name
+    db._connection = None  # 重置连接
 
     for table_name, schema in TABLE_SCHEMAS.items():
         try:
