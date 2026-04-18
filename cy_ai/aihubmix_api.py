@@ -22,7 +22,20 @@ class AIHubMixConfig:
         "https://aihubmix.com/v1/chat/completions"
     )
     MODEL = os.getenv("AIHUBMIX_MODEL", "glm-4-flash")
-    API_KEY = os.getenv("AIHUBMIX_API_KEY", "")
+
+    # 尝试从配置文件读取
+    _config_key = None
+    try:
+        _config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "todolist", "config.json")
+        if os.path.exists(_config_path):
+            with open(_config_path, "r") as _f:
+                _cfg = json.load(_f)
+                _config_key = _cfg.get("aihubmix_api_key") or _cfg.get("aihubmix_api_key", "").strip()
+    except Exception:
+        pass
+
+    API_KEY = os.getenv("AIHUBMIX_API_KEY", _config_key or "")
+
     TIMEOUT = 60
     MAX_RETRIES = 3
     RETRY_DELAY = 3
@@ -56,7 +69,7 @@ class AIHubMixAPI:
         self.api_url = AIHubMixConfig.API_URL
 
         if not self.api_key:
-            raise ValueError("AIHubMix API Key 未设置，请设置环境变量 AIHUBMIX_API_KEY")
+            raise ValueError("AIHubMix API Key 未设置，请设置环境变量 AIHUBMIX_API_KEY 或在 todolist/config.json 中配置 aihubmix_api_key")
 
     def _call_api(self, messages: list, temperature: float = 0.0) -> Optional[str]:
         """调用 AIHubMix API"""
