@@ -422,21 +422,22 @@ def run_weekly_analysis():
     4. 同步到监控池
     5. 飞书通知
     """
-    import os
-    logger.info("=== 开始每周股票池分析 ===")
-
+    from .config import get_config
     from .db import Database, init_tables
     from .csv_importer import CSVImporter
     from .analyzer import StockAnalyzer
     from .pool_manager import PoolManager
     from .notify import FeishuNotifier
 
+    cfg = get_config()
+    logger.info("=== 开始每周股票池分析 ===")
+
     db = Database()
     init_tables(db)
 
     try:
         # 1. 导入一级筛选池（如果有 CSV 文件）
-        csv_path = os.getenv("MA120_POOL_CSV", "")
+        csv_path = cfg.ma120_pool_csv
         if csv_path and os.path.exists(csv_path):
             importer = CSVImporter(db)
             importer.import_ma120_pool(csv_path)
@@ -456,7 +457,7 @@ def run_weekly_analysis():
         logger.info(f"已同步 {sync_count} 只到监控池")
 
         # 4. 发送飞书通知
-        webhook = os.getenv("FEISHU_WEBHOOK_URL", "")
+        webhook = cfg.feishu_webhook_url
         if webhook:
             notifier = FeishuNotifier(webhook)
             summary = pool_manager.get_watch_pool_summary()
@@ -482,15 +483,16 @@ def run_monitoring():
     """
     启动实时监控服务
     """
-    import os
+    from .config import get_config
     from .monitor import StockMonitor
 
-    webhook = os.getenv("FEISHU_WEBHOOK_URL", "")
+    cfg = get_config()
+    webhook = cfg.feishu_webhook_url
     if not webhook:
-        logger.error("未配置 FEISHU_WEBHOOK_URL")
+        logger.error("未配置 feishu_webhook_url")
         return
 
-    interval = int(os.getenv("MONITOR_INTERVAL_MINUTES", "30"))
+    interval = cfg.monitor_interval_minutes
     monitor = StockMonitor(webhook)
     monitor.start(interval_minutes=interval)
 
@@ -504,10 +506,11 @@ def run_scan_once():
     """
     执行单次监控扫描
     """
-    import os
+    from .config import get_config
     from .monitor import StockMonitor
 
-    webhook = os.getenv("FEISHU_WEBHOOK_URL", "")
+    cfg = get_config()
+    webhook = cfg.feishu_webhook_url
     monitor = StockMonitor(webhook)
 
     results = monitor.scan()

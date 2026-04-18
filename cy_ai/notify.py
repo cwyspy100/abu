@@ -140,11 +140,12 @@ class FeishuNotifier:
 
 
 if __name__ == "__main__":
-    import os
-    webhook = os.getenv("FEISHU_WEBHOOK_URL", "")
+    from .config import get_config
+    cfg = get_config()
+    webhook = cfg.feishu_webhook_url
     if webhook:
         notifier = FeishuNotifier(webhook)
         result = notifier.send("🔔 测试消息：飞书通知模块正常工作")
         print("发送成功" if result else "发送失败")
     else:
-        print("未配置 FEISHU_WEBHOOK_URL，跳过测试")
+        print("未配置 feishu_webhook_url，跳过测试")

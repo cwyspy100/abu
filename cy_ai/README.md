@@ -66,25 +66,34 @@ pip install -r requirements.txt
 
 ## 配置
 
-设置环境变量：
+所有配置统一从 `todolist/config.json` 读取：
 
-```bash
-# AIHubMix API（用于初筛）
-export AIHUBMIX_API_KEY="your-api-key"
-export AIHUBMIX_MODEL="glm-4-flash"  # 可选
+```json
+{
+  "aihubmix_api_key": "your-api-key",
+  "aihubmix_model": "glm-4-flash",
 
-# MiniMax API（用于深度分析）
-export MINIMAX_API_KEY="your-api-key"
+  "minimax_api_key": "your-api-key",
 
-# 飞书 Webhook
-export FEISHU_WEBHOOK_URL="https://open.feishu.cn/open-apis/bot/v2/hook/xxx"
+  "deepseek_api_key": "your-api-key",
+  "doubao_api_key": "",
 
-# 一级筛选池 CSV 路径（可选）
-export MA120_POOL_CSV="/path/to/ma120_pool.csv"
-
-# 监控扫描间隔（分钟，默认30）
-export MONITOR_INTERVAL_MINUTES="30"
+  "feishu_webhook_url": "https://open.feishu.cn/open-apis/bot/v2/hook/xxx",
+  "ma120_pool_csv": "/path/to/ma120_pool.csv",
+  "monitor_interval_minutes": 30
+}
 ```
+
+| 字段 | 说明 |
+|------|------|
+| `aihubmix_api_key` | AIHubMix API Key（用于初筛） |
+| `aihubmix_model` | AIHubMix 模型，默认 `glm-4-flash` |
+| `minimax_api_key` | MiniMax API Key（用于深度分析） |
+| `deepseek_api_key` | DeepSeek API Key（备用） |
+| `doubao_api_key` | 豆包 API Key（备用） |
+| `feishu_webhook_url` | 飞书 Webhook URL |
+| `ma120_pool_csv` | 一级筛选池 CSV 文件路径 |
+| `monitor_interval_minutes` | 监控扫描间隔（分钟），默认 30 |
 
 ## 使用方法
 

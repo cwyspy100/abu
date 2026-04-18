@@ -201,7 +201,9 @@ class StockMonitor:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
-    webhook = os.getenv("FEISHU_WEBHOOK_URL", "")
+    from .config import get_config
+    cfg = get_config()
+    webhook = cfg.feishu_webhook_url
     monitor = StockMonitor(webhook)
 
     print("执行单次扫描...")
