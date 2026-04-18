@@ -117,6 +117,52 @@ python -m cy_ai.main scan
 
 立即执行一次监控扫描，输出扫描结果。
 
+### 单股测试分析
+
+使用 AIHubMix 对单只股票进行快速评分测试：
+
+```python
+python3 -c "
+from cy_ai.aihubmix_api import AIHubMixAPI
+import json
+
+api = AIHubMixAPI()
+
+test_stock = {
+    'ts_code': '600036',
+    'name': '招商银行',
+    'industry': '银行',
+    'price': 35.50,
+    'ma20': 34.20,
+    'ma60': 33.80,
+    'ma120': 32.50,
+    'price_vs_ma120': '+9.2%',
+    'ret_5d': 2.3,
+    'ret_20d': 8.5,
+    'volume_ratio': 1.35,
+    'pe': 5.8,
+    'pb': 0.65,
+    'roe': 11.2,
+}
+
+result = api.score_stock(test_stock)
+print(json.dumps(result, ensure_ascii=False, indent=2))
+"
+```
+
+输出示例：
+
+```json
+{
+  "score": 85,
+  "trend_score": 90,
+  "risk_score": 70,
+  "quality_score": 80,
+  "action": "买入",
+  "short_reason": "趋势向上，估值合理，盈利能力强"
+}
+```
+
 ## 数据库表
 
 ### stock_pool_ma120（一级筛选池）
