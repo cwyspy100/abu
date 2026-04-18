@@ -10,6 +10,9 @@ from typing import Optional, List, Dict, Any
 
 from .db import Database
 from .minimax_api import MiniMaxAPI
+from .csv_importer import CSVImporter
+from .superpowers_ai import SuperpowersAI
+from .local_features import LocalFeatureBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +30,10 @@ class StockAnalyzer:
         self.db = db
         self.api = minimax_api or MiniMaxAPI()
 
+    @staticmethod
+    def _normalize_ts_code(ts_code: str) -> str:
+        return CSVImporter.normalize_ts_code(ts_code)
+
     def is_already_analyzed(self, ts_code: str) -> bool:
         """
         检查股票是否已有有效的 AI 分析结果
@@ -39,6 +46,7 @@ class StockAnalyzer:
             WHERE ts_code = %s AND is_valid = 1
             LIMIT 1
         """
+        ts_code = self._normalize_ts_code(ts_code)
         result = self.db.query_one(sql, (ts_code,))
         return result is not None
 
@@ -84,7 +92,7 @@ class StockAnalyzer:
         """
 
         params = (
-            ts_code,
+            self._normalize_ts_code(ts_code),
             name,
             industry,
             analysis.get("invest_status", ""),
@@ -102,9 +110,31 @@ class StockAnalyzer:
             self.db.execute(sql, params)
             self.db.commit()
             logger.info(f"已保存股票 {ts_code} 的分析结果")
+
+            # 更新 stock_pool_ma120 的 status 为已分析
+            self._update_pool_status(ts_code, 1)
             return True
         except Exception as e:
             logger.error(f"保存分析结果失败: {e}")
+            self.db.rollback()
+            return False
+
+    def _update_pool_status(self, ts_code: str, status: int) -> bool:
+        """
+        更新股票池中的分析状态
+
+        :param ts_code: 股票代码
+        :param status: 状态值，0=未分析，1=已分析
+        :return: True 成功，False 失败
+        """
+        sql = "UPDATE stock_pool_ma120 SET status = %s, updated_at = NOW() WHERE ts_code = %s"
+        try:
+            self.db.execute(sql, (status, self._normalize_ts_code(ts_code)))
+            self.db.commit()
+            logger.info(f"已更新股票 {ts_code} 的状态为 {status}")
+            return True
+        except Exception as e:
+            logger.error(f"更新股票池状态失败: {e}")
             self.db.rollback()
             return False
 
@@ -116,6 +146,7 @@ class StockAnalyzer:
         :return: True 分析并保存成功，False 失败或跳过
         """
         ts_code = stock.get("ts_code", "")
+        ts_code = self._normalize_ts_code(ts_code)
 
         # 检查是否已有分析
         if self.is_already_analyzed(ts_code):
@@ -190,6 +221,250 @@ class StockAnalyzer:
         logger.info(f"分析完成: 共 {stats['total']} 只，已分析 {stats['analyzed']} 只，跳过 {stats['skipped']} 只，失败 {stats['failed']} 只")
 
         return stats
+
+    def analyze_pool_superpowers(
+        self, delay_between: float = 1.0, limit: Optional[int] = None, top_n: int = 20
+    ) -> Dict[str, Any]:
+        """
+        superpowers 两阶段流程：
+        1) 全量候选低成本打分
+        2) TopN 进行深度估值与投资计划
+        """
+        importer = CSVImporter(self.db)
+        pending_stocks = importer.get_pending_stocks()
+        if limit:
+            pending_stocks = pending_stocks[:limit]
+        if not pending_stocks:
+            return {"total": 0, "scored": 0, "deep_analyzed": 0, "failed": 0}
+
+        ai = SuperpowersAI()
+        feature_builder = LocalFeatureBuilder()
+        scored = []
+        failed = 0
+
+        for i, stock in enumerate(pending_stocks, 1):
+            ts_code = self._normalize_ts_code(stock.get("ts_code", ""))
+            payload = {
+                "ts_code": ts_code,
+                "name": stock.get("name", ""),
+                "industry": stock.get("industry", ""),
+                "break_date": str(stock.get("break_date", "")),
+                "local_features": feature_builder.build(ts_code),
+            }
+            s = ai.score_stock(payload)
+            if not s:
+                failed += 1
+                continue
+            scored.append((stock, payload, s))
+            logger.info("[%s/%s] %s score=%s", i, len(pending_stocks), ts_code, s.get("score"))
+            if i < len(pending_stocks):
+                import time
+                time.sleep(delay_between)
+
+        scored = sorted(scored, key=lambda x: int(x[2].get("score", 0)), reverse=True)
+        top = scored[: max(0, top_n)]
+
+        deep_count = 0
+        for stock, payload, score in top:
+            deep = ai.deep_analyze(payload) or {}
+            merged = {
+                "invest_status": deep.get("invest_status", "值得观察"),
+                "valuation": deep.get("valuation", "合理"),
+                "tenbagger_potential_score": int(deep.get("tenbagger_potential_score", score.get("score", 0)) or 0),
+                "buy_range": deep.get("buy_range", ""),
+                "sell_range": deep.get("sell_range", ""),
+                "reason": deep.get("reason", score.get("short_reason", "")),
+                "tenbagger_logic": deep.get("tenbagger_logic", ""),
+                "risk_points": deep.get("risk_points", ""),
+            }
+            # 把投资计划写入 tenbagger_logic，兼容现有表结构
+            plan = deep.get("plan") or {}
+            if plan:
+                merged["tenbagger_logic"] = (
+                    (merged["tenbagger_logic"] + " | " if merged["tenbagger_logic"] else "")
+                    + "计划: 仓位=%s; 加仓=%s; 止损=%s; 周期=%s"
+                    % (
+                        plan.get("position", ""),
+                        plan.get("add_condition", ""),
+                        plan.get("stop_loss", ""),
+                        plan.get("holding_period", ""),
+                    )
+                )[:1000]
+
+            ok = self.save_analysis_result(
+                ts_code=payload["ts_code"],
+                name=payload.get("name", ""),
+                industry=payload.get("industry", ""),
+                analysis=merged,
+            )
+            if ok:
+                deep_count += 1
+
+        return {
+            "total": len(pending_stocks),
+            "scored": len(scored),
+            "deep_analyzed": deep_count,
+            "failed": failed,
+        }
+
+    def superpowers_stage1_score(
+        self, delay_between: float = 1.0, limit: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        第一阶段：仅批量打分，并写入 stock_ai_analysis（标记为 STAGE1_ONLY）。
+        """
+        importer = CSVImporter(self.db)
+        pending_stocks = importer.get_pending_stocks()
+        if limit:
+            pending_stocks = pending_stocks[:limit]
+        if not pending_stocks:
+            return {"total": 0, "scored": 0, "failed": 0}
+
+        ai = SuperpowersAI()
+        feature_builder = LocalFeatureBuilder()
+        scored = 0
+        failed = 0
+
+        for i, stock in enumerate(pending_stocks, 1):
+            ts_code = self._normalize_ts_code(stock.get("ts_code", ""))
+            payload = {
+                "ts_code": ts_code,
+                "name": stock.get("name", ""),
+                "industry": stock.get("industry", ""),
+                "break_date": str(stock.get("break_date", "")),
+                "local_features": feature_builder.build(ts_code),
+            }
+            s = ai.score_stock(payload)
+            if not s:
+                failed += 1
+                continue
+
+            score = int(s.get("score", 0) or 0)
+            trend = int(s.get("trend_score", 0) or 0)
+            risk = int(s.get("risk_score", 0) or 0)
+            quality = int(s.get("quality_score", 0) or 0)
+            action = s.get("action", "观察")
+            short_reason = s.get("short_reason", "")
+
+            stage1_reason = "[STAGE1] action=%s; trend=%s; risk=%s; quality=%s; %s" % (
+                action,
+                trend,
+                risk,
+                quality,
+                short_reason,
+            )
+            analysis = {
+                "invest_status": "阶段1候选",
+                "valuation": "待二阶段",
+                "tenbagger_potential_score": score,
+                "buy_range": "",
+                "sell_range": "",
+                "reason": stage1_reason[:1000],
+                "tenbagger_logic": "__STAGE1_ONLY__",
+                "risk_points": "",
+            }
+            ok = self.save_analysis_result(
+                ts_code=payload["ts_code"],
+                name=payload.get("name", ""),
+                industry=payload.get("industry", ""),
+                analysis=analysis,
+            )
+            if ok:
+                scored += 1
+                logger.info("[%s/%s] %s score=%s action=%s", i, len(pending_stocks), ts_code, score, action)
+            else:
+                failed += 1
+
+            if i < len(pending_stocks):
+                import time
+                time.sleep(delay_between)
+
+        return {"total": len(pending_stocks), "scored": scored, "failed": failed}
+
+    def _get_stage1_top_candidates(self, top_n: int = 20) -> List[Dict[str, Any]]:
+        """
+        从表中取阶段1候选的前 N（按 tenbagger_potential_score 排序）。
+        """
+        sql = """
+            SELECT a.ts_code, a.name, a.industry, p.break_date, a.tenbagger_potential_score
+            FROM stock_ai_analysis a
+            INNER JOIN stock_pool_ma120 p ON a.ts_code = p.ts_code
+            WHERE a.is_valid = 1
+              AND a.tenbagger_logic = '__STAGE1_ONLY__'
+            ORDER BY a.tenbagger_potential_score DESC, p.break_date DESC
+            LIMIT %s
+        """
+        return self.db.query_all(sql, (top_n,))
+
+    def superpowers_stage2_deep(
+        self, delay_between: float = 1.0, top_n: int = 20
+    ) -> Dict[str, Any]:
+        """
+        第二阶段：仅从数据库读取第一阶段前 N，做深度分析并覆盖写回。
+        """
+        candidates = self._get_stage1_top_candidates(top_n=top_n)
+        if not candidates:
+            return {"total": 0, "deep_analyzed": 0, "failed": 0}
+
+        ai = SuperpowersAI()
+        feature_builder = LocalFeatureBuilder()
+        deep_count = 0
+        failed = 0
+
+        for i, stock in enumerate(candidates, 1):
+            ts_code = self._normalize_ts_code(stock.get("ts_code", ""))
+            payload = {
+                "ts_code": ts_code,
+                "name": stock.get("name", ""),
+                "industry": stock.get("industry", ""),
+                "break_date": str(stock.get("break_date", "")),
+                "local_features": feature_builder.build(ts_code),
+            }
+            deep = ai.deep_analyze(payload) or {}
+            if not deep:
+                failed += 1
+                continue
+
+            merged = {
+                "invest_status": deep.get("invest_status", "值得观察"),
+                "valuation": deep.get("valuation", "合理"),
+                "tenbagger_potential_score": int(deep.get("tenbagger_potential_score", stock.get("tenbagger_potential_score", 0)) or 0),
+                "buy_range": deep.get("buy_range", ""),
+                "sell_range": deep.get("sell_range", ""),
+                "reason": deep.get("reason", ""),
+                "tenbagger_logic": deep.get("tenbagger_logic", ""),
+                "risk_points": deep.get("risk_points", ""),
+            }
+            plan = deep.get("plan") or {}
+            if plan:
+                merged["tenbagger_logic"] = (
+                    (merged["tenbagger_logic"] + " | " if merged["tenbagger_logic"] else "")
+                    + "计划: 仓位=%s; 加仓=%s; 止损=%s; 周期=%s"
+                    % (
+                        plan.get("position", ""),
+                        plan.get("add_condition", ""),
+                        plan.get("stop_loss", ""),
+                        plan.get("holding_period", ""),
+                    )
+                )[:1000]
+
+            ok = self.save_analysis_result(
+                ts_code=ts_code,
+                name=payload.get("name", ""),
+                industry=payload.get("industry", ""),
+                analysis=merged,
+            )
+            if ok:
+                deep_count += 1
+                logger.info("[%s/%s] deep analyzed %s", i, len(candidates), ts_code)
+            else:
+                failed += 1
+
+            if i < len(candidates):
+                import time
+                time.sleep(delay_between)
+
+        return {"total": len(candidates), "deep_analyzed": deep_count, "failed": failed}
 
     def get_analysis_results(
         self,

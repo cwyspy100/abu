@@ -620,15 +620,7 @@ class Analyze120MA:
         
         # 转换为DataFrame
         ma_result_df = pd.DataFrame(results)
-        
-        # 确保数值字段为正确的数值类型，以便排序
-        numeric_columns = ['growth_rate', 'days', 'year_to_date_growth', 
-                          'growth_5d', 'growth_10d', 'growth_20d', 'growth_30d', 'growth_40d', 'growth_50d',
-                          'score', 'up_days', 'down_days', 'up_down_ratio', 
-                          'up_rate_sum', 'down_rate_sum', 'rate_sum', 'recent_5d_growth']
-        for col in numeric_columns:
-            if col in ma_result_df.columns:
-                ma_result_df[col] = pd.to_numeric(ma_result_df[col], errors='coerce')
+        ma_result_df = self._normalize_export_dtypes(ma_result_df)
         
         # 如果指定了输入CSV，将120MA分析结果追加到原始数据后面
         if self.input_df is not None:
@@ -675,17 +667,57 @@ class Analyze120MA:
                 if col in result_df.columns:
                     result_df[col] = result_df[col].fillna(0)
             
+            result_df = self._normalize_export_dtypes(result_df)
             print(f"\n分析完成！共分析 {len(ma_result_df)} 只股票突破120日均线，已追加到原始数据（共 {len(result_df)} 条记录）")
         else:
             # 如果没有输入CSV，直接返回120MA分析结果
             result_df = ma_result_df.copy()
-            # 按突破日期排序（最新的在前）
-            result_df = result_df.sort_values('breakthrough_date', ascending=False)
+            # 按突破日期数值排序（最新的在前）
+            if 'breakthrough_date' in result_df.columns:
+                result_df = result_df.sort_values('breakthrough_date', ascending=False, na_position='last')
             print(f"\n分析完成！共找到 {len(result_df)} 只股票突破120日均线")
         
         print("=" * 60)
         
         return result_df
+    
+    @staticmethod
+    def _series_to_int_ymd(series):
+        """
+        将日期列转为 YYYYMMDD 整数，便于 Excel/表格按数值排序。
+        兼容字符串、Excel 导出的 20250101.0 等形式。
+        """
+        s = series.astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
+        s = s.str.replace(r'[^\d]', '', regex=True).str[:8]
+        num = pd.to_numeric(s, errors='coerce')
+        # 可空整数，避免混有缺失时变 float
+        return num.astype('Int64')
+    
+    def _normalize_export_dtypes(self, df):
+        """
+        导出前统一类型：日期为 YYYYMMDD 整数，价量与涨幅为数值。
+        """
+        if df is None or df.empty:
+            return df
+        out = df.copy()
+        for c in ('start_date', 'end_date', 'breakthrough_date'):
+            if c in out.columns:
+                out[c] = self._series_to_int_ymd(out[c])
+        numeric_cols = [
+            'start_price', 'current_price', 'growth_rate',
+            'year_start_price', 'year_to_date_growth',
+            'growth_5d', 'growth_10d', 'growth_20d', 'growth_30d',
+            'growth_40d', 'growth_50d',
+            'score', 'up_down_ratio',
+            'up_rate_sum', 'down_rate_sum', 'rate_sum', 'recent_5d_growth',
+        ]
+        for c in numeric_cols:
+            if c in out.columns:
+                out[c] = pd.to_numeric(out[c], errors='coerce')
+        for c in ('days', 'up_days', 'down_days'):
+            if c in out.columns:
+                out[c] = pd.to_numeric(out[c], errors='coerce').astype('Int64')
+        return out
     
     def save_results(self, result_df, filename=None):
         """
@@ -697,6 +729,7 @@ class Analyze120MA:
             print("没有数据可保存")
             return
         
+        result_df = self._normalize_export_dtypes(result_df)
         if filename is None:
             today = datetime.now().strftime('%Y%m%d')
             # 如果有输入CSV，基于输入文件名生成新文件名
@@ -748,7 +781,7 @@ if __name__ == '__main__':
     start = time.time()
     
     # result = main(input_csv="../todolist/quality_momentum_pick_20251221.csv")
-    result = main()
+    result = main('hk')
 
     print(f"\n处理完成，耗时 {time.time() - start:.2f} 秒")
 

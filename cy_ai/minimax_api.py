@@ -17,13 +17,26 @@ logger = logging.getLogger(__name__)
 class MiniMaxConfig:
     """MiniMax API 配置"""
 
-    # API 配置（从环境变量或默认值读取）
+    # API 配置（从环境变量或配置文件读取）
     API_URL = os.getenv(
         "MINIMAX_API_URL",
-        "https://api.minimax.chat/v1/text/chatcompletion_pro",
+        "https://api.minimaxi.com/v1/text/chatcompletion_v2",
     )
-    API_KEY = os.getenv("MINIMAX_API_KEY", "")
-    MODEL_NAME = os.getenv("MINIMAX_MODEL", "abab6.5s-chat")
+    MODEL_NAME = os.getenv("MINIMAX_MODEL", "MiniMax-M2.5")
+
+    # 尝试从配置文件读取
+    _config_key = None
+    try:
+        import json as _json
+        _config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "todolist", "config.json")
+        if os.path.exists(_config_path):
+            with open(_config_path, "r") as _f:
+                _cfg = _json.load(_f)
+                _config_key = _cfg.get("minimax_api_key") or _cfg.get("minimax_api_key", "").strip()
+    except Exception:
+        pass
+
+    API_KEY = os.getenv("MINIMAX_API_KEY", _config_key or "")
 
     # 请求配置
     MAX_RETRIES = 3
@@ -142,19 +155,13 @@ class MiniMaxAPI:
         :param response_text: API 响应文本
         :return: 解析后的字典，解析失败返回 None
         """
-        try:
-            # 尝试直接解析
-            return json.loads(response_text)
-        except json.JSONDecodeError:
-            pass
-
-        # 尝试提取 JSON 块
         import re
 
-        # 尝试匹配 ```json ... ``` 块
+        # 尝试提取 JSON 块
         json_patterns = [
             r"```json\s*(\{.*?\})\s*```",
             r"```\s*(\{.*?\})\s*```",
+            r"\{[^{}]*\"invest_status\"[^{}]*\}",
             r"(\{.*\})",
         ]
 
@@ -165,8 +172,20 @@ class MiniMaxAPI:
                     result = json.loads(match)
                     # 验证必要字段
                     if "invest_status" in result and "tenbagger_potential_score" in result:
+                        # 确保 tenbagger_potential_score 是整数
+                        score = result.get("tenbagger_potential_score")
+                        if isinstance(score, str):
+                            # 尝试提取数字
+                            score_match = re.search(r"\d+", score)
+                            if score_match:
+                                result["tenbagger_potential_score"] = int(score_match.group())
+                            else:
+                                result["tenbagger_potential_score"] = 0
+                        elif not isinstance(score, int):
+                            result["tenbagger_potential_score"] = 0
+
                         return result
-                except json.JSONDecodeError:
+                except (json.JSONDecodeError, re.error):
                     continue
 
         return None

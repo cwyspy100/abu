@@ -219,8 +219,21 @@ class AbuSymbolCN(AbuSymbolStockBase):
         """
 
         if code in self:
-            # 忽略一个问题，如果只使用000001不带子市场标识去查询，结果只取第一个，准确查询需要完整标示
-            return self[code].market.values[0].lower()
+            # 必须使用 exchange（SH/SZ/BJ），不能使用 market（tushare 等为中文如「主板」，
+            # 传入 EMarketSubType 会报错：'主板' is not a valid EMarketSubType）
+            row = self[code]
+            if 'exchange' in row.columns:
+                ex = row.exchange.values[0]
+                if not pd.isnull(ex) and str(ex).strip() and str(ex).strip() not in ('-',):
+                    return str(ex).strip().lower()
+            # 兼容无 exchange 列的旧表：退回代码前缀规则
+            if code[:1] in ['6', '9']:
+                return EMarketSubType.SH.value
+            elif code[:1] in ['2', '3']:
+                return EMarketSubType.SZ.value
+            elif code[:1] in ['8', '4']:
+                return 'bj'
+            return default
 
         # 如果没查到如果首symbol为6，9为判定为sh
         if code[:1] in ['6', '9']:

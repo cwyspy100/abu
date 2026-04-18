@@ -25,6 +25,7 @@ abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_sn_us
 from abupy import slippage
 
 from learn_python.ABuFactorBuyMean import AbuFactorBuyMean
+from learn_python.ABuFactorBuyMa60Cross120 import AbuFactorBuyMa60Cross120
 from learn_python.ABuFactorSellMean import AbuFactorSellMean
 from learn_python.ABuFactorBuyEMA import AbuFactorBuyEMA
 from learn_python.ABuFactorBuyFixedInvest import AbuFactorBuyFixedInvest
@@ -47,7 +48,8 @@ def execute_stock_us_back_test(read_path, save_path, hand_type=0):
     # choice_symbols = ['usFUTU']
     # choice_symbols = ['usTQQQ']
     choice_symbols = ['usUPRO', 'usTQQQ', 'usIWM']
-    choice_symbols = ['usIWM']
+    choice_symbols = ['usUPRO']
+    choice_symbols = ['usQQQ']
     print("choice_symbols:{}".format(choice_symbols))
 
     # 设置初始资金数
@@ -60,7 +62,8 @@ def execute_stock_us_back_test(read_path, save_path, hand_type=0):
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 90, 'class': AbuDoubleMaBuy},
         # {'class': AbuDoubleMaBuy, 'position': AbuPtPosition},
-        {'xd': 120, 'class': AbuFactorBuyMean},
+        # {'xd': 120, 'class': AbuFactorBuyMean},
+        {'xd': 120, 'class': AbuFactorBuyMa60Cross120},
         # {'xd': 120, 'class': AbuFactorBuyFixedInvest},
         # {'xd': 120, 'class': AbuFactorBuyMeanAng},
     ]
@@ -77,13 +80,13 @@ def execute_stock_us_back_test(read_path, save_path, hand_type=0):
     # 网格交易法
     if hand_type == 1:
         buy_factors = [
-            # {'xd': 120, 'class': AbuFactorBuyFixedInvest},
-            {'xd': 120, 'class': AbuFactorBuyGrid},
+            {'xd': 120, 'class': AbuFactorBuyFixedInvest},
+            # {'xd': 120, 'class': AbuFactorBuyGrid},
         ]
 
         # 卖出因子继续使用上一节使用的因子
         sell_factors = [
-            {'xd': 120, 'class': AbuFactorSellGrid},
+            # {'xd': 120, 'class': AbuFactorSellGrid},
         ]
 
 

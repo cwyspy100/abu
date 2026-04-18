@@ -194,7 +194,7 @@ class LivermoreStockPicker:
             df['growth_20d'] = ((df['close'] - df['close'].shift(20)) / df['close'].shift(20) * 100).fillna(0)
         else:
             df['growth_20d'] = 0
-        
+
         return df
     
     def check_livermore_criteria(self, df, debug=False):
@@ -238,7 +238,7 @@ class LivermoreStockPicker:
         prev_ma20 = df.iloc[-2]['ma20'] if len(df) > 1 else current_ma20
         prev_ma60 = df.iloc[-2]['ma60'] if len(df) > 1 else current_ma60
         prev_ma120 = df.iloc[-2]['ma120'] if len(df) > 1 else current_ma120
-        
+
         # 检查条件
         # 注意：close >= high_60 表示收盘价达到或超过60日最高价（突破60日高点）
         # 注意：high_60 包含当天，所以 close <= high（当天最高）<= high_60，只有创新高时 close 才可能接近 high_60
@@ -721,7 +721,7 @@ if __name__ == '__main__':
 
     # 运行主函数
     args.test_mode = True
-    args.test_date = '20250801'
+    args.test_date = '20260310'
 
     if args.test_mode:
         if not args.test_date:

@@ -25,6 +25,9 @@ abupy.env.g_market_source = EMarketSourceType.E_MARKET_SOURCE_tx
 from abupy import slippage
 
 from learn_python.ABuFactorBuyMean import AbuFactorBuyMean
+from learn_python.ABuFactorBuyFixedInvest import AbuFactorBuyFixedInvest
+from learn_python.ABuFactorBuyMa60Cross120 import AbuFactorBuyMa60Cross120
+from learn_python.ABuFactorSellMa60Cross120 import AbuFactorSellMa60Cross120
 from learn_python.ABuFactorSellMean import AbuFactorSellMean
 from learn_python.ABuFactorBuyEMA import AbuFactorBuyEMA
 from learn_python.ABuFactorBuyMacd import AbuFactorBuyMacd
@@ -50,7 +53,7 @@ def execute_stock_a_back_test(read_path, save_path, hand_type=0):
     # choice_symbols = ['sz300059']
     choice_symbols_pd = pd.read_csv(read_path)
     choice_symbols = choice_symbols_pd['symbol']
-    choice_symbols = ['sz002594']
+    choice_symbols = ['688008']
     print(choice_symbols)
     # 设置初始资金数
     read_cash = 1000000
@@ -61,6 +64,7 @@ def execute_stock_a_back_test(read_path, save_path, hand_type=0):
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 60, 'class': AbuDoubleMaBuy},
         {'xd': 120, 'class': AbuFactorBuyMean},
+        # {'xd': 10, 'class': AbuFactorBuyMa60Cross120},
         # {'xd': 60, 'class': AbuFactorBuyEMA},
         # {'fast': 30, 'slow': 60, 'class': AbuFactorBuyMacd},
         # {'xd': 20, 'class': AbuFactorBuyGrid},
@@ -75,18 +79,19 @@ def execute_stock_a_back_test(read_path, save_path, hand_type=0):
         # {'fast': 30, 'slow': 60, 'class': AbuFactorSellMacd},
         # {'xd': 120, 'class': AbuFactorSellMean}
         # {'xd': 20, 'class': AbuFactorSellGrid},
+        # {'xd': 10, 'class': AbuFactorSellMa60Cross120},
     ]
 
     # 网格交易法
     if hand_type == 1:
         buy_factors = [
-            # {'xd': 20, 'class': AbuFactorBuyFixedInvest},
-            {'xd': 20, 'class': AbuFactorBuyGrid},
+            {'xd': 20, 'class': AbuFactorBuyFixedInvest},
+            # {'xd': 20, 'class': AbuFactorBuyGrid},
         ]
 
         # 卖出因子继续使用上一节使用的因子
         sell_factors = [
-            {'xd': 20, 'class': AbuFactorSellGrid},
+            # {'xd': 20, 'class': AbuFactorSellGrid},
         ]
 
 
@@ -157,6 +162,7 @@ def save_backtest_result(metrics, save_path):
 
 
 if __name__ == "__main__":
+    # execute_stock_a_back_test('../todolist/stock_a_pool.csv', '../todolist/stock_a_pool_backtest.txt')
     execute_stock_a_back_test('../todolist/stock_a_grid_pool.csv', '../todolist/stock_a_grid_pool_backtest.txt', hand_type=1)
     # ABuSymbolPd.make_kl_df('sh600519', n_folds=5)
     # stock_a_pd = pd.read_csv('stock_a_pool.csv')

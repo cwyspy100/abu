@@ -40,7 +40,7 @@ class AIFactorStockPicker:
         :param train_window: 训练窗口（交易日），默认250天（约1年）
         :param alpha: Lasso惩罚系数，默认0.001
         """
-        self.csv_dir = csv_dir if csv_dir else os.path.expanduser('~/abu/data/csv')
+        self.csv_dir = csv_dir if csv_dir else os.path.expanduser('~/abu/csv_his/')
         self.results = []
         if prefixes is None:
             prefixes = ['sh', 'sz']
@@ -158,8 +158,11 @@ class AIFactorStockPicker:
         X_list = []
         y_list = []
         
+        debug_info = {'too_short': 0, 'no_future': 0, 'nan_values': 0, 'valid': 0}
+        
         for ts_code, df in all_stock_data.items():
             if df is None or len(df) < self.train_window + 5:
+                debug_info['too_short'] += 1
                 continue
             
             # 取最近train_window天的数据
@@ -168,25 +171,45 @@ class AIFactorStockPicker:
             # 获取因子值（最后一天）
             last_row = recent_df.iloc[-1]
             
-            factors = {
-                'Factor_M': last_row['Factor_M'],
-                'Factor_Q': last_row['Factor_Q'],
-                'Factor_V': last_row['Factor_V']
-            }
+            # 检查因子值
+            factor_m = last_row['Factor_M']
+            factor_q = last_row['Factor_Q']
+            factor_v = last_row['Factor_V']
+            
+            if any(pd.isna(v) for v in [factor_m, factor_q, factor_v]):
+                debug_info['nan_values'] += 1
+                continue
             
             # 获取未来5日收益（预测目标）
             future_return = last_row['future_return_5d']
             
-            if not pd.isna(future_return) and all(not pd.isna(v) for v in factors.values()):
-                X_list.append(list(factors.values()))
-                y_list.append(future_return)
+            if pd.isna(future_return):
+                debug_info['no_future'] += 1
+                continue
+            
+            # 有效样本
+            factors = [factor_m, factor_q, factor_v]
+            X_list.append(factors)
+            y_list.append(future_return)
+            debug_info['valid'] += 1
         
-        if len(X_list) < 100:
-            print(f"警告: 训练样本不足 ({len(X_list)}个)，需要至少100个")
+        print(f"\n训练样本统计:")
+        print(f"  数据长度不足: {debug_info['too_short']}")
+        print(f"  因子值为NaN: {debug_info['nan_values']}")
+        print(f"  无未来收益: {debug_info['no_future']}")
+        print(f"  有效样本: {debug_info['valid']}")
+        
+        if len(X_list) < 30:
+            print(f"警告: 训练样本仅{len(X_list)}个，需要至少30个")
             return None, None
         
         X = np.array(X_list)
         y = np.array(y_list)
+        
+        print(f"\n因子值范围:")
+        print(f"  Factor_M: [{X[:,0].min():.2e}, {X[:,0].max():.2e}]")
+        print(f"  Factor_Q: [{X[:,1].min():.4f}, {X[:,1].max():.4f}]")
+        print(f"  Factor_V: [{X[:,2].min():.4f}, {X[:,2].max():.4f}]")
         
         # 标准化
         X = self.scaler.fit_transform(X)
@@ -233,11 +256,22 @@ class AIFactorStockPicker:
             return pd.DataFrame()
         
         print(f"\n开始处理 {len(stock_files)} 个股票文件...")
+        print(f"训练窗口要求: {self.train_window} 天")
         print("="*80)
         
         # 第一步：计算所有股票的因子
         all_stock_data = {}
         valid_stocks = []
+        
+        # 统计信息
+        stats = {
+            'total': len(stock_files),
+            'read_error': 0,
+            'data_too_short': 0,
+            'missing_cols': 0,
+            'factor_error': 0,
+            'valid': 0
+        }
         
         for idx, filepath in enumerate(stock_files, 1):
             if idx % 100 == 0:
@@ -257,51 +291,118 @@ class AIFactorStockPicker:
                 except:
                     try:
                         df = pd.read_csv(filepath, encoding='gbk')
-                    except:
-                        df = pd.read_csv(filepath, encoding='utf-8')
+                    except Exception as e:
+                        stats['read_error'] += 1
+                        continue
                 
-                if df.empty or len(df) < self.train_window + 5:
+                if df.empty:
+                    stats['read_error'] += 1
+                    continue
+                
+                # 检查数据长度
+                if len(df) < 30:  # 至少需要30天数据才能计算因子
+                    stats['data_too_short'] += 1
+                    continue
+                
+                # 检查必要列
+                required_cols = ['p_change', 'volume', 'atr21', 'atr14', 'close']
+                missing = [c for c in required_cols if c not in df.columns]
+                if missing:
+                    stats['missing_cols'] += 1
+                    if idx <= 3:
+                        print(f"  [{idx}] {ts_code} 缺少列: {missing}")
                     continue
                 
                 # 计算因子
                 df_with_factors = self.calculate_factors(df)
                 if df_with_factors is None:
+                    stats['factor_error'] += 1
+                    continue
+                
+                # 检查因子值是否有效
+                last_row = df_with_factors.iloc[-1]
+                if pd.isna(last_row['Factor_M']) or pd.isna(last_row['Factor_Q']) or pd.isna(last_row['Factor_V']):
+                    stats['factor_error'] += 1
                     continue
                 
                 all_stock_data[ts_code] = df_with_factors
                 valid_stocks.append(ts_code)
+                stats['valid'] += 1
                 
             except Exception as e:
                 continue
         
-        print(f"\n有效股票数: {len(valid_stocks)}")
+        print(f"\n处理统计:")
+        print(f"  总计: {stats['total']}")
+        print(f"  有效: {stats['valid']}")
+        print(f"  读取错误: {stats['read_error']}")
+        print(f"  数据太短: {stats['data_too_short']}")
+        print(f"  缺少列: {stats['missing_cols']}")
+        print(f"  因子错误: {stats['factor_error']}")
         
-        if len(valid_stocks) < 100:
-            print("有效股票数量不足，无法训练模型")
+        if len(valid_stocks) < 50:
+            print(f"\n警告: 有效股票仅{len(valid_stocks)}只，尝试降低训练窗口要求")
+            # 自动调整训练窗口
+            min_length = min(len(df) for df in all_stock_data.values()) if all_stock_data else 0
+            if min_length > 30:
+                self.train_window = min(60, min_length - 5)  # 降低要求到60天或更少
+                print(f"自动调整训练窗口为: {self.train_window} 天")
+        
+        if len(valid_stocks) < 30:
+            print(f"\n错误: 有效股票数量({len(valid_stocks)})不足，无法训练模型")
             return pd.DataFrame()
         
         # 第二步：训练Lasso模型
         print("\n准备训练数据...")
         X_train, y_train = self.prepare_training_data(all_stock_data)
         
-        if not self.train_model(X_train, y_train):
-            print("模型训练失败")
-            return pd.DataFrame()
+        if X_train is None:
+            print("\n尝试降低训练窗口重新准备数据...")
+            # 进一步降低要求
+            self.train_window = 30
+            X_train, y_train = self.prepare_training_data(all_stock_data)
         
-        # 第三步：预测得分并排序
-        print("\n预测股票得分...")
+        # 第三步：训练或使用因子直接选股
+        use_lasso = True
+        
+        if not self.train_model(X_train, y_train):
+            print("\nLasso模型训练失败，降级使用因子加权评分")
+            use_lasso = False
+            # 使用默认权重：动量0.5，质量0.4，波动-0.1（负向）
+            default_weights = [0.5, 0.4, -0.1]
+        
+        print("\n计算股票得分...")
         predictions = []
         
+        # 准备所有因子数据进行标准化（如果需要）
+        all_factors = []
+        all_ts_codes = []
         for ts_code, df in all_stock_data.items():
             last_row = df.iloc[-1]
+            all_factors.append([last_row['Factor_M'], last_row['Factor_Q'], last_row['Factor_V']])
+            all_ts_codes.append(ts_code)
+        
+        # 如果没有训练过scaler，现在拟合
+        if not hasattr(self.scaler, 'mean_'):
+            self.scaler.fit(all_factors)
+        
+        # 标准化所有因子
+        factors_scaled_all = self.scaler.transform(all_factors)
+        
+        for idx, ts_code in enumerate(all_ts_codes):
+            df = all_stock_data[ts_code]
+            last_row = df.iloc[-1]
             
-            factors = [
-                last_row['Factor_M'],
-                last_row['Factor_Q'],
-                last_row['Factor_V']
-            ]
+            factor_m = last_row['Factor_M']
+            factor_q = last_row['Factor_Q']
+            factor_v = last_row['Factor_V']
+            factors_scaled = factors_scaled_all[idx]
             
-            score = self.predict_score(factors)
+            if use_lasso:
+                score = self.predict_score([factor_m, factor_q, factor_v])
+            else:
+                # 使用默认权重计算加权得分
+                score = np.dot(factors_scaled, default_weights)
             
             # ATR止损价格
             atr21 = last_row['atr21']
@@ -312,9 +413,9 @@ class AIFactorStockPicker:
                 'ts_code': ts_code,
                 'trade_date': last_row['trade_date'],
                 'close': close,
-                'Factor_M': last_row['Factor_M'],
-                'Factor_Q': last_row['Factor_Q'],
-                'Factor_V': last_row['Factor_V'],
+                'Factor_M': factor_m,
+                'Factor_Q': factor_q,
+                'Factor_V': factor_v,
                 'predicted_score': score,
                 'atr21': atr21,
                 'stop_loss_price': stop_loss_price,
@@ -335,6 +436,8 @@ class AIFactorStockPicker:
         
         print(f"\n选股完成！选出 {len(top_stocks)} 只股票")
         print(f"Factor_V阈值: {v_threshold:.4f} (剔除极端波动股)")
+        if not use_lasso:
+            print(f"使用默认权重: M=0.5, Q=0.4, V=-0.1")
         
         return top_stocks
     

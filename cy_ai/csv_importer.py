@@ -33,7 +33,7 @@ class CSVImporter:
         "ts_code": "ts_code",
         "name": "name",
         "industry": "industry",
-        "break_date": "break_date",
+        "breakthrough_date": "break_date",
     }
 
     def __init__(self, db: Database):
@@ -43,6 +43,24 @@ class CSVImporter:
         :param db: Database 实例
         """
         self.db = db
+
+    @staticmethod
+    def normalize_ts_code(ts_code) -> str:
+        """
+        统一股票代码格式：去掉交易所后缀并补齐到 6 位。
+        示例：2594 / 2594.SZ -> 002594
+        """
+        if pd.isnull(ts_code):
+            return ""
+        code = str(ts_code).strip()
+        if "." in code:
+            code = code.split(".", 1)[0]
+        code = "".join(ch for ch in code if ch.isdigit())
+        if not code:
+            return ""
+        if len(code) <= 6:
+            return code.zfill(6)
+        return code
 
     def _read_csv(self, file_path: str) -> pd.DataFrame:
         """
@@ -78,6 +96,15 @@ class CSVImporter:
         # 重命名列
         df = df.rename(columns=columns_mapping)
 
+        # 统一 ts_code（去后缀并补齐 6 位）
+        if "ts_code" in df.columns:
+            df["ts_code"] = df["ts_code"].apply(self.normalize_ts_code)
+            df = df[df["ts_code"] != ""]
+
+        # symbol 也统一为 6 位纯数字
+        if "symbol" in df.columns:
+            df["symbol"] = df["symbol"].apply(self.normalize_ts_code)
+
         # 去除重复
         if "ts_code" in df.columns:
             df = df.drop_duplicates(subset=["ts_code"], keep="first")
@@ -86,6 +113,23 @@ class CSVImporter:
         df = df.dropna(subset=["ts_code"])
 
         return df
+
+    def _get_basic_meta_map(self, ts_codes: List[str]) -> dict:
+        """从 stock_basic 批量读取 name/industry 映射。"""
+        codes = [self.normalize_ts_code(c) for c in ts_codes if c]
+        codes = [c for c in codes if c]
+        if not codes:
+            return {}
+        placeholders = ", ".join(["%s"] * len(codes))
+        sql = f"SELECT ts_code, name, industry FROM stock_basic WHERE ts_code IN ({placeholders})"
+        rows = self.db.query_all(sql, tuple(codes))
+        return {
+            self.normalize_ts_code(r.get("ts_code", "")): {
+                "name": r.get("name") or "",
+                "industry": r.get("industry") or "",
+            }
+            for r in rows
+        }
 
     def import_stock_basic(self, csv_path: str, batch_size: int = 100) -> int:
         """
@@ -116,12 +160,21 @@ class CSVImporter:
             # 构建批量插入 SQL
             placeholders = ", ".join(["%s"] * len(df.columns))
             columns = ", ".join(df.columns)
-            sql = f"INSERT IGNORE INTO stock_basic ({columns}) VALUES ({placeholders})"
+            sql = f"""
+                INSERT INTO stock_basic ({columns}) VALUES ({placeholders})
+                ON DUPLICATE KEY UPDATE
+                    symbol = VALUES(symbol),
+                    name = VALUES(name),
+                    industry = VALUES(industry),
+                    area = VALUES(area),
+                    list_date = VALUES(list_date),
+                    updated_at = CURRENT_TIMESTAMP
+            """
 
             # 构建参数列表
             params_list = []
             for _, row in batch.iterrows():
-                params = tuple(row[col] if pd.notna(row[col]) else None for col in df.columns)
+                params = tuple(row[col] if pd.notnull(row[col]) else None for col in df.columns)
                 params_list.append(params)
 
             try:
@@ -159,6 +212,20 @@ class CSVImporter:
             logger.warning("CSV 文件为空或没有有效数据")
             return 0
 
+        # name/industry 统一以 stock_basic 为准
+        meta_map = self._get_basic_meta_map(df["ts_code"].tolist())
+        if "name" in df.columns:
+            df["name"] = df["ts_code"].map(lambda c: meta_map.get(c, {}).get("name", "")) \
+                .where(df["ts_code"].map(lambda c: c in meta_map), df["name"])
+        else:
+            df["name"] = df["ts_code"].map(lambda c: meta_map.get(c, {}).get("name", ""))
+
+        if "industry" in df.columns:
+            df["industry"] = df["ts_code"].map(lambda c: meta_map.get(c, {}).get("industry", "")) \
+                .where(df["ts_code"].map(lambda c: c in meta_map), df["industry"])
+        else:
+            df["industry"] = df["ts_code"].map(lambda c: meta_map.get(c, {}).get("industry", ""))
+
         total = 0
 
         for i in range(0, len(df), batch_size):
@@ -166,11 +233,18 @@ class CSVImporter:
 
             placeholders = ", ".join(["%s"] * len(df.columns))
             columns = ", ".join(df.columns)
-            sql = f"INSERT IGNORE INTO stock_pool_ma120 ({columns}) VALUES ({placeholders})"
+            sql = f"""
+                INSERT INTO stock_pool_ma120 ({columns}) VALUES ({placeholders})
+                ON DUPLICATE KEY UPDATE
+                    name = VALUES(name),
+                    industry = VALUES(industry),
+                    break_date = VALUES(break_date),
+                    updated_at = CURRENT_TIMESTAMP
+            """
 
             params_list = []
             for _, row in batch.iterrows():
-                params = tuple(row[col] if pd.notna(row[col]) else None for col in df.columns)
+                params = tuple(row[col] if pd.notnull(row[col]) else None for col in df.columns)
                 params_list.append(params)
 
             try:
@@ -187,6 +261,47 @@ class CSVImporter:
 
         logger.info(f"120 日均线突破股票池导入完成，共 {total} 条记录")
         return total
+
+    def normalize_existing_data(self) -> None:
+        """
+        修正历史数据：
+        1) 三张表 ts_code 统一为 6 位
+        2) stock_basic 的 symbol 同步为 6 位
+        3) stock_pool_ma120 / stock_ai_analysis 的 name,industry 以 stock_basic 回填
+        """
+        conn = self.db.connect()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE stock_basic
+                    SET ts_code = LPAD(SUBSTRING_INDEX(ts_code, '.', 1), 6, '0'),
+                        symbol = LPAD(SUBSTRING_INDEX(COALESCE(symbol, ts_code), '.', 1), 6, '0')
+                """)
+                cursor.execute("""
+                    UPDATE stock_pool_ma120
+                    SET ts_code = LPAD(SUBSTRING_INDEX(ts_code, '.', 1), 6, '0')
+                """)
+                cursor.execute("""
+                    UPDATE stock_ai_analysis
+                    SET ts_code = LPAD(SUBSTRING_INDEX(ts_code, '.', 1), 6, '0')
+                """)
+                cursor.execute("""
+                    UPDATE stock_pool_ma120 p
+                    LEFT JOIN stock_basic b ON p.ts_code = b.ts_code
+                    SET p.name = COALESCE(b.name, p.name),
+                        p.industry = COALESCE(b.industry, p.industry)
+                """)
+                cursor.execute("""
+                    UPDATE stock_ai_analysis a
+                    LEFT JOIN stock_basic b ON a.ts_code = b.ts_code
+                    SET a.name = COALESCE(b.name, a.name),
+                        a.industry = COALESCE(b.industry, a.industry)
+                """)
+            self.db.commit()
+            logger.info("历史数据规范化完成（ts_code/name/industry）")
+        except Exception:
+            self.db.rollback()
+            raise
 
     def get_pool_stocks(self) -> List[dict]:
         """
