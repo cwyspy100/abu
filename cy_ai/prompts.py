@@ -62,7 +62,7 @@ class PromptLoader:
 
     def format_input(self, name: str, **kwargs) -> str:
         """
-        格式化输入模板
+        格式化输入模板，缺失的字段用空字符串替代
 
         Usage:
             loader.format_input("qianwen_score",
@@ -71,11 +71,23 @@ class PromptLoader:
                                 pe=5.8)
         """
         template = self.get_input_template(name)
+
+        # 用空字符串填充所有缺失的字段
+        import re
+        placeholders = re.findall(r'\{(\w+)\}', template)
+        for ph in placeholders:
+            if ph not in kwargs:
+                kwargs[ph] = ""
+
         try:
             return template.format(**kwargs)
-        except KeyError as e:
-            logger.error(f"格式化提示词 '{name}' 失败，缺少参数: {e}")
-            return template
+        except Exception as e:
+            logger.error(f"格式化提示词 '{name}' 失败: {e}")
+            # 替换剩余的占位符为空字符串
+            result = template
+            for k, v in kwargs.items():
+                result = result.replace("{%s}" % k, str(v) if v else "")
+            return result
 
     def reload(self):
         """重新加载提示词"""

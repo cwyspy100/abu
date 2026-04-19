@@ -17,17 +17,30 @@ class LocalFeatureBuilder:
 
     @staticmethod
     def _prefix_candidates(ts_code: str):
+        """生成可能的文件名前缀"""
         code = str(ts_code).zfill(6)
         return ["sh%s" % code, "sz%s" % code, "hk%s" % code, "us%s" % code]
 
     def _latest_file(self, ts_code: str) -> Optional[str]:
+        """查找本地CSV文件，匹配 sh600036_20240126_20260418 格式"""
         files = []
-        for p in self._prefix_candidates(ts_code):
-            files.extend(glob.glob(os.path.join(self.csv_dir, "%s_*" % p)))
-            files.extend(glob.glob(os.path.join(self.csv_dir, "%s_*.csv" % p)))
+
+        # 提取纯数字代码
+        pure_code = str(ts_code).zfill(6)
+
+        # 匹配模式：sh600036_* 或 sh600036_20240126_20260418（无.csv后缀）
+        for prefix in ["sh", "sz", "hk", "us"]:
+            # 匹配 sh600036_ 开头的文件（有无.csv后缀都匹配）
+            pattern1 = os.path.join(self.csv_dir, "%s%s_*" % (prefix, pure_code))
+            pattern2 = os.path.join(self.csv_dir, "%s%s_*.csv" % (prefix, pure_code))
+            files.extend(glob.glob(pattern1))
+            files.extend(glob.glob(pattern2))
+
         if not files:
             return None
-        files = sorted(set(files))
+
+        # 按修改时间排序，返回最新的
+        files = sorted(set(files), key=lambda f: os.path.getmtime(f))
         return files[-1]
 
     def _read_df(self, path: str) -> Optional[pd.DataFrame]:

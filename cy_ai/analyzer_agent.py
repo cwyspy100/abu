@@ -235,10 +235,11 @@ class StockAnalyzerAgent:
             final_action = "买入"
             final_score = stage2_result.get("tenbagger_potential_score", final_score)
 
-        # 构建入库数据
+        # 构建入库数据（确保所有字段都存在）
         record = {
             "ts_code": ts_code,
             "name": name,
+            "industry": features.get("industry", ""),
             "source_provider": "qianwen",
             "source_model": "qwen-plus",
             "analysis_stage": "stage2" if stage2_result else "stage1",
@@ -247,35 +248,49 @@ class StockAnalyzerAgent:
             "stage1_score": stage1_result.get("score", 0),
             "stage1_action": stage1_result.get("action", ""),
             "stage1_reason": stage1_result.get("reason", ""),
-            "tech_score": stage1_result.get("tech_score", 0),
-            "fina_score": stage1_result.get("fina_score", 0),
-            "sentiment_score": stage1_result.get("sentiment_score", 0),
-            "trend_score": stage1_result.get("trend_score", 0),
-            "risk_score": stage1_result.get("risk_score", 0),
-            "quality_score": stage1_result.get("quality_score", 0),
+            "tech_score": stage1_result.get("tech_score", 0) or 0,
+            "fina_score": stage1_result.get("fina_score", 0) or 0,
+            "sentiment_score": stage1_result.get("sentiment_score", 0) or 0,
+            "trend_score": stage1_result.get("trend_score", 0) or 0,
+            "risk_score": stage1_result.get("risk_score", 0) or 0,
+            "quality_score": stage1_result.get("quality_score", 0) or 0,
             "action": final_action,
             "reject_reason": reject_reason,
             "final_score": final_score,
             "analyzed_at": now,
             "is_latest": 1,
+            # 阶段2字段预置为空字符串
+            "invest_status": "",
+            "valuation": "",
+            "tenbagger_potential_score": 0,
+            "buy_range": "",
+            "sell_range": "",
+            "stop_loss": 0,
+            "position": "",
+            "holding_period": "",
+            "reason": "",
+            "tenbagger_logic": "",
+            "risk_points": "",
+            "industry_outlook": "",
+            "competitiveness": "",
         }
 
         # 添加阶段2结果
         if stage2_result:
             record.update({
-                "invest_status": stage2_result.get("invest_status", ""),
-                "valuation": stage2_result.get("valuation", ""),
-                "tenbagger_potential_score": stage2_result.get("tenbagger_potential_score", 0),
-                "buy_range": stage2_result.get("buy_range", ""),
-                "sell_range": stage2_result.get("sell_range", ""),
-                "stop_loss": stage2_result.get("stop_loss", 0),
-                "position": stage2_result.get("position", ""),
-                "holding_period": stage2_result.get("holding_period", ""),
-                "reason": stage2_result.get("reason", ""),
-                "tenbagger_logic": stage2_result.get("tenbagger_logic", ""),
-                "risk_points": stage2_result.get("risk_points", ""),
-                "industry_outlook": stage2_result.get("industry_outlook", ""),
-                "competitiveness": stage2_result.get("competitiveness", ""),
+                "invest_status": str(stage2_result.get("invest_status", "")),
+                "valuation": str(stage2_result.get("valuation", "")),
+                "tenbagger_potential_score": stage2_result.get("tenbagger_potential_score", 0) or 0,
+                "buy_range": str(stage2_result.get("buy_range", "")),
+                "sell_range": str(stage2_result.get("sell_range", "")),
+                "stop_loss": stage2_result.get("stop_loss", 0) or 0,
+                "position": str(stage2_result.get("position", "")),
+                "holding_period": str(stage2_result.get("holding_period", "")),
+                "reason": str(stage2_result.get("reason", "")),
+                "tenbagger_logic": str(stage2_result.get("tenbagger_logic", "")),
+                "risk_points": str(stage2_result.get("risk_points", "")),
+                "industry_outlook": str(stage2_result.get("industry_outlook", "")),
+                "competitiveness": str(stage2_result.get("competitiveness", "")),
             })
 
         # 插入记录
