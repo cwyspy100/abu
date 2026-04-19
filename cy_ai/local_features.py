@@ -10,6 +10,8 @@ import pandas as pd
 
 
 class LocalFeatureBuilder:
+    """本地K线特征提取器"""
+
     def __init__(self, csv_dir: Optional[str] = None):
         self.csv_dir = csv_dir or os.path.expanduser("~/abu/data/csv")
 
@@ -39,6 +41,12 @@ class LocalFeatureBuilder:
         return None
 
     def build(self, ts_code: str) -> Dict[str, Any]:
+        """
+        从本地CSV提取技术特征
+
+        :param ts_code: 股票代码
+        :return: 技术特征字典
+        """
         path = self._latest_file(ts_code)
         if not path:
             return {}
@@ -58,8 +66,11 @@ class LocalFeatureBuilder:
             return {}
 
         last_close = float(close.iloc[-1])
+        ma5 = float(close.rolling(5, min_periods=1).mean().iloc[-1])
         ma20 = float(close.rolling(20, min_periods=1).mean().iloc[-1])
         ma60 = float(close.rolling(60, min_periods=1).mean().iloc[-1])
+        ma120 = float(close.rolling(120, min_periods=1).mean().iloc[-1])
+
         ret_5 = float((close.iloc[-1] / close.iloc[-5] - 1) * 100) if len(close) >= 5 and close.iloc[-5] else 0.0
         ret_20 = float((close.iloc[-1] / close.iloc[-20] - 1) * 100) if len(close) >= 20 and close.iloc[-20] else 0.0
 
@@ -75,16 +86,46 @@ class LocalFeatureBuilder:
             atr21 = pd.to_numeric(df["atr21"], errors="coerce").iloc[-1]
             atr21 = float(atr21) if not pd.isnull(atr21) else None
 
+        atr14 = None
+        if "atr14" in df.columns:
+            atr14 = pd.to_numeric(df["atr14"], errors="coerce").iloc[-1]
+            atr14 = float(atr14) if not pd.isnull(atr14) else None
+        elif atr21 is not None:
+            atr14 = atr21 * 0.9
+
+        # 判断趋势状态
+        trend_status = self._judge_trend(ma5, ma20, ma60, ma120)
+
+        # 计算价格相对MA120偏离
+        price_vs_ma120_pct = None
+        if ma120 > 0:
+            price_vs_ma120_pct = round((last_close / ma120 - 1) * 100, 2)
+
         return {
             "latest_file": os.path.basename(path),
-            "last_close": round(last_close, 4),
-            "ma20": round(ma20, 4),
-            "ma60": round(ma60, 4),
-            "ret_5d_pct": round(ret_5, 2),
-            "ret_20d_pct": round(ret_20, 2),
-            "volume_ratio_20": round(volume_ratio, 4) if volume_ratio is not None else None,
+            "price": round(last_close, 2),
+            "ma5": round(ma5, 2),
+            "ma20": round(ma20, 2),
+            "ma60": round(ma60, 2),
+            "ma120": round(ma120, 2),
+            "price_vs_ma120_pct": price_vs_ma120_pct,
+            "ret_5d": round(ret_5, 2),
+            "ret_20d": round(ret_20, 2),
+            "volume_ratio": round(volume_ratio, 2) if volume_ratio is not None else None,
+            "atr14": round(atr14, 4) if atr14 is not None else None,
             "atr21": round(atr21, 4) if atr21 is not None else None,
+            "trend_status": trend_status,
         }
+
+    @staticmethod
+    def _judge_trend(ma5: float, ma20: float, ma60: float, ma120: float) -> str:
+        """判断趋势状态"""
+        if ma5 > ma20 > ma60 > ma120:
+            return "多头排列"
+        elif ma5 < ma20 < ma60 < ma120:
+            return "空头排列"
+        else:
+            return "震荡"
 
     def build_with_financial(self, ts_code: str, financial_data: Optional[dict] = None) -> Dict[str, Any]:
         """
@@ -101,17 +142,9 @@ class LocalFeatureBuilder:
 
         result = {
             "ts_code": ts_code,
-            "technical": tech_features,
+            **tech_features,
             "financial": financial_data,
         }
-
-        if tech_features.get("ma120"):
-            price = tech_features.get("last_close", 0)
-            ma120 = tech_features.get("ma120", 0)
-            if ma120 > 0:
-                result["price_position"] = {
-                    "vs_ma120": f"{(price/ma120 - 1)*100:+.1f}%",
-                }
 
         return result
 
@@ -122,12 +155,11 @@ class LocalFeatureBuilder:
         :param ts_code: 股票代码
         :return: 财务特征字典
         """
-        # TODO: 实现从本地 Tushare 数据文件读取财务数据
-        # 目前返回空字典，后续可扩展
         return {}
 
     def build_full_payload(self, ts_code: str, name: str, industry: str,
-                          financial_data: Optional[dict] = None) -> Dict[str, Any]:
+                          financial_data: Optional[dict] = None,
+                          sentiment_data: Optional[dict] = None) -> Dict[str, Any]:
         """
         构建完整的 AI 分析输入
 
@@ -135,9 +167,14 @@ class LocalFeatureBuilder:
         :param name: 股票名称
         :param industry: 行业
         :param financial_data: 财务数据
+        :param sentiment_data: 市场情绪数据
         :return: 完整的 payload
         """
         features = self.build_with_financial(ts_code, financial_data)
+
+        # 合并市场情绪数据（如果有）
+        if sentiment_data:
+            features.update(sentiment_data)
 
         return {
             "ts_code": ts_code,
@@ -145,3 +182,31 @@ class LocalFeatureBuilder:
             "industry": industry,
             **features
         }
+
+
+# 全局实例
+_feature_builder = None
+
+def get_feature_builder() -> LocalFeatureBuilder:
+    """获取特征构建器单例"""
+    global _feature_builder
+    if _feature_builder is None:
+        _feature_builder = LocalFeatureBuilder()
+    return _feature_builder
+
+
+def build_stock_features(ts_code: str, name: str = "", industry: str = "",
+                        financial_data: Optional[dict] = None,
+                        sentiment_data: Optional[dict] = None) -> Dict[str, Any]:
+    """
+    便捷函数：构建股票完整特征
+
+    :param ts_code: 股票代码
+    :param name: 股票名称
+    :param industry: 行业
+    :param financial_data: 财务数据
+    :param sentiment_data: 市场情绪数据
+    :return: 完整特征字典
+    """
+    builder = get_feature_builder()
+    return builder.build_full_payload(ts_code, name, industry, financial_data, sentiment_data)

@@ -45,6 +45,7 @@ class SuperpowersConfig:
         self.doubao_api_key = os.getenv("DOUBAO_API_KEY", (cfg_main.get("doubao_api_key") or "").strip())
         self.minimax_api_key = os.getenv("MINIMAX_API_KEY", (cfg_main.get("minimax_api_key") or "").strip())
         self.aihubmix_api_key = os.getenv("AIHUBMIX_API_KEY", (cfg_main.get("aihubmix_api_key") or "").strip())
+        self.qianwen_api_key = os.getenv("QIANWEN_API_KEY", (cfg_main.get("qianwen_api_key") or "").strip())
 
         # endpoint 可在 llm_config.json 覆盖
         self.endpoints = {
@@ -52,6 +53,7 @@ class SuperpowersConfig:
             "doubao": cfg_ai.get("doubao_base_url", "https://ark.cn-beijing.volces.com/api/v3/chat/completions"),
             "minimax": cfg_ai.get("minimax_base_url", "https://api.minimaxi.com/v1/text/chatcompletion_v2"),
             "aihubmix": cfg_ai.get("aihubmix_base_url", "https://aihubmix.com/v1/chat/completions"),
+            "qianwen": cfg_ai.get("qianwen_base_url", "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"),
         }
 
         # 若所选 provider 未配置 key，则自动回退到 aihubmix（若可用）
@@ -71,6 +73,8 @@ class SuperpowersConfig:
             return self.minimax_api_key
         if provider == "aihubmix":
             return self.aihubmix_api_key
+        if provider == "qianwen":
+            return self.qianwen_api_key
         return ""
 
     def get_endpoint(self, provider: str) -> str:

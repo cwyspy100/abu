@@ -40,6 +40,7 @@ from cy_ai.db import Database, init_tables
 from cy_ai.csv_importer import CSVImporter
 from cy_ai.analyzer import StockAnalyzer
 from cy_ai.minimax_api import MiniMaxAPI
+from cy_ai.analyzer_agent import StockAnalyzerAgent
 
 # 配置日志
 logging.basicConfig(
@@ -300,6 +301,83 @@ def show_results(args: argparse.Namespace) -> bool:
         db.close()
 
 
+def run_agent_analysis(args: argparse.Namespace) -> bool:
+    """
+    使用千问Agent模式进行分析
+    """
+    import pandas as pd
+
+    db = Database()
+    try:
+        agent = StockAnalyzerAgent(db)
+
+        if args.stock:
+            # 单股票分析
+            result = agent.analyze_stock(
+                ts_code=args.stock,
+                name=args.name,
+                industry=args.industry,
+                force=args.force,
+                verbose=True,
+            )
+            print("\n最终结果:")
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return result.get("status") == "completed"
+
+        elif args.batch:
+            # 批量分析
+            df = pd.read_csv(args.batch)
+            limit = args.limit or len(df)
+            stocks = df.head(limit).to_dict("records")
+            stats = agent.analyze_batch(stocks, force=args.force, verbose=True)
+            print("\n批量分析统计:")
+            print(json.dumps(stats, ensure_ascii=False, indent=2))
+            return stats.get("failed", 0) == 0
+
+        else:
+            # 交互式
+            print("=" * 50)
+            print("股票分析 Agent - 交互模式")
+            print("=" * 50)
+            print("输入股票代码进行分析，输入 'quit' 退出")
+            print()
+
+            while True:
+                try:
+                    ts_code = input("股票代码 (如 600036.SH): ").strip()
+                    if ts_code.lower() == "quit":
+                        break
+                    if not ts_code:
+                        continue
+
+                    name = input("股票名称 (可选): ").strip() or ""
+                    industry = input("行业 (可选): ").strip() or ""
+
+                    result = agent.analyze_stock(
+                        ts_code=ts_code,
+                        name=name,
+                        industry=industry,
+                        force=False,
+                        verbose=True,
+                    )
+
+                    print("\n最终结果:")
+                    print(json.dumps(result, ensure_ascii=False, indent=2))
+                    print()
+
+                except KeyboardInterrupt:
+                    print("\n退出")
+                    break
+
+            return True
+
+    except Exception as e:
+        logger.error(f"Agent分析失败: {e}")
+        return False
+    finally:
+        db.close()
+
+
 def show_pool(args: argparse.Namespace) -> bool:
     """显示股票池"""
     if not args.show_pool:
@@ -362,6 +440,14 @@ def main():
     parser.add_argument("--superpowers-stage2", action="store_true", help="仅执行 superpowers 第二阶段：从库读取前N做深度分析")
     parser.add_argument("--top-n", type=int, default=20, metavar="N", help="superpowers 深度分析数量（默认20）")
 
+    # 千问Agent分析
+    parser.add_argument("--agent", action="store_true", help="使用千问Agent模式分析")
+    parser.add_argument("--stock", type=str, metavar="CODE", help="单股票代码，如 600036.SH")
+    parser.add_argument("--name", type=str, metavar="NAME", default="", help="股票名称")
+    parser.add_argument("--industry", type=str, metavar="INDUSTRY", default="", help="行业")
+    parser.add_argument("--force", action="store_true", help="强制重新分析")
+    parser.add_argument("--batch", type=str, metavar="FILE", help="批量CSV文件路径")
+
     # 结果查看
     parser.add_argument("--show", action="store_true", help="显示分析结果")
     parser.add_argument("--show-pool", action="store_true", help="显示股票池")
@@ -374,7 +460,7 @@ def main():
     args = parser.parse_args()
 
     # 如果没有任何操作，显示帮助
-    if not any([args.init_db, args.import_basic, args.import_pool, args.normalize_db, args.analyze, args.show, args.show_pool, args.export]):
+    if not any([args.init_db, args.import_basic, args.import_pool, args.normalize_db, args.analyze, args.agent, args.show, args.show_pool, args.export]):
         parser.print_help()
         return 0
 
@@ -395,6 +481,9 @@ def main():
 
     if args.analyze:
         success = run_analysis(args) and success
+
+    if args.agent:
+        success = run_agent_analysis(args) and success
 
     if args.show_pool:
         success = show_pool(args) and success
@@ -525,7 +614,11 @@ def run_scan_once():
 if __name__ == "__main__":
     import sys
 
-    if len(sys.argv) > 1:
+    # 检查是否有 argparse 参数（如 --agent, --stock 等）
+    if len(sys.argv) > 1 and sys.argv[1].startswith("--"):
+        # 使用 argparse 模式
+        main()
+    elif len(sys.argv) > 1:
         command = sys.argv[1]
 
         if command == "weekly":
@@ -542,3 +635,6 @@ if __name__ == "__main__":
         print("  python -m cy_ai.main weekly   # 运行每周分析")
         print("  python -m cy_ai.main monitor  # 启动监控服务")
         print("  python -m cy_ai.main scan     # 执行单次扫描")
+        print()
+        print("  python -m cy_ai.main --agent --stock 600036.SH  # Agent模式单股票分析")
+        print("  python -m cy_ai.main --agent --batch pool.csv    # Agent模式批量分析")
