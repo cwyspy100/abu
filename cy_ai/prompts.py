@@ -62,7 +62,7 @@ class PromptLoader:
 
     def format_input(self, name: str, **kwargs) -> str:
         """
-        格式化输入模板，缺失的字段用空字符串替代
+        格式化输入模板，缺失的字段和 None 值用空字符串替代
 
         Usage:
             loader.format_input("qianwen_score",
@@ -78,6 +78,11 @@ class PromptLoader:
         for ph in placeholders:
             if ph not in kwargs:
                 kwargs[ph] = ""
+
+        # 将 None 值转换为空字符串，避免输出 "None"
+        for k, v in kwargs.items():
+            if v is None:
+                kwargs[k] = ""
 
         try:
             return template.format(**kwargs)

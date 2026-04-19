@@ -61,7 +61,7 @@ class TushareFetcher:
 
     def _cache_path(self, table: str, ts_code: str) -> str:
         """获取缓存文件路径"""
-        return os.path.join(self.CACHE_DIR, table, f"{ts_code}.parquet")
+        return os.path.join(self.CACHE_DIR, table, f"{ts_code}.csv")
 
     def _cache_valid(self, cache_file: str, days: int = 30) -> bool:
         """检查缓存是否有效"""
@@ -100,34 +100,33 @@ class TushareFetcher:
             logger.warning(f"缓存读取失败: {e}")
             return None
 
-    def _call_api(self, func, days: int = 30, **kwargs) -> Optional[pd.DataFrame]:
+    def _call_api(self, table: str, func, ts_code: str = "unknown", days: int = 30) -> Optional[pd.DataFrame]:
         """
         调用 Tushare API，带限流和缓存
 
+        :param table: 缓存表名（用于区分不同 API）
         :param func: Tushare API 函数
+        :param ts_code: 股票代码（用于缓存路径）
         :param days: 缓存有效期
-        :param kwargs: API 参数
         :return: DataFrame
         """
         if not self.api:
             logger.warning("Tushare API 不可用")
             return None
 
-        ts_code = kwargs.get("ts_code", "unknown")
-
         # 检查缓存
-        cache_file = self._cache_path(func.__name__, ts_code)
+        cache_file = self._cache_path(table, ts_code)
         if self._cache_valid(cache_file, days):
-            return self._load_cache(func.__name__, ts_code)
+            return self._load_cache(table, ts_code)
 
         # 调用 API（带限流）
         time.sleep(self.RATE_LIMIT_DELAY)
 
         try:
-            df = func(**kwargs)
+            df = func()
 
             if df is not None and not df.empty:
-                self._save_cache(df, func.__name__, ts_code)
+                self._save_cache(df, table, ts_code)
 
             return df
         except Exception as e:
@@ -156,7 +155,7 @@ class TushareFetcher:
         def _fetch():
             return pro.fina_indicator(ts_code=ts_code, start_date=start_date, end_date=end_date)
 
-        df = self._call_api(_fetch, days=days)
+        df = self._call_api("fina_indicator", _fetch, ts_code=ts_code, days=days)
 
         if df is not None and not df.empty:
             # 按报告期排序，取最新
@@ -184,7 +183,7 @@ class TushareFetcher:
         def _fetch():
             return pro.income(ts_code=ts_code, start_date=start_date, end_date=end_date)
 
-        df = self._call_api(_fetch, days=days)
+        df = self._call_api("income", _fetch, ts_code=ts_code, days=days)
 
         if df is not None and not df.empty:
             df = df.sort_values("end_date", ascending=False).reset_index(drop=True)
@@ -211,7 +210,7 @@ class TushareFetcher:
         def _fetch():
             return pro.balancesheet(ts_code=ts_code, start_date=start_date, end_date=end_date)
 
-        df = self._call_api(_fetch, days=days)
+        df = self._call_api("balancesheet", _fetch, ts_code=ts_code, days=days)
 
         if df is not None and not df.empty:
             df = df.sort_values("end_date", ascending=False).reset_index(drop=True)
@@ -238,10 +237,36 @@ class TushareFetcher:
         def _fetch():
             return pro.cashflow(ts_code=ts_code, start_date=start_date, end_date=end_date)
 
-        df = self._call_api(_fetch, days=days)
+        df = self._call_api("cashflow", _fetch, ts_code=ts_code, days=days)
 
         if df is not None and not df.empty:
             df = df.sort_values("end_date", ascending=False).reset_index(drop=True)
+
+        return df
+
+    def fetch_daily_basic(self, ts_code: str, trade_date: str = None, days: int = 30) -> Optional[pd.DataFrame]:
+        """
+        获取每日行情指标（包含 PE、PB、PS 等）
+
+        :param ts_code: 股票代码
+        :param trade_date: 交易日期，默认最新
+        :param days: 缓存有效期（天）
+        :return: 每日行情 DataFrame
+        """
+        if not self.has_tushare:
+            return None
+
+        pro = self.api
+        trade_date = trade_date or datetime.now().strftime("%Y%m%d")
+
+        def _fetch():
+            return pro.daily_basic(ts_code=ts_code, end_date=trade_date,
+                                  fields='ts_code,trade_date,close,pe,pb,ps,total_mv,circ_mv')
+
+        df = self._call_api("daily_basic", _fetch, ts_code=ts_code, days=days)
+
+        if df is not None and not df.empty:
+            df = df.sort_values("trade_date", ascending=False).reset_index(drop=True)
 
         return df
 
@@ -292,14 +317,26 @@ class TushareFetcher:
 
         latest = fina_df.iloc[0]
 
+        # 从 daily_basic 获取 PE/PB/PS
+        pe_val, pb_val, ps_val = None, None, None
+        basic_df = self.fetch_daily_basic(ts_code, days=30)
+        if basic_df is not None and not basic_df.empty:
+            basic_latest = basic_df.iloc[0]
+            pe_val = self._safe_float(basic_latest.get("pe"))
+            pb_val = self._safe_float(basic_latest.get("pb"))
+            ps_val = self._safe_float(basic_latest.get("ps"))
+
+        # grossprofit_margin 在 fina_indicator 中
+        gross_margin = self._safe_float(latest.get("grossprofit_margin"))
+
         # 提取关键字段
         summary = {
-            "pe": self._safe_float(latest.get("pe")),
-            "pb": self._safe_float(latest.get("pb")),
-            "ps": self._safe_float(latest.get("ps")),
+            "pe": pe_val,
+            "pb": pb_val,
+            "ps": ps_val,
             "roe": self._safe_float(latest.get("roe")),
             "roe_dt": self._safe_float(latest.get("roe_dt")),
-            "gross_margin": self._safe_float(latest.get("gross_margin")),
+            "gross_margin": gross_margin,
             "net_margin": self._safe_float(latest.get("netprofit_margin")),
             "netprofit_yoy": self._safe_float(latest.get("netprofit_yoy")),
             "revenue_yoy": self._safe_float(latest.get("tr_yoy")) or self._safe_float(latest.get("or_yoy")),

@@ -13,28 +13,50 @@ class LocalFeatureBuilder:
     """本地K线特征提取器"""
 
     def __init__(self, csv_dir: Optional[str] = None):
-        self.csv_dir = csv_dir or os.path.expanduser("~/abu/data/csv")
+        base_dir = csv_dir or os.path.expanduser("~/abu/data/csv")
+        # A股在 astock 子目录，港股美股在根目录
+        self.csv_dirs = [
+            os.path.join(base_dir, "astock"),  # A股
+            base_dir,  # 港股、美股
+        ]
 
     @staticmethod
     def _prefix_candidates(ts_code: str):
         """生成可能的文件名前缀"""
-        code = str(ts_code).zfill(6)
-        return ["sh%s" % code, "sz%s" % code, "hk%s" % code, "us%s" % code]
+        # 提取纯数字代码
+        digits = ''.join(filter(str.isdigit, str(ts_code)))
+        pure_code = digits.zfill(6)
+        return ["sh%s" % pure_code, "sz%s" % pure_code, "hk%s" % pure_code, "us%s" % pure_code]
 
     def _latest_file(self, ts_code: str) -> Optional[str]:
         """查找本地CSV文件，匹配 sh600036_20240126_20260418 格式"""
         files = []
 
         # 提取纯数字代码
-        pure_code = str(ts_code).zfill(6)
+        digits = ''.join(filter(str.isdigit, str(ts_code)))
+        pure_code = digits.zfill(6)
 
-        # 匹配模式：sh600036_* 或 sh600036_20240126_20260418（无.csv后缀）
-        for prefix in ["sh", "sz", "hk", "us"]:
-            # 匹配 sh600036_ 开头的文件（有无.csv后缀都匹配）
-            pattern1 = os.path.join(self.csv_dir, "%s%s_*" % (prefix, pure_code))
-            pattern2 = os.path.join(self.csv_dir, "%s%s_*.csv" % (prefix, pure_code))
-            files.extend(glob.glob(pattern1))
-            files.extend(glob.glob(pattern2))
+        # 判断市场前缀
+        ts_upper = ts_code.upper()
+        if ts_upper.endswith(".SH") or ts_upper.endswith(".SZ"):
+            prefixes = ["sh", "sz"]
+        elif ts_upper.endswith(".HK"):
+            prefixes = ["hk"]
+        elif ts_upper.endswith(".US"):
+            prefixes = ["us"]
+        else:
+            prefixes = ["sh", "sz", "hk", "us"]
+
+        # 在多个目录中搜索
+        for csv_dir in self.csv_dirs:
+            if not os.path.exists(csv_dir):
+                continue
+            for prefix in prefixes:
+                # 匹配 sh600036_ 开头的文件（有无.csv后缀都匹配）
+                pattern1 = os.path.join(csv_dir, "%s%s_*" % (prefix, pure_code))
+                pattern2 = os.path.join(csv_dir, "%s%s_*.csv" % (prefix, pure_code))
+                files.extend(glob.glob(pattern1))
+                files.extend(glob.glob(pattern2))
 
         if not files:
             return None
