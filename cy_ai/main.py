@@ -322,7 +322,8 @@ def run_agent_analysis(args: argparse.Namespace) -> bool:
             )
             print("\n最终结果:")
             print(json.dumps(result, ensure_ascii=False, indent=2))
-            return result.get("status") == "completed"
+            # completed/rejected/skipped 都算正常完成
+            return result.get("status") in ("completed", "rejected", "skipped")
 
         elif args.batch:
             # 批量分析
