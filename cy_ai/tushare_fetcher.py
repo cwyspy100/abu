@@ -80,7 +80,8 @@ class TushareFetcher:
         os.makedirs(cache_dir, exist_ok=True)
 
         cache_file = self._cache_path(table, ts_code)
-        df.to_parquet(cache_file)
+        # 使用 CSV 格式，避免 pyarrow 依赖
+        df.to_csv(cache_file, index=False)
         logger.info(f"缓存已保存: {cache_file}")
 
     def _load_cache(self, table: str, ts_code: str) -> Optional[pd.DataFrame]:
@@ -91,7 +92,8 @@ class TushareFetcher:
             return None
 
         try:
-            df = pd.read_parquet(cache_file)
+            # 尝试 CSV 格式
+            df = pd.read_csv(cache_file)
             logger.info(f"从缓存加载: {cache_file}")
             return df
         except Exception as e:
