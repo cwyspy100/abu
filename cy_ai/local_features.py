@@ -36,11 +36,18 @@ class LocalFeatureBuilder:
         ts_code = str(ts_code)
         # 提取纯数字代码
         digits = ''.join(filter(str.isdigit, ts_code))
-        pure_code = digits.zfill(6)
+        # 港股5位代码不填充，A股6位代码填充到6位
+        if len(digits) == 5:
+            pure_code = digits  # 港股如 09866
+        else:
+            pure_code = digits.zfill(6)  # A股如 600036
 
         # 判断市场前缀
         ts_upper = ts_code.upper()
-        if ts_upper.endswith(".SH") or ts_upper.endswith(".SZ"):
+        # 5位数字代码通常是港股
+        if len(digits) == 5:
+            prefixes = ["hk"]
+        elif ts_upper.endswith(".SH") or ts_upper.endswith(".SZ"):
             prefixes = ["sh", "sz"]
         elif ts_upper.endswith(".HK"):
             prefixes = ["hk"]

@@ -84,7 +84,11 @@ class StockAnalyzerAgent:
         # 自动添加后缀（如果缺少），用于API调用
         ts_code_str = str(ts_code)
         if not any(ts_code_str.endswith(s) for s in ['.SH', '.SZ', '.HK', '.US']):
-            api_code = ts_code_str + '.SH'  # 默认沪市
+            # 5位数字代码通常是港股
+            if len(ts_code_str) == 5:
+                api_code = ts_code_str + '.HK'
+            else:
+                api_code = ts_code_str + '.SH'  # 默认沪市
         else:
             api_code = ts_code_str
 
