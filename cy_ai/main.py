@@ -327,7 +327,7 @@ def run_agent_analysis(args: argparse.Namespace) -> bool:
 
         elif args.batch:
             # 批量分析
-            df = pd.read_csv(args.batch)
+            df = pd.read_csv(args.batch, dtype={'ts_code': str})
             limit = args.limit or len(df)
             stocks = df.head(limit).to_dict("records")
             stats = agent.analyze_batch(stocks, force=args.force, verbose=True)
