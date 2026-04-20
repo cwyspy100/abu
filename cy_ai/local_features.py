@@ -32,8 +32,10 @@ class LocalFeatureBuilder:
         """查找本地CSV文件，匹配 sh600036_20240126_20260418 格式"""
         files = []
 
+        # 确保 ts_code 是字符串
+        ts_code = str(ts_code)
         # 提取纯数字代码
-        digits = ''.join(filter(str.isdigit, str(ts_code)))
+        digits = ''.join(filter(str.isdigit, ts_code))
         pure_code = digits.zfill(6)
 
         # 判断市场前缀

@@ -81,10 +81,17 @@ class StockAnalyzerAgent:
         :param industry: 行业
         :return: 特征字典
         """
+        # 自动添加后缀（如果缺少），用于API调用
+        ts_code_str = str(ts_code)
+        if not any(ts_code_str.endswith(s) for s in ['.SH', '.SZ', '.HK', '.US']):
+            api_code = ts_code_str + '.SH'  # 默认沪市
+        else:
+            api_code = ts_code_str
+
         logger.info(f"[特征构建] 开始构建 {ts_code} 特征...")
 
         # 1. 技术面特征（从本地CSV）
-        tech_features = self.feature_builder.build(ts_code)
+        tech_features = self.feature_builder.build(ts_code_str)
         if not tech_features:
             logger.warning(f"[特征构建] 未找到 {ts_code} 的本地K线数据")
             tech_features = {}
@@ -92,11 +99,11 @@ class StockAnalyzerAgent:
         # 2. 财务数据（从Tushare或缓存）
         fina_data = {}
         try:
-            fina_data = self.tushare_fetcher.get_latest_financial_summary(ts_code)
+            fina_data = self.tushare_fetcher.get_latest_financial_summary(api_code)
             if fina_data:
                 logger.info(f"[特征构建] 获取财务数据: PE={fina_data.get('pe')}, ROE={fina_data.get('roe')}")
             else:
-                logger.info(f"[特征构建] 未获取到 {ts_code} 的财务数据")
+                logger.info(f"[特征构建] 未获取到 {api_code} 的财务数据")
         except Exception as e:
             logger.warning(f"[特征构建] 获取财务数据失败: {e}")
 
