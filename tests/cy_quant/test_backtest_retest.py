@@ -137,6 +137,11 @@ def test_group_by_drawdown():
     assert grouped.loc['C (3%~5%)', 'count'] >= 2  # C + C5
     assert grouped.loc['D (5%~10%)', 'count'] >= 2  # D8 + D10
 
+    # Verify boundary values are classified correctly
+    assert analyzer.classify_drawdown(3.0) == 'B (0%~3%)', f"B3 (3.0%) should be in B, got {analyzer.classify_drawdown(3.0)}"
+    assert analyzer.classify_drawdown(5.0) == 'C (3%~5%)', f"C5 (5.0%) should be in C, got {analyzer.classify_drawdown(5.0)}"
+    assert analyzer.classify_drawdown(10.0) == 'D (5%~10%)', f"D10 (10.0%) should be in D, got {analyzer.classify_drawdown(10.0)}"
+
 
 def test_empty_df():
     """空 DataFrame 应返回空字典"""

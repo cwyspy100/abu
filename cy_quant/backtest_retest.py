@@ -154,9 +154,9 @@ class RetestAnalyzer:
         df = pd.DataFrame(results)
         return df
 
-    def group_by_drawdown(self, result_df: pd.DataFrame) -> dict:
+    def classify_drawdown(self, drawdown: float) -> str:
         """
-        按回踩幅度分组统计
+        将回踩幅度分类到对应分组
         分组：
           A: 0%（未回踩）
           B: 0% < <= 3%
@@ -164,26 +164,34 @@ class RetestAnalyzer:
           D: 5% < <= 10%
           E: > 10%
         """
+        if drawdown == self.DRAWDOWN_THRESHOLDS[0]:
+            return self.DRAWDOWN_LABELS[0]
+        for threshold, label in zip(self.DRAWDOWN_THRESHOLDS[1:], self.DRAWDOWN_LABELS[1:]):
+            if drawdown <= threshold:
+                return label
+        return self.DRAWDOWN_LABELS[-1]
+
+    def group_by_drawdown(self, result_df: pd.DataFrame) -> dict:
+        """
+        按回踩幅度分组统计
+        """
         if result_df.empty:
             return {}
 
-        def classify(drawdown):
-            if drawdown == self.DRAWDOWN_THRESHOLDS[0]:
-                return self.DRAWDOWN_LABELS[0]
-            for threshold, label in zip(self.DRAWDOWN_THRESHOLDS[1:], self.DRAWDOWN_LABELS[1:]):
-                if drawdown <= threshold:
-                    return label
-            return self.DRAWDOWN_LABELS[-1]
-
         result_df = result_df.copy()
-        result_df['group'] = result_df['max_drawdown'].apply(classify)
+        result_df['group'] = result_df['max_drawdown'].apply(self.classify_drawdown)
 
-        grouped = result_df.groupby('group').agg(
-            count=('ts_code', 'count'),
-            avg_max_gain=('max_gain', 'mean'),
-            avg_final_gain=('final_gain', 'mean'),
-            success_rate=('success', 'mean'),
-        ).round(2)
+        grouped = result_df.groupby('group').agg({
+            'ts_code': 'count',
+            'max_gain': 'mean',
+            'final_gain': 'mean',
+            'success': 'mean',
+        }).rename(columns={
+            'ts_code': 'count',
+            'max_gain': 'avg_max_gain',
+            'final_gain': 'avg_final_gain',
+            'success': 'success_rate',
+        }).round(2)
 
         return grouped.sort_index()
 
