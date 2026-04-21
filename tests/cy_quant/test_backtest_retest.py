@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import os
 import tempfile
+from datetime import datetime, timedelta
 from cy_quant.backtest_retest import RetestAnalyzer, BacktestResult
 
 
@@ -61,11 +62,13 @@ def test_with_breakthrough():
     """有突破时应返回 BacktestResult"""
     with tempfile.TemporaryDirectory() as tmpdir:
         rows = []
+        base = datetime(2024, 1, 1)
         # 前149天平缓，120天后形成均线
         for i in range(149):
             close = 10.0
+            trade_date = (base + timedelta(days=i)).strftime('%Y%m%d')
             rows.append({
-                'trade_date': f'2024{(i // 30) + 1:02d}{(i % 30) + 1:02d}',
+                'trade_date': trade_date,
                 'open': close,
                 'high': close + 0.1,
                 'low': close - 0.1,
@@ -74,7 +77,7 @@ def test_with_breakthrough():
             })
         # 第150天突破，收盘11元（超过均线10元）
         rows.append({
-            'trade_date': '20240530',
+            'trade_date': (base + timedelta(days=149)).strftime('%Y%m%d'),
             'open': 10.5,
             'high': 11.0,
             'low': 10.3,
@@ -84,8 +87,9 @@ def test_with_breakthrough():
         # 之后10天小幅回调，第15天涨到13元
         for i in range(10):
             price = 11.0 - 0.2 * i  # 逐步下跌
+            trade_date = (base + timedelta(days=150 + i)).strftime('%Y%m%d')
             rows.append({
-                'trade_date': f'202405{31 + i:02d}' if 31 + i <= 40 else f'202406{15 + i - 40:02d}',
+                'trade_date': trade_date,
                 'open': price,
                 'high': price + 0.1,
                 'low': price - 0.1,
@@ -100,16 +104,21 @@ def test_with_breakthrough():
 
         assert result is not None
         assert result.breakthrough_price == 11.0
-        assert result.max_drawdown > 0  # 有回调
+        assert 0 < result.max_drawdown < 50  # 有回调，50%是合理上限
+        assert isinstance(result.success, bool)
+        assert isinstance(result.final_gain, float)
 
 
 def test_group_by_drawdown():
     """分组统计应正确分类"""
     df = pd.DataFrame([
         {'ts_code': 'A', 'max_drawdown': 0.0,  'max_gain': 10.0, 'success': False, 'final_gain': 8.0},
-        {'ts_code': 'B', 'max_drawdown': 2.0,  'max_gain': 15.0, 'success': False, 'final_gain': 12.0},
+        {'ts_code': 'B2', 'max_drawdown': 2.0, 'max_gain': 15.0, 'success': False, 'final_gain': 12.0},
+        {'ts_code': 'B3', 'max_drawdown': 3.0, 'max_gain': 18.0, 'success': False, 'final_gain': 15.0},  # boundary: exactly 3%
         {'ts_code': 'C', 'max_drawdown': 4.0,  'max_gain': 25.0, 'success': True,  'final_gain': 22.0},
-        {'ts_code': 'D', 'max_drawdown': 8.0,  'max_gain': 30.0, 'success': True,  'final_gain': 28.0},
+        {'ts_code': 'C5', 'max_drawdown': 5.0,  'max_gain': 20.0, 'success': True,  'final_gain': 18.0},  # boundary: exactly 5%
+        {'ts_code': 'D8', 'max_drawdown': 8.0,  'max_gain': 30.0, 'success': True,  'final_gain': 28.0},
+        {'ts_code': 'D10', 'max_drawdown': 10.0, 'max_gain': 22.0, 'success': True, 'final_gain': 20.0},  # boundary: exactly 10%
         {'ts_code': 'E', 'max_drawdown': 15.0, 'max_gain': 5.0,  'success': False, 'final_gain': 3.0},
     ])
 
@@ -124,6 +133,9 @@ def test_group_by_drawdown():
 
     assert grouped.loc['A (0%)', 'count'] == 1
     assert grouped.loc['C (3%~5%)', 'success_rate'] == 1.0  # C 组成功率为 100%
+    assert grouped.loc['B (0%~3%)', 'count'] >= 2  # B2 + B3
+    assert grouped.loc['C (3%~5%)', 'count'] >= 2  # C + C5
+    assert grouped.loc['D (5%~10%)', 'count'] >= 2  # D8 + D10
 
 
 def test_empty_df():
