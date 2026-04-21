@@ -24,13 +24,19 @@ class BacktestResult:
 class RetestAnalyzer:
     """回踩幅度回测分析器"""
 
+    MA_PERIOD = 120
+    DRAWDOWN_THRESHOLDS = [0, 3, 5, 10]
+    DRAWDOWN_LABELS = ['A (0%)', 'B (0%~3%)', 'C (3%~5%)', 'D (5%~10%)', 'E (>10%)']
+
     def __init__(
         self,
         observe_days: int = 20,
         success_threshold: float = 20.0,  # 单位：%
+        ma_period: int = 120,
     ):
         self.observe_days = observe_days
         self.success_threshold = success_threshold
+        self.ma_period = ma_period
 
     def analyze_file(self, filepath: str) -> Optional[BacktestResult]:
         """
@@ -60,15 +66,15 @@ class RetestAnalyzer:
         df = df.sort_values('trade_date').reset_index(drop=True)
         df['trade_date'] = df['trade_date'].astype(str)
 
-        # 计算120日均线
-        df['ma120'] = df['close'].rolling(window=120, min_periods=120).mean()
-        df['ma120'] = df['ma120'].fillna(df['close'])
+        # 计算MA
+        df[f'ma{self.ma_period}'] = df['close'].rolling(window=self.ma_period, min_periods=self.ma_period).mean()
+        df[f'ma{self.ma_period}'] = df[f'ma{self.ma_period}'].fillna(df['close'])
 
-        # 找突破日（收盘价首次站上120日均线）
-        df['above_ma120'] = df['close'] > df['ma120']
+        # 找突破日（收盘价首次站上MA）
+        df['above_ma'] = df['close'] > df[f'ma{self.ma_period}']
         breakthrough_idx = None
-        for i in range(120, len(df)):
-            if df.iloc[i]['above_ma120'] and not df.iloc[i-1]['above_ma120']:
+        for i in range(self.ma_period, len(df)):
+            if df.iloc[i]['above_ma'] and not df.iloc[i-1]['above_ma']:
                 breakthrough_idx = i
                 break
 
@@ -162,16 +168,12 @@ class RetestAnalyzer:
             return {}
 
         def classify(drawdown):
-            if drawdown == 0:
-                return 'A (0%)'
-            elif drawdown <= 3:
-                return 'B (0%~3%)'
-            elif drawdown <= 5:
-                return 'C (3%~5%)'
-            elif drawdown <= 10:
-                return 'D (5%~10%)'
-            else:
-                return 'E (>10%)'
+            if drawdown == self.DRAWDOWN_THRESHOLDS[0]:
+                return self.DRAWDOWN_LABELS[0]
+            for threshold, label in zip(self.DRAWDOWN_THRESHOLDS[1:], self.DRAWDOWN_LABELS[1:]):
+                if drawdown <= threshold:
+                    return label
+            return self.DRAWDOWN_LABELS[-1]
 
         result_df = result_df.copy()
         result_df['group'] = result_df['max_drawdown'].apply(classify)
