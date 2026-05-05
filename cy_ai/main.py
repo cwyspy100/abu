@@ -113,11 +113,45 @@ def import_pool_csv(args: argparse.Namespace) -> bool:
     db = Database()
     try:
         importer = CSVImporter(db)
-        count = importer.import_ma120_pool(csv_path)
+        count = importer.import_ma120_pool(csv_path, market=args.market)
         logger.info(f"导入完成，共 {count} 条记录")
         return True
     except Exception as e:
         logger.error(f"导入失败: {e}")
+        return False
+    finally:
+        db.close()
+
+
+def import_rom_basic_csv(args: argparse.Namespace) -> bool:
+    """从 RomDataBu 的A/港/美代码表导入 stock_basic"""
+    if not args.import_rom_basic:
+        return True
+
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    cn_csv = os.path.join(repo_root, "abupy", "RomDataBu", "stock_code_CN.csv")
+    hk_csv = os.path.join(repo_root, "abupy", "RomDataBu", "stock_code_HK.csv")
+    us_csv = os.path.join(repo_root, "abupy", "RomDataBu", "stock_code_US.csv")
+
+    logger.info("=" * 60)
+    logger.info("导入 RomDataBu A/港/美股基础信息到 stock_basic")
+    logger.info("CN: %s", cn_csv)
+    logger.info("HK: %s", hk_csv)
+    logger.info("US: %s", us_csv)
+    logger.info("=" * 60)
+
+    db = Database()
+    try:
+        importer = CSVImporter(db)
+        count = importer.import_stock_basic_from_rom(
+            cn_csv_path=cn_csv,
+            hk_csv_path=hk_csv,
+            us_csv_path=us_csv,
+        )
+        logger.info("导入完成，共 %s 条记录", count)
+        return True
+    except Exception as e:
+        logger.error(f"导入 RomDataBu 基础信息失败: {e}")
         return False
     finally:
         db.close()
@@ -253,6 +287,42 @@ def export_results(args: argparse.Namespace) -> bool:
 
     except Exception as e:
         logger.error(f"导出失败: {e}")
+        return False
+    finally:
+        db.close()
+
+
+def export_pool_import_csv(args: argparse.Namespace) -> bool:
+    """将分析结果CSV导出为可导入stock_pool_ma120的标准文件"""
+    if not args.export_pool:
+        return True
+
+    source_csv = args.export_pool
+    if not os.path.exists(source_csv):
+        logger.error(f"文件不存在: {source_csv}")
+        return False
+
+    output_path = args.export_pool_output or "todolist/ma120_pool_import.csv"
+    output_dir = os.path.dirname(output_path)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+
+    logger.info("=" * 60)
+    logger.info(f"导出可导入股票池CSV: {source_csv} -> {output_path}")
+    logger.info("=" * 60)
+
+    db = Database()
+    try:
+        importer = CSVImporter(db)
+        count = importer.export_ma120_import_csv(
+            source_csv=source_csv,
+            output_csv=output_path,
+            market=args.market,
+        )
+        logger.info(f"导出完成，共 {count} 条记录")
+        return True
+    except Exception as e:
+        logger.error(f"导出可导入CSV失败: {e}")
         return False
     finally:
         db.close()
@@ -399,7 +469,7 @@ def show_pool(args: argparse.Namespace) -> bool:
 
         for s in stocks:
             status = "已分析" if s.get("analysis_id") else "待分析"
-            print(f"{s['ts_code']} | {s['name']} | {s['industry']} | 突破日期: {s['break_date']} | {status}")
+            print(f"{s['ts_code']} | {s.get('market', '')} | {s['name']} | {s['industry']} | 突破日期: {s['break_date']} | {status}")
 
         return True
 
@@ -429,7 +499,9 @@ def main():
 
     # CSV 导入
     parser.add_argument("--import-basic", metavar="FILE", help="导入股票基础信息 CSV")
+    parser.add_argument("--import-rom-basic", action="store_true", help="从 RomDataBu 的 stock_code_HK/US.csv 导入港美股到 stock_basic")
     parser.add_argument("--import-pool", metavar="FILE", help="导入 120 日均线突破股票池 CSV")
+    parser.add_argument("--market", metavar="MARKET", help="市场类型：A股/港股/美股（用于导入与导出池CSV）")
     parser.add_argument("--normalize-db", action="store_true", help="修正历史数据：ts_code 统一6位并回填 name/industry")
 
     # AI 分析
@@ -457,11 +529,13 @@ def main():
 
     # 导出
     parser.add_argument("--export", metavar="FILE", help="导出分析结果到 CSV")
+    parser.add_argument("--export-pool", metavar="FILE", help="将分析结果CSV转换为可导入股票池的标准CSV")
+    parser.add_argument("--export-pool-output", metavar="FILE", help="--export-pool 的输出文件路径")
 
     args = parser.parse_args()
 
     # 如果没有任何操作，显示帮助
-    if not any([args.init_db, args.import_basic, args.import_pool, args.normalize_db, args.analyze, args.agent, args.show, args.show_pool, args.export]):
+    if not any([args.init_db, args.import_basic, args.import_rom_basic, args.import_pool, args.normalize_db, args.analyze, args.agent, args.show, args.show_pool, args.export, args.export_pool]):
         parser.print_help()
         return 0
 
@@ -473,6 +547,8 @@ def main():
 
     if args.import_basic:
         success = import_basic_csv(args) and success
+    if args.import_rom_basic:
+        success = import_rom_basic_csv(args) and success
 
     if args.import_pool:
         success = import_pool_csv(args) and success
@@ -494,6 +570,8 @@ def main():
 
     if args.export:
         success = export_results(args) and success
+    if args.export_pool:
+        success = export_pool_import_csv(args) and success
 
     if success:
         logger.info("所有任务执行完成！")

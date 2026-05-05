@@ -136,7 +136,7 @@ class RetestAnalyzer:
 
         results = []
         for prefix in prefixes:
-            pattern = os.path.join(stock_dir, f'{prefix}*.csv')
+            pattern = os.path.join(stock_dir, f'{prefix}*')
             files = glob.glob(pattern)
             for f in files:
                 result = self.analyze_file(f)

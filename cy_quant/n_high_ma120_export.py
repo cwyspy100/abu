@@ -4,6 +4,8 @@
 若当天收盘价 > 该最高价，则再计算「当前站上 120 日均线区间起点价 → 今日收盘」的涨幅，导出 CSV。
 
 参考：Analyze120MA（120 日均线突破）、kline_update / monitor（股票池与 K 线路径）。
+
+直接运行本文件（不写命令行参数）时，执行 ``main()`` 内写死的参数；命令行传参时使用 ``python -m cy_quant.n_high_ma120_export --n 20`` 等。
 """
 
 from __future__ import annotations
@@ -135,15 +137,51 @@ def scan_pool(
     return out
 
 
-def main(argv=None) -> int:
+def main(
+    n: int = 20,
+    pool_csv: Optional[str] = None,
+    out_csv: Optional[str] = None,
+    data_roots: Optional[List[str]] = None,
+    export_all_attempts: bool = False,
+) -> pd.DataFrame:
+    """
+    主函数：与 Analyze120MA.main 相同用法，可在 ``if __name__ == '__main__'`` 里写死参数直接运行。
+
+    :param n: 前 N 个交易日（不含当天）的最高价窗口
+    :param pool_csv: 股票池 CSV（须含 ts_code），默认 ``cy_quant/sh_120ma.csv``
+    :param out_csv: 输出路径，默认 ``cy_quant/output/n_high_ma120_<日期>.csv``
+    :param data_roots: K 线目录列表，默认 astock + csv
+    :param export_all_attempts: 是否导出未通过的行
+    :return: 结果 DataFrame
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    pool = pool_csv or os.path.join(here, "sh_120ma.csv")
+    pool = os.path.normpath(os.path.expanduser(pool))
+    if not os.path.isfile(pool):
+        print("找不到股票池: %s" % pool, file=sys.stderr)
+        return pd.DataFrame()
+
+    day = datetime.now().strftime("%Y%m%d")
+    out = out_csv or os.path.join(here, "output", "n_high_ma120_%s.csv" % day)
+
+    print("N=%s  pool=%s  -> %s" % (n, pool, out))
+    df = scan_pool(pool, out, n, data_roots=data_roots, export_all_attempts=export_all_attempts)
+    print("导出行数: %s" % len(df))
+    if not df.empty:
+        print("\n前20条结果:")
+        print(df.head(20).to_string(index=False))
+    return df
+
+
+def _cli_main(argv: Optional[List[str]]) -> int:
     p = argparse.ArgumentParser(
         description="前N日最高价突破 + 站上120日均线起点至今涨幅，导出 CSV",
     )
     p.add_argument(
         "--n",
         type=int,
-        required=True,
-        help="前 N 个交易日（不含当天）的最高价窗口",
+        default=20,
+        help="前 N 个交易日（不含当天）的最高价窗口，默认 20",
     )
     p.add_argument(
         "--pool",
@@ -161,7 +199,6 @@ def main(argv=None) -> int:
         help="导出全部扫描行（含未通过原因）；默认仅导出满足条件的行",
     )
     args = p.parse_args(argv)
-
     here = os.path.dirname(os.path.abspath(__file__))
     pool = args.pool or os.path.join(here, "sh_120ma.csv")
     pool = os.path.normpath(os.path.expanduser(pool))
@@ -175,8 +212,26 @@ def main(argv=None) -> int:
     print("N=%s  pool=%s  -> %s" % (args.n, pool, out))
     df = scan_pool(pool, out, args.n, export_all_attempts=args.all_rows)
     print("导出行数: %s" % len(df))
+    if not df.empty:
+        print("\n前20条结果:")
+        print(df.head(20).to_string(index=False))
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    import time
+
+    start = time.time()
+    if len(sys.argv) > 1:
+        raise SystemExit(_cli_main(sys.argv[1:]))
+    # 无命令行参数时：与 Analyze120MA 一样，在下方写死参数即可直接运行
+    # result = main(n=20)
+    # result = main(n=30, pool_csv=os.path.join(_HERE, "sh_120ma.csv"))
+    result = main(
+        n=60,
+        # pool_csv=None,
+        # out_csv=None,
+        # data_roots=None,
+        # export_all_attempts=False,
+    )
+    print("\n处理完成，耗时 %.2f 秒" % (time.time() - start))

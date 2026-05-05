@@ -264,7 +264,7 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description='方向三回测：蓄力形态')
     parser.add_argument('--observe-days', type=int, default=5)
-    parser.add_argument('--consolidation-days', type=int, default=20)
+    parser.add_argument('--consolidation-days', type=int, default=60)
     parser.add_argument('--success-threshold', type=float, default=20.0)
     parser.add_argument('--stock-dir', type=str, default=None)
     parser.add_argument('--prefixes', type=str, default='sh,sz')

@@ -118,11 +118,13 @@ TABLE_SCHEMAS = {
             symbol VARCHAR(10) COMMENT '纯数字代码',
             name VARCHAR(30) COMMENT '股票名称',
             industry VARCHAR(50) COMMENT '行业',
+            stock_type VARCHAR(20) COMMENT '股票类别：A股/港股/美股',
             area VARCHAR(20) COMMENT '地区',
             list_date VARCHAR(20) COMMENT '上市日期',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            UNIQUE KEY uk_ts_code (ts_code)
+            UNIQUE KEY uk_ts_code (ts_code),
+            INDEX idx_stock_type (stock_type)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='全量股票基础信息表'
     """,
     "stock_pool_ma120": """
@@ -131,11 +133,14 @@ TABLE_SCHEMAS = {
             ts_code VARCHAR(20) NOT NULL COMMENT '股票代码',
             name VARCHAR(30) COMMENT '股票名称',
             industry VARCHAR(50) COMMENT '行业',
+            market VARCHAR(10) DEFAULT 'A股' COMMENT '市场：A股/港股/美股',
             break_date DATE COMMENT '突破120日均线日期',
-            status TINYINT DEFAULT 0 COMMENT '分析状态：0=未分析，1=已分析',
+            status TINYINT DEFAULT 1 COMMENT '有效状态：0=失效，1=有效',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            UNIQUE KEY uk_ts_code (ts_code)
+            UNIQUE KEY uk_ts_code_market (ts_code, market),
+            INDEX idx_market (market),
+            INDEX idx_status (status)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='120日均线突破股票池'
     """,
     "stock_ai_analysis": """
@@ -295,6 +300,162 @@ TABLE_SCHEMAS = {
             INDEX idx_created_at (created_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='分析任务记录'
     """,
+    "stock_cn_a_screen": """
+        CREATE TABLE IF NOT EXISTS stock_cn_a_screen (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            asof_date DATE NOT NULL COMMENT '快照归属日(取最近周五)',
+            ts_code VARCHAR(16) NOT NULL COMMENT '规范代码如 688808.SH',
+            screen_rank DECIMAL(14,4) COMMENT '原表排序列',
+            name VARCHAR(80) COMMENT '名称',
+            pct_chg DECIMAL(14,6) COMMENT '涨幅',
+            last_price DECIMAL(16,4) COMMENT '现价',
+            change_amt DECIMAL(16,4) COMMENT '涨跌',
+            bid_price DECIMAL(16,4) COMMENT '买价',
+            ask_price DECIMAL(16,4) COMMENT '卖价',
+            volume_hands BIGINT COMMENT '总手',
+            amount DECIMAL(22,2) COMMENT '总金额',
+            last_vol VARCHAR(32) COMMENT '现手',
+            speed_1m DECIMAL(14,6) COMMENT '1分钟涨速',
+            body_pct_chg DECIMAL(14,6) COMMENT '实体涨幅',
+            vs_avg_pct DECIMAL(14,4) COMMENT '现均差%',
+            turnover_rate DECIMAL(14,6) COMMENT '换手',
+            bid_ask_ratio_pct DECIMAL(14,4) COMMENT '委比%',
+            total_mv DECIMAL(22,2) COMMENT '总市值',
+            float_mv DECIMAL(22,2) COMMENT '流通市值',
+            float_ratio DECIMAL(14,6) COMMENT '流通比例',
+            speed_4m DECIMAL(14,6) COMMENT '4分钟涨速',
+            deviate_day VARCHAR(32) COMMENT '当日偏离值',
+            deviate_abnormal VARCHAR(32) COMMENT '异动偏离值',
+            deviate_10d VARCHAR(32) COMMENT '10日内偏离值',
+            deviate_30d VARCHAR(32) COMMENT '30日内偏离值',
+            abnormal_count_10d VARCHAR(32) COMMENT '10日异动次数',
+            inner_vol BIGINT COMMENT '内盘',
+            outer_vol BIGINT COMMENT '外盘',
+            inner_outer_ratio DECIMAL(14,4) COMMENT '内外比',
+            remark VARCHAR(32) COMMENT '备注',
+            bad_news VARCHAR(32) COMMENT '利空',
+            good_news VARCHAR(32) COMMENT '利好',
+            main_net_ratio DECIMAL(14,4) COMMENT '主力净量',
+            volume_ratio DECIMAL(14,4) COMMENT '量比',
+            pe_ttm DECIMAL(16,4) COMMENT 'TTM市盈率',
+            net_profit_raw VARCHAR(128) COMMENT '净利润(原文)',
+            pb DECIMAL(16,4) COMMENT '市净率',
+            eps DECIMAL(16,4) COMMENT '每股盈利',
+            sub_industry VARCHAR(80) COMMENT '细分行业',
+            industry VARCHAR(80) COMMENT '所属行业',
+            pre_close DECIMAL(16,4) COMMENT '昨收',
+            open_price DECIMAL(16,4) COMMENT '开盘',
+            open_pct_chg DECIMAL(14,6) COMMENT '开盘涨幅',
+            call_auction_turnover DECIMAL(14,6) COMMENT '竞价换手',
+            high DECIMAL(16,4) COMMENT '最高',
+            low DECIMAL(16,4) COMMENT '最低',
+            pct_chg_5d VARCHAR(32) COMMENT '5日涨幅',
+            pct_chg_10d VARCHAR(32) COMMENT '10日涨幅',
+            pct_chg_20d VARCHAR(32) COMMENT '20日涨幅',
+            ytd_pct_chg DECIMAL(14,6) COMMENT '年初至今',
+            amplitude DECIMAL(14,6) COMMENT '振幅',
+            bid_vol BIGINT COMMENT '买量',
+            ask_vol BIGINT COMMENT '卖量',
+            trade_count BIGINT COMMENT '笔数',
+            contribution VARCHAR(64) COMMENT '贡献度',
+            inst_flow VARCHAR(64) COMMENT '机构动向',
+            abnormal_type VARCHAR(64) COMMENT '异动类型',
+            total_shares BIGINT COMMENT '总股本',
+            float_shares BIGINT COMMENT '流通股本',
+            total_profit_raw VARCHAR(128) COMMENT '利润总额(原文)',
+            net_profit_yoy VARCHAR(64) COMMENT '净利润增长率',
+            bps DECIMAL(16,4) COMMENT '每股净资产',
+            golden_cross_cnt INT COMMENT '金叉个数',
+            retail_count_raw VARCHAR(64) COMMENT '散户数量(原文)',
+            list_date DATE COMMENT '上市日期',
+            source_file VARCHAR(255) COMMENT '来源xlsx路径',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uk_asof_ts (asof_date, ts_code),
+            INDEX idx_asof_date (asof_date),
+            INDEX idx_ts_code (ts_code),
+            INDEX idx_industry (industry)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='A股行情/筛选Excel快照'
+    """,
+    "stock_hk_screen": """
+        CREATE TABLE IF NOT EXISTS stock_hk_screen (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            asof_date DATE NOT NULL COMMENT '快照归属日(取最近周五)',
+            ts_code VARCHAR(16) NOT NULL COMMENT '规范代码如 00499.HK',
+            name VARCHAR(80) COMMENT '名称',
+            screen_rank VARCHAR(32) COMMENT '原表排序列',
+            pct_chg DECIMAL(14,6) COMMENT '涨幅',
+            last_price DECIMAL(18,6) COMMENT '现价',
+            change_amt DECIMAL(18,6) COMMENT '涨跌',
+            volume_total BIGINT COMMENT '总量',
+            amount DECIMAL(22,2) COMMENT '总金额',
+            volume_ratio DECIMAL(14,4) COMMENT '量比',
+            turnover_rate DECIMAL(14,6) COMMENT '换手',
+            total_mv DECIMAL(22,2) COMMENT '总市值',
+            float_mv DECIMAL(22,2) COMMENT '流通市值',
+            net_profit_raw VARCHAR(128) COMMENT '净利润(原文)',
+            pe_ttm DECIMAL(16,4) COMMENT 'TTM市盈率',
+            pb DECIMAL(16,4) COMMENT '市净率',
+            hk_connect_shares BIGINT COMMENT '港股通持股量',
+            pct_h_share DECIMAL(14,6) COMMENT '占H股%',
+            industry VARCHAR(80) COMMENT '所属行业',
+            open_price DECIMAL(18,6) COMMENT '开盘',
+            high DECIMAL(18,6) COMMENT '最高',
+            low DECIMAL(18,6) COMMENT '最低',
+            speed_1m DECIMAL(14,6) COMMENT '1分钟涨速',
+            speed_5m DECIMAL(14,6) COMMENT '5分钟涨速',
+            pre_close DECIMAL(18,6) COMMENT '昨收',
+            source_file VARCHAR(255) COMMENT '来源xlsx路径',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uk_asof_ts (asof_date, ts_code),
+            INDEX idx_asof_date (asof_date),
+            INDEX idx_ts_code (ts_code),
+            INDEX idx_industry (industry)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='港股行情/筛选Excel快照'
+    """,
+    "stock_us_screen": """
+        CREATE TABLE IF NOT EXISTS stock_us_screen (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            asof_date DATE NOT NULL COMMENT '快照归属日(取最近周五)',
+            ts_code VARCHAR(32) NOT NULL COMMENT '规范代码如 MXL.US',
+            name VARCHAR(120) COMMENT '名称',
+            pct_chg DECIMAL(14,6) COMMENT '涨幅',
+            last_price DECIMAL(18,6) COMMENT '现价',
+            change_amt DECIMAL(18,6) COMMENT '涨跌',
+            pre_market_price DECIMAL(18,6) COMMENT '盘前价',
+            pre_market_pct_chg DECIMAL(14,6) COMMENT '盘前涨幅',
+            pre_market_change DECIMAL(18,6) COMMENT '盘前涨跌',
+            post_market_price DECIMAL(18,6) COMMENT '盘后价',
+            post_market_pct_chg DECIMAL(14,6) COMMENT '盘后涨幅',
+            post_market_change DECIMAL(18,6) COMMENT '盘后涨跌',
+            turnover_rate DECIMAL(14,6) COMMENT '换手',
+            amplitude DECIMAL(14,6) COMMENT '振幅',
+            volume_total BIGINT COMMENT '总量',
+            amount_usd DECIMAL(22,2) COMMENT '金额美元',
+            total_mv_usd DECIMAL(22,2) COMMENT '总市值美元',
+            eps DECIMAL(18,6) COMMENT '每股收益',
+            pe_ttm DECIMAL(16,4) COMMENT 'TTM市盈率',
+            pb DECIMAL(16,4) COMMENT '市净率',
+            net_profit_raw VARCHAR(128) COMMENT '净利润(原文)',
+            bps DECIMAL(18,6) COMMENT '每股净资产',
+            inst_hold_pct DECIMAL(14,6) COMMENT '机构持仓%',
+            open_price DECIMAL(18,6) COMMENT '开盘',
+            pre_close DECIMAL(18,6) COMMENT '昨收',
+            high DECIMAL(18,6) COMMENT '最高',
+            low DECIMAL(18,6) COMMENT '最低',
+            high_52w DECIMAL(18,6) COMMENT '52周最高',
+            low_52w DECIMAL(18,6) COMMENT '52周最低',
+            industry VARCHAR(120) COMMENT '所属行业',
+            source_file VARCHAR(255) COMMENT '来源xlsx路径',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uk_asof_ts (asof_date, ts_code),
+            INDEX idx_asof_date (asof_date),
+            INDEX idx_ts_code (ts_code),
+            INDEX idx_industry (industry)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='美股行情/筛选Excel快照'
+    """,
 }
 
 
@@ -335,6 +496,139 @@ def init_tables(db: Database):
         except Exception as e:
             logger.error(f"创建表 {table_name} 失败: {e}")
             raise
+
+    # 兼容历史库：补充 stock_pool_ma120.market 与状态索引
+    try:
+        col = db.query_one(
+            """
+            SELECT 1
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = %s
+              AND TABLE_NAME = 'stock_pool_ma120'
+              AND COLUMN_NAME = 'market'
+            LIMIT 1
+            """,
+            (database_name,),
+        )
+        if not col:
+            db.execute(
+                """
+                ALTER TABLE stock_pool_ma120
+                ADD COLUMN market VARCHAR(10) DEFAULT 'A股' COMMENT '市场：A股/港股/美股'
+                """
+            )
+
+        idx_market = db.query_one(
+            """
+            SELECT 1
+            FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = %s
+              AND TABLE_NAME = 'stock_pool_ma120'
+              AND INDEX_NAME = 'idx_market'
+            LIMIT 1
+            """,
+            (database_name,),
+        )
+        if not idx_market:
+            db.execute("CREATE INDEX idx_market ON stock_pool_ma120 (market)")
+
+        idx_status = db.query_one(
+            """
+            SELECT 1
+            FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = %s
+              AND TABLE_NAME = 'stock_pool_ma120'
+              AND INDEX_NAME = 'idx_status'
+            LIMIT 1
+            """,
+            (database_name,),
+        )
+        if not idx_status:
+            db.execute("CREATE INDEX idx_status ON stock_pool_ma120 (status)")
+
+        # 唯一键从 ts_code 升级为 (ts_code, market)
+        uk_old = db.query_one(
+            """
+            SELECT 1
+            FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = %s
+              AND TABLE_NAME = 'stock_pool_ma120'
+              AND INDEX_NAME = 'uk_ts_code'
+            LIMIT 1
+            """,
+            (database_name,),
+        )
+        if uk_old:
+            db.execute("ALTER TABLE stock_pool_ma120 DROP INDEX uk_ts_code")
+
+        uk_new = db.query_one(
+            """
+            SELECT 1
+            FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = %s
+              AND TABLE_NAME = 'stock_pool_ma120'
+              AND INDEX_NAME = 'uk_ts_code_market'
+            LIMIT 1
+            """,
+            (database_name,),
+        )
+        if not uk_new:
+            db.execute("ALTER TABLE stock_pool_ma120 ADD UNIQUE KEY uk_ts_code_market (ts_code, market)")
+
+        db.commit()
+    except Exception as e:
+        logger.warning(f"stock_pool_ma120 兼容迁移跳过（可能已存在）: {e}")
+
+    # 兼容历史库：补充 stock_basic.stock_type
+    try:
+        col = db.query_one(
+            """
+            SELECT 1
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = %s
+              AND TABLE_NAME = 'stock_basic'
+              AND COLUMN_NAME = 'stock_type'
+            LIMIT 1
+            """,
+            (database_name,),
+        )
+        if not col:
+            db.execute(
+                """
+                ALTER TABLE stock_basic
+                ADD COLUMN stock_type VARCHAR(20) COMMENT '股票类别：A股/港股/美股'
+                """
+            )
+
+        idx = db.query_one(
+            """
+            SELECT 1
+            FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = %s
+              AND TABLE_NAME = 'stock_basic'
+              AND INDEX_NAME = 'idx_stock_type'
+            LIMIT 1
+            """,
+            (database_name,),
+        )
+        if not idx:
+            db.execute("CREATE INDEX idx_stock_type ON stock_basic (stock_type)")
+
+        # 基于已有字段尽量回填
+        db.execute(
+            """
+            UPDATE stock_basic
+            SET stock_type = CASE
+                WHEN ts_code LIKE '%.HK' OR area='港股' THEN '港股'
+                WHEN ts_code LIKE '%.US' OR area='美股' THEN '美股'
+                ELSE 'A股'
+            END
+            WHERE stock_type IS NULL OR TRIM(stock_type)=''
+            """
+        )
+        db.commit()
+    except Exception as e:
+        logger.warning(f"stock_basic 兼容迁移跳过（可能已存在）: {e}")
 
     logger.info("所有数据库表初始化完成")
 

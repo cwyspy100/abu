@@ -170,14 +170,6 @@ class MaMultiBullishAnalyzer:
         # 加仓线：每次比前一次高10%时加仓
         add_price = entry_price * (1 + self.add_threshold / 100)
 
-        # 减仓线：20日穿过60日时减仓50%
-        half_exit_done = False
-        half_exit_price = 0
-
-        # 第二次减仓线：再跌10%只留100股
-        final_exit_done = False
-        final_exit_price = 0
-
         # 观察期终点
         end_idx = min(breakthrough_idx + self.observe_days, len(df) - 1)
 
@@ -190,39 +182,15 @@ class MaMultiBullishAnalyzer:
             if current_price > highest_price:
                 highest_price = current_price
 
-            # 检查是否需要加仓（每涨10%加仓一次）
-            if not exited:
-                while current_price >= add_price:
-                    # 加仓100股
-                    new_shares = shares + 100
-                    avg_cost = (avg_cost * shares + current_price * 100) / new_shares
-                    shares = new_shares
-                    add_count += 1
-                    # 更新加仓线
-                    add_price = entry_price * (1 + (add_count + 1) * self.add_threshold / 100)
-
-                # 检查是否触发死叉（20穿过60）
-                if i > 0:
-                    prev_row = df.iloc[i - 1]
-                    curr_row = df.iloc[i]
-
-                    # 首次死叉：减仓一半
-                    if not half_exit_done and prev_row['ma20'] > prev_row['ma60'] and curr_row['ma20'] < curr_row['ma60']:
-                        half_exit_done = True
-                        half_exit_price = current_price
-                        shares = shares // 2  # 减仓一半
-                        exit_reason = "死叉减半"
-
-                    # 第二次减仓：再跌10%
-                    elif half_exit_done and not final_exit_done:
-                        if current_price <= half_exit_price * 0.9:
-                            # 只留100股
-                            shares_to_sell = shares - 100
-                            if shares_to_sell > 0:
-                                shares = 100
-                                final_exit_done = True
-                                exit_reason = "再跌10%清仓"
-                                exited = True
+            # 检查是否需要加仓（每涨10%加仓一次）- 无止损，持续持仓
+            while current_price >= add_price:
+                # 加仓100股
+                new_shares = shares + 100
+                avg_cost = (avg_cost * shares + current_price * 100) / new_shares
+                shares = new_shares
+                add_count += 1
+                # 更新加仓线
+                add_price = entry_price * (1 + (add_count + 1) * self.add_threshold / 100)
 
             last_price = current_price
 
@@ -239,8 +207,8 @@ class MaMultiBullishAnalyzer:
             last_price=round(last_price, 2),
             final_gain=round(final_gain, 2),
             added_count=add_count,
-            exited=exited or final_exit_done,
-            exit_reason=exit_reason if exit_reason else ("观察期末" if not exited else ""),
+            exited=exited,
+            exit_reason="观察期末" if not exited else exit_reason,
         )
 
     def analyze_all(self, stock_dir: str = None, prefixes=None) -> pd.DataFrame:
