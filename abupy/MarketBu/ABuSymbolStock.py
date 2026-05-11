@@ -26,6 +26,18 @@ _stock_code_us = os.path.join(_rom_dir, 'stock_code_US.csv')
 """港股symbol，文件定期重新爬取，更新"""
 _stock_code_hk = os.path.join(_rom_dir, 'stock_code_HK.csv')
 
+# RomData 里部分美股 exchange 为 “-” 或空，不能传给 EMarketSubType(...)
+_US_EXCHANGE_VALUES = frozenset(
+    m.value for m in (
+        EMarketSubType.US_N,
+        EMarketSubType.US_OQ,
+        EMarketSubType.US_PINK,
+        EMarketSubType.US_OTC,
+        EMarketSubType.US_AMEX,
+        EMarketSubType.US_PREIPO,
+    )
+)
+
 
 class AbuStockBaseWrap(object):
     """做为类装饰器封装替换init 解析csv symbol数据操作，装饰替换init"""
@@ -314,8 +326,19 @@ class AbuSymbolUS(AbuSymbolStockBase):
         :return: 返回EMarketSubType.value值，即子市场（交易所）字符串对象
         """
 
-        if code in self:
-            return self[code].exchange.values[0].upper()
+        if code not in self:
+            return default
+        raw = self[code].exchange.values[0]
+        try:
+            if pd.isna(raw):
+                return default
+        except (TypeError, ValueError):
+            pass
+        ex = str(raw).strip().upper()
+        if ex in ('', '-', 'NAN', 'NONE'):
+            return default
+        if ex in _US_EXCHANGE_VALUES:
+            return ex
         return default
 
 

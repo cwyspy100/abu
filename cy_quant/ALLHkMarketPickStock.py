@@ -118,7 +118,7 @@ if __name__ == '__main__':
     update_all_hk_data()
     # 2、使用本地数据进行选股
     # pick_stock_in_hk_stock()
-    pick_stock_in_hk_stock_mean()
+    # pick_stock_in_hk_stock_mean()
     # 3、验证结果
     # check_stock_in_hk_stock("hk00981")
     print("cost time {}".format(time.time() - start_time))

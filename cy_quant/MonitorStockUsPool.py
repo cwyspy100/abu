@@ -45,11 +45,11 @@ slippage.ssb.g_pre_limit_down_rate = 0
 def execute_stock_us_back_test(read_path, save_path, hand_type=0):
     choice_symbols_pd = pd.read_csv(read_path)
     choice_symbols = choice_symbols_pd['symbol']
-    # choice_symbols = ['usFUTU']
+    choice_symbols = ['usFUTU']
     # choice_symbols = ['usTQQQ']
-    choice_symbols = ['usUPRO', 'usTQQQ', 'usIWM']
-    choice_symbols = ['usUPRO']
-    choice_symbols = ['usQQQ']
+    # choice_symbols = ['usUPRO', 'usTQQQ', 'usIWM']
+    # choice_symbols = ['usUPRO']
+    # choice_symbols = ['usQQQ']
     print("choice_symbols:{}".format(choice_symbols))
 
     # 设置初始资金数
@@ -62,8 +62,8 @@ def execute_stock_us_back_test(read_path, save_path, hand_type=0):
         # {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 90, 'class': AbuDoubleMaBuy},
         # {'class': AbuDoubleMaBuy, 'position': AbuPtPosition},
-        # {'xd': 120, 'class': AbuFactorBuyMean},
-        {'xd': 120, 'class': AbuFactorBuyMa60Cross120},
+        {'xd': 120, 'class': AbuFactorBuyMean},
+        # {'xd': 120, 'class': AbuFactorBuyMa60Cross120},
         # {'xd': 120, 'class': AbuFactorBuyFixedInvest},
         # {'xd': 120, 'class': AbuFactorBuyMeanAng},
     ]
@@ -73,20 +73,20 @@ def execute_stock_us_back_test(read_path, save_path, hand_type=0):
         {'stop_loss_n': 1.0, 'stop_win_n': 3.0, 'class': AbuFactorAtrNStop},
         {'class': AbuFactorPreAtrNStop, 'pre_atr_n': 1.5},
         {'class': AbuFactorCloseAtrNStop, 'close_atr_n': 1.5},
-        {'xd': 120, 'class': AbuFactorSellMean},
+        # {'xd': 120, 'class': AbuFactorSellMean},
         # {'xd': 60, 'class': AbuFactorSellBreak},
     ]
 
     # 网格交易法
     if hand_type == 1:
         buy_factors = [
-            {'xd': 120, 'class': AbuFactorBuyFixedInvest},
-            # {'xd': 120, 'class': AbuFactorBuyGrid},
+            # {'xd': 120, 'class': AbuFactorBuyFixedInvest},
+            {'xd': 120, 'class': AbuFactorBuyGrid},
         ]
 
         # 卖出因子继续使用上一节使用的因子
         sell_factors = [
-            # {'xd': 120, 'class': AbuFactorSellGrid},
+            {'xd': 120, 'class': AbuFactorSellGrid},
         ]
 
 

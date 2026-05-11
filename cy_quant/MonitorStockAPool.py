@@ -162,8 +162,8 @@ def save_backtest_result(metrics, save_path):
 
 
 if __name__ == "__main__":
-    # execute_stock_a_back_test('../todolist/stock_a_pool.csv', '../todolist/stock_a_pool_backtest.txt')
-    execute_stock_a_back_test('../todolist/stock_a_grid_pool.csv', '../todolist/stock_a_grid_pool_backtest.txt', hand_type=1)
+    execute_stock_a_back_test('../todolist/stock_a_pool.csv', '../todolist/stock_a_pool_backtest.txt')
+    # execute_stock_a_back_test('../todolist/stock_a_grid_pool.csv', '../todolist/stock_a_grid_pool_backtest.txt', hand_type=1)
     # ABuSymbolPd.make_kl_df('sh600519', n_folds=5)
     # stock_a_pd = pd.read_csv('stock_a_pool.csv')
     # print(stock_a_pd['symbol'])

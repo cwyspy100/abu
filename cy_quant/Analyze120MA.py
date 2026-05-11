@@ -1,7 +1,14 @@
 """
 分析120日均线突破
-扫描~/abu/data/csv/目录下所有sh和sz开头的文件
-统计最后一次超过120日均线的开始时间、当前价格和增长率
+扫描 ~/abu/data/csv/ 下按市场前缀命名的 K 线文件，统计最后一次站上 120 日均线的时点与涨幅等。
+
+命令行（默认 A 股 sh+sz；传入 us / hk 则只扫对应前缀）::
+
+  python cy_quant/Analyze120MA.py              # A 股 sh、sz
+  python cy_quant/Analyze120MA.py cn           # 同上
+  python cy_quant/Analyze120MA.py us           # 美股，文件名前缀 us
+  python cy_quant/Analyze120MA.py hk           # 港股前缀 hk（全市场文件较多，耗时较长）
+  python cy_quant/Analyze120MA.py hk --min-price 0.5
 """
 
 import pandas as pd
@@ -153,9 +160,10 @@ class Analyze120MA:
     def parse_filename(self, filepath):
         """
         从文件名解析股票代码和日期范围
-        文件名格式：sh600452_20240703_20251217 或 sh600452_20240703_20251217.csv
+        文件名格式：sh600452_20240703_20251217、usZZZ_20240126_20260418 等（或带 .csv）
+        支持 sh/sz/hk/us 四种前缀；前两字为市场（大小写不敏感），其后为标的代码（保留大小写）
         :param filepath: 文件路径
-        :return: (股票代码, 开始日期, 结束日期) 或 None
+        :return: (ts_code, 开始日期, 结束日期) 或 None
         """
         filename = os.path.basename(filepath)
         
@@ -170,27 +178,25 @@ class Analyze120MA:
             start_date = parts[1]  # 20240703
             end_date = parts[2]     # 20251217
             
-            # 前缀到交易所代码的映射
+            # 前缀到交易所代码的映射（解析文件名时认全市场，不依赖 self.prefixes；
+            # prefixes 仅用于批量扫描时筛选目录中的文件）
             prefix_to_exchange = {
                 'sh': 'SH',
                 'sz': 'SZ',
                 'hk': 'HK',
                 'us': 'US'
             }
-            
-            # 检查code_part是否以任一指定前缀开头
-            matched_prefix = None
-            for prefix in self.prefixes:
-                if code_part.startswith(prefix):
-                    matched_prefix = prefix
-                    break
-            
-            if matched_prefix and matched_prefix in prefix_to_exchange:
-                exchange = prefix_to_exchange[matched_prefix]
-                ts_code = f"{code_part[len(matched_prefix):]}.{exchange}"
-                return ts_code, start_date, end_date
-            
-            return None
+            if len(code_part) < 2:
+                return None
+            head2 = code_part[:2].lower()
+            if head2 not in prefix_to_exchange:
+                return None
+            exchange = prefix_to_exchange[head2]
+            symbol = code_part[2:]
+            if not symbol:
+                return None
+            ts_code = f"{symbol}.{exchange}"
+            return ts_code, start_date, end_date
         
         return None
     
@@ -682,6 +688,30 @@ class Analyze120MA:
                 print(f"[DEBUG] 分析文件 {filepath} 出错: {e}")
             return None, reason
 
+    @staticmethod
+    def _stock_input_to_file_prefix(raw: str):
+        """
+        将输入代码转为数据文件名前缀（与磁盘上 sh600000_xxx、usAAPL_xxx 等一致）。
+        仅前两位交易所缩写作小写，标的代码保持原大小写，避免 usZZZ 被整串 lower 成 uszzz 找不到文件。
+        """
+        s = str(raw).strip()
+        if not s:
+            return None
+        if len(s) >= 2 and s[:2].lower() in ('sh', 'sz', 'hk', 'us'):
+            return s[:2].lower() + s[2:]
+        if '.' in s:
+            code, market = s.split('.', 1)
+            market = market.upper()
+            prefix_map = {'SH': 'sh', 'SZ': 'sz', 'HK': 'hk', 'US': 'us'}
+            if market not in prefix_map:
+                return None
+            return f"{prefix_map[market]}{code}"
+        if s.startswith('6'):
+            return f"sh{s}"
+        if s.startswith(('0', '3')):
+            return f"sz{s}"
+        return None
+
     def debug_analyze_by_stock_code(self, stock_code, exclude_list=None):
         """
         按股票代码调试分析，并输出未入选原因
@@ -694,26 +724,14 @@ class Analyze120MA:
             return None
 
         raw = str(stock_code).strip()
-        lowered = raw.lower()
-
-        if lowered.startswith(('sh', 'sz', 'hk', 'us')):
-            file_prefix = lowered
-        elif '.' in raw:
-            code, market = raw.split('.', 1)
-            market = market.upper()
-            prefix_map = {'SH': 'sh', 'SZ': 'sz', 'HK': 'hk', 'US': 'us'}
-            if market not in prefix_map:
-                print(f"[DEBUG] 不支持的交易所后缀: {market}")
-                return None
-            file_prefix = f"{prefix_map[market]}{code}"
-        else:
-            if raw.startswith('6'):
-                file_prefix = f"sh{raw}"
-            elif raw.startswith(('0', '3')):
-                file_prefix = f"sz{raw}"
+        file_prefix = self._stock_input_to_file_prefix(raw)
+        if file_prefix is None:
+            if '.' in raw:
+                _, m = raw.split('.', 1)
+                print(f"[DEBUG] 不支持的交易所后缀: {m.upper()}")
             else:
                 print(f"[DEBUG] 无法根据代码自动判断市场，请传入如 000001.SZ 或 sh600000: {raw}")
-                return None
+            return None
 
         if file_prefix[2:].startswith(('399', '000')):
             print(f"[DEBUG] {stock_code} 以 399/000 开头，按非股票处理，跳过分析")
@@ -727,20 +745,9 @@ class Analyze120MA:
                 s = str(item).strip()
                 if not s:
                     continue
-                s_lower = s.lower()
-                if s_lower.startswith(('sh', 'sz', 'hk', 'us')):
-                    exclude_prefix_set.add(s_lower)
-                elif '.' in s:
-                    code, market = s.split('.', 1)
-                    market = market.upper()
-                    prefix_map = {'SH': 'sh', 'SZ': 'sz', 'HK': 'hk', 'US': 'us'}
-                    if market in prefix_map:
-                        exclude_prefix_set.add(f"{prefix_map[market]}{code}")
-                else:
-                    if s.startswith('6'):
-                        exclude_prefix_set.add(f"sh{s}")
-                    elif s.startswith(('0', '3')):
-                        exclude_prefix_set.add(f"sz{s}")
+                p = self._stock_input_to_file_prefix(s)
+                if p is not None:
+                    exclude_prefix_set.add(p)
 
             if file_prefix in exclude_prefix_set:
                 print(f"[DEBUG] 命中排除列表，跳过分析: {stock_code} ({file_prefix})")
@@ -960,13 +967,22 @@ class Analyze120MA:
 def main(prefixes=None, min_price=1.0, growth_weights=None, input_csv=None, nh_lookback=60):
     """
     主函数
-    :param prefixes: 文件前缀列表，默认为None（使用默认的['sh', 'sz']）
-                     可以传入 ['sh', 'sz'] 或 ['sh'] 或 ['sz'] 等
+    :param prefixes: 文件前缀列表，默认为 None（使用 ['sh', 'sz']）；也可传入字符串 'us'/'hk'/'cn'（与命令行一致）
+                     或列表如 ['sh', 'sz']、['hk'] 等
     :param min_price: 最小价格阈值，过滤掉start_price小于此值的股票，默认为None（不过滤）
     :param growth_weights: 涨幅比重参数，默认为None（使用默认的[0.2, 0.3, 0.3, 0.2]），分别对应5、10、20、30日涨幅的权重
     :param input_csv: 输入的CSV文件路径，如果提供则只分析该文件中的股票，否则分析所有股票
     :param nh_lookback: 新高统计前推交易日数，见 calculate_nh_break_events
     """
+    if isinstance(prefixes, str):
+        key = prefixes.strip().lower()
+        if key == "cn":
+            prefixes = ["sh", "sz"]
+        elif key in ("us", "hk"):
+            prefixes = [key]
+        else:
+            raise ValueError("prefixes 字符串仅支持 cn / us / hk，收到: %r" % (prefixes,))
+
     analyzer = Analyze120MA(
         prefixes=prefixes,
         min_price=min_price,
@@ -989,17 +1005,28 @@ def main(prefixes=None, min_price=1.0, growth_weights=None, input_csv=None, nh_l
 
 
 if __name__ == '__main__':
+    import argparse
     import time
+
+    ap = argparse.ArgumentParser(description="120 日均线突破扫描（默认 A 股，可选 us / hk）")
+    ap.add_argument(
+        "market",
+        nargs="?",
+        default="us",
+        choices=("cn", "us", "hk"),
+        help="市场：cn=A 股 sh+sz，us=美股，hk=港股（默认 cn）",
+    )
+    ap.add_argument("--min-price", type=float, default=1.0, help="过滤起始价低于该值的标的，默认 1.0")
+    ap.add_argument("--nh-lookback", type=int, default=60, dest="nh_lookback", help="新高统计窗口交易日数")
+    ap.add_argument("--input-csv", default=None, dest="input_csv", help="仅分析该表 ts_code 列中的股票")
+    args = ap.parse_args()
+
     start = time.time()
-    
-    # result = main(input_csv="../todolist/quality_momentum_pick_20251221.csv")
-    result = main('us')
-
-    print(f"\n处理完成，耗时 {time.time() - start:.2f} 秒")
-
-
-    # from cy_quant.Analyze120MA import Analyze120MA
-    #
-    # analyzer = Analyze120MA()
-    # analyzer.debug_analyze_by_stock_code("sh688256")  # 或 "sh600000"
+    result = main(
+        prefixes=args.market,
+        min_price=args.min_price,
+        input_csv=args.input_csv,
+        nh_lookback=args.nh_lookback,
+    )
+    print("\n处理完成，耗时 %.2f 秒" % (time.time() - start,))
 
