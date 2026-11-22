@@ -135,6 +135,8 @@ TABLE_SCHEMAS = {
             industry VARCHAR(50) COMMENT '行业',
             market VARCHAR(10) DEFAULT 'A股' COMMENT '市场：A股/港股/美股',
             break_date DATE COMMENT '突破120日均线日期',
+            up_percent DECIMAL(10,4) COMMENT '当前价相对突破日涨幅(%)',
+            up_percent_week DECIMAL(10,4) DEFAULT 0 COMMENT '本次涨幅与上次导入涨幅的差值(%)',
             status TINYINT DEFAULT 1 COMMENT '有效状态：0=失效，1=有效',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -515,6 +517,45 @@ def init_tables(db: Database):
                 """
                 ALTER TABLE stock_pool_ma120
                 ADD COLUMN market VARCHAR(10) DEFAULT 'A股' COMMENT '市场：A股/港股/美股'
+                """
+            )
+
+        col_up = db.query_one(
+            """
+            SELECT 1
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = %s
+              AND TABLE_NAME = 'stock_pool_ma120'
+              AND COLUMN_NAME = 'up_percent'
+            LIMIT 1
+            """,
+            (database_name,),
+        )
+        if not col_up:
+            db.execute(
+                """
+                ALTER TABLE stock_pool_ma120
+                ADD COLUMN up_percent DECIMAL(10,4) COMMENT '当前价相对突破日涨幅(%)'
+                """
+            )
+
+        col_up_week = db.query_one(
+            """
+            SELECT 1
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = %s
+              AND TABLE_NAME = 'stock_pool_ma120'
+              AND COLUMN_NAME = 'up_percent_week'
+            LIMIT 1
+            """,
+            (database_name,),
+        )
+        if not col_up_week:
+            db.execute(
+                """
+                ALTER TABLE stock_pool_ma120
+                ADD COLUMN up_percent_week DECIMAL(10,4) DEFAULT 0
+                    COMMENT '本次涨幅与上次导入涨幅的差值(%)'
                 """
             )
 

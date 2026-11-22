@@ -53,17 +53,17 @@ def execute_stock_a_back_test(read_path, save_path, hand_type=0):
     # choice_symbols = ['sz300059']
     choice_symbols_pd = pd.read_csv(read_path)
     choice_symbols = choice_symbols_pd['symbol']
-    choice_symbols = ['688008']
+    choice_symbols = ['300750']
     print(choice_symbols)
     # 设置初始资金数
     read_cash = 1000000
 
     # 买入因子依然延用向上突破因子
     buy_factors = [
-        # {'xd': 60, 'class': AbuFactorBuyBreak},
-        # {'xd': 42, 'class': AbuFactorBuyBreak},
+        {'xd': 60, 'class': AbuFactorBuyBreak},
+        {'xd': 42, 'class': AbuFactorBuyBreak},
         # {'fast': 5, 'slow': 60, 'class': AbuDoubleMaBuy},
-        {'xd': 120, 'class': AbuFactorBuyMean},
+        # {'xd': 120, 'class': AbuFactorBuyMean},
         # {'xd': 10, 'class': AbuFactorBuyMa60Cross120},
         # {'xd': 60, 'class': AbuFactorBuyEMA},
         # {'fast': 30, 'slow': 60, 'class': AbuFactorBuyMacd},
@@ -162,8 +162,8 @@ def save_backtest_result(metrics, save_path):
 
 
 if __name__ == "__main__":
-    execute_stock_a_back_test('../todolist/stock_a_pool.csv', '../todolist/stock_a_pool_backtest.txt')
-    # execute_stock_a_back_test('../todolist/stock_a_grid_pool.csv', '../todolist/stock_a_grid_pool_backtest.txt', hand_type=1)
+    # execute_stock_a_back_test('../todolist/stock_a_pool.csv', '../todolist/stock_a_pool_backtest.txt')
+    execute_stock_a_back_test('../todolist/stock_a_grid_pool.csv', '../todolist/stock_a_grid_pool_backtest.txt', hand_type=1)
     # ABuSymbolPd.make_kl_df('sh600519', n_folds=5)
     # stock_a_pd = pd.read_csv('stock_a_pool.csv')
     # print(stock_a_pd['symbol'])

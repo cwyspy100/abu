@@ -40,6 +40,11 @@ python3.9 -m cy_ai.main --import-pool "todolist/hk_120ma_breakthrough_20260425.c
 
 python3.9 -m cy_ai.main --import-pool "cy_quant/sh_120ma_breakthrough_20260509.csv" --market A股
 
+# 通过qianwen来分析超过120日均线的股票；
+python3.9 cy_ai/score_stock_pool_ma120_qianwen.py --only-unscored --delay 1.0
+
+
+
 说明：
 - 导入会先将 stock_pool_ma120 全部标记为失效（status=0），再将本次文件命中的标的激活为有效（status=1）。
 - 若数据库 stock_basic 缺少名称/行业，港股与美股会自动从以下文件回填：

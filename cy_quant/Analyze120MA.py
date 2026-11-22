@@ -4,20 +4,30 @@
 
 命令行（默认 A 股 sh+sz；传入 us / hk 则只扫对应前缀）::
 
-  python cy_quant/Analyze120MA.py              # A 股 sh、sz
-  python cy_quant/Analyze120MA.py cn           # 同上
-  python cy_quant/Analyze120MA.py us           # 美股，文件名前缀 us
-  python cy_quant/Analyze120MA.py hk           # 港股前缀 hk（全市场文件较多，耗时较长）
+  python cy_quant/Analyze120MA.py              # 默认：最新截面一张表
+  python cy_quant/Analyze120MA.py cn
+  python cy_quant/Analyze120MA.py us
   python cy_quant/Analyze120MA.py hk --min-price 0.5
+
+周期模式（指定起始日后，每月/每周一张表；截面=月末/周末最后一个交易日）::
+
+  python cy_quant/Analyze120MA.py cn --start-date 20260101 --freq month
+  python cy_quant/Analyze120MA.py cn --start-date 20260101 --freq week
+  python cy_quant/Analyze120MA.py cn --start-date 20260101 --freq month --end-date 20260630
 """
 
-import pandas as pd
-import numpy as np
-import os
 import glob
-from datetime import datetime
+import os
 import warnings
+from calendar import monthrange
+from datetime import datetime, timedelta
+
+import numpy as np
+import pandas as pd
+
 warnings.filterwarnings('ignore')
+
+_DEFAULT_OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")
 
 
 class Analyze120MA:
@@ -463,7 +473,7 @@ class Analyze120MA:
         :param current_price: 当前价格（最后一个交易日的收盘价）
         :return: 最近5天的涨跌幅（百分比），如果数据不足5天则返回None
         """
-        if df is None or df.empty or len(df) < 5:
+        if df is None or df.empty or len(df) < 1:
             return None
         
         # 确保数据按日期排序并重置索引
@@ -480,15 +490,252 @@ class Analyze120MA:
         
         return None
 
-    def _analyze_stock_core(self, filepath, debug=False):
+    # ------------------------------------------------------------------ #
+    # 周期截面：起始日 + month/week
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def _to_ymd(val):
+        """统一为 YYYYMMDD 字符串。"""
+        if val is None:
+            return None
+        if isinstance(val, datetime):
+            return val.strftime("%Y%m%d")
+        s = str(val).strip()
+        digits = "".join(c for c in s if c.isdigit())
+        if len(digits) < 8:
+            raise ValueError("日期格式无效，需 YYYYMMDD，收到: %r" % (val,))
+        return digits[:8]
+
+    @staticmethod
+    def _ymd_to_dt(ymd):
+        return datetime.strptime(ymd, "%Y%m%d")
+
+    def _infer_data_end_ymd(self, stock_files):
+        """从文件名结束日期推断本地数据上界。"""
+        max_end = None
+        for fp in stock_files:
+            parsed = self.parse_filename(fp)
+            if parsed is None:
+                continue
+            end_d = parsed[2]
+            if max_end is None or end_d > max_end:
+                max_end = end_d
+        return max_end
+
+    def build_period_ends(self, start_date, freq="month", end_date=None):
+        """
+        生成截面日历日列表（月末最后一天 / 每周五）。
+        实际分析时对每只股票取 trade_date <= 该日的最后一根 K 线。
+        :return: ['YYYYMMDD', ...]
+        """
+        start = self._to_ymd(start_date)
+        end = self._to_ymd(end_date) if end_date else None
+        if end is not None and end < start:
+            raise ValueError("end_date 不能早于 start_date")
+
+        freq = str(freq).strip().lower()
+        if freq in ("m", "month", "monthly"):
+            freq = "month"
+        elif freq in ("w", "week", "weekly"):
+            freq = "week"
+        else:
+            raise ValueError("freq 仅支持 month / week，收到: %r" % (freq,))
+
+        start_dt = self._ymd_to_dt(start)
+        # end 未定时先用一个宽松上界，调用方应用数据实际 end 再截断
+        if end is None:
+            end_dt = datetime.now()
+        else:
+            end_dt = self._ymd_to_dt(end)
+
+        ends = []
+        if freq == "month":
+            y, m = start_dt.year, start_dt.month
+            while True:
+                last_day = monthrange(y, m)[1]
+                pe = datetime(y, m, last_day)
+                pe_s = pe.strftime("%Y%m%d")
+                if pe_s >= start and pe <= end_dt:
+                    ends.append(pe_s)
+                # 下一月
+                if m == 12:
+                    y, m = y + 1, 1
+                else:
+                    m += 1
+                if datetime(y, m, 1) > end_dt:
+                    break
+        else:
+            # 取 start 所在周及之后的每个周五；若 start 晚于该周五则从下周五开始
+            d = start_dt
+            # 对齐到本周五（weekday: Mon=0 ... Fri=4）
+            fri = d + timedelta(days=(4 - d.weekday()) % 7)
+            if fri < start_dt:
+                fri += timedelta(days=7)
+            while fri <= end_dt:
+                ends.append(fri.strftime("%Y%m%d"))
+                fri += timedelta(days=7)
+
+        return ends
+
+    def _read_kline_df(self, filepath):
+        """读取并规范化单只股票日 K，失败返回 None。"""
+        try:
+            df = pd.read_csv(filepath, encoding="utf-8-sig")
+        except Exception:
+            try:
+                df = pd.read_csv(filepath, encoding="gbk")
+            except Exception:
+                try:
+                    df = pd.read_csv(filepath, encoding="utf-8")
+                except Exception:
+                    return None
+        if df is None or df.empty:
+            return None
+        if "date" in df.columns and "trade_date" not in df.columns:
+            df = df.rename(columns={"date": "trade_date"})
+        if "trade_date" not in df.columns or "close" not in df.columns:
+            return None
+        out = df.copy()
+        out["trade_date"] = (
+            out["trade_date"].astype(str).str.replace(r"[^\d]", "", regex=True).str[:8]
+        )
+        out = out[out["trade_date"].str.len() == 8]
+        out["close"] = pd.to_numeric(out["close"], errors="coerce")
+        if "high" in out.columns:
+            out["high"] = pd.to_numeric(out["high"], errors="coerce")
+        out = out.dropna(subset=["trade_date", "close"])
+        if out.empty:
+            return None
+        return out.sort_values("trade_date").reset_index(drop=True)
+
+    def _analyze_prepared_df(
+        self, df, stock_code, file_start_date, file_end_date, as_of_date=None, debug=False
+    ):
+        """
+        对已读入的日 K 做 MA120 突破分析。
+        :param as_of_date: YYYYMMDD，若提供则截断到该日（含）再分析
+        """
+        if df is None or df.empty:
+            return None, "CSV 为空"
+
+        work = df
+        as_of = self._to_ymd(as_of_date) if as_of_date else None
+        if as_of is not None:
+            work = df[df["trade_date"] <= as_of]
+            if work.empty:
+                return None, f"as_of={as_of} 之前无数据"
+            work = work.reset_index(drop=True)
+
+        df_with_ma = self.calculate_120ma(work)
+        if df_with_ma is None:
+            return None, "120 日均线计算失败"
+
+        breakthrough_info = self.find_last_breakthrough(df_with_ma)
+        if breakthrough_info is None:
+            return None, "最后一天未站上 MA120 或有效数据不足"
+
+        start_date_breakthrough, start_price, current_price, growth_rate, days_diff = (
+            breakthrough_info
+        )
+
+        if days_diff < 10:
+            return None, f"突破后持续交易日不足 10 天（当前 {days_diff} 天）"
+
+        if current_price < 5 or current_price > 2000:
+            return None, f"当前价不在范围 [5, 2000]（当前 {current_price:.2f}）"
+
+        if self.min_price is not None and start_price < self.min_price:
+            return None, (
+                f"突破起始价低于最小阈值 min_price={self.min_price}"
+                f"（当前 {start_price:.2f}）"
+            )
+
+        df_sorted = df_with_ma.sort_values("trade_date").reset_index(drop=True)
+        df_sorted["trade_date"] = df_sorted["trade_date"].astype(str)
+
+        last_trade_date = str(df_sorted.iloc[-1]["trade_date"])
+        last_trade_price = df_sorted.iloc[-1]["close"]
+        ref_year = int(last_trade_date[:4]) if len(last_trade_date) >= 4 else datetime.now().year
+        year_start_str = f"{ref_year}0101"
+
+        year_start_price = None
+        year_to_date_growth = None
+        if last_trade_date >= year_start_str:
+            year_start_records = df_sorted[df_sorted["trade_date"] >= year_start_str]
+            if not year_start_records.empty:
+                year_start_price = year_start_records.iloc[0]["close"]
+                if year_start_price > 0:
+                    year_to_date_growth = (
+                        (last_trade_price - year_start_price) / year_start_price * 100
+                    )
+                else:
+                    year_to_date_growth = 0
+
+        breakthrough_date_str = str(start_date_breakthrough)
+        growth_at_days = self.calculate_growth_at_days(
+            df_sorted,
+            breakthrough_date_str,
+            start_price,
+            days_list=[5, 10, 20, 30],
+        )
+
+        result = {
+            "ts_code": stock_code,
+            "start_date": file_start_date,
+            "end_date": file_end_date,
+            "breakthrough_date": start_date_breakthrough,
+            "start_price": round(start_price, 2),
+            "current_price": round(current_price, 2),
+            "growth_rate": round(growth_rate, 2),
+            "ret_from_break_pct": round(growth_rate, 2),
+            "days": days_diff,
+            "last_trade_date": last_trade_date,
+        }
+        if as_of is not None:
+            result["snapshot_date"] = as_of
+
+        if year_start_price is not None:
+            result["year_start_price"] = round(year_start_price, 2)
+            result["year_to_date_growth"] = round(year_to_date_growth, 2)
+        else:
+            result["year_start_price"] = 0
+            result["year_to_date_growth"] = 0
+
+        result.update(growth_at_days)
+
+        score = 0.0
+        if len(self.growth_weights) >= 4:
+            score = (
+                growth_at_days.get("growth_5d", 0.0) * self.growth_weights[0]
+                + growth_at_days.get("growth_10d", 0.0) * self.growth_weights[1]
+                + growth_at_days.get("growth_20d", 0.0) * self.growth_weights[2]
+                + growth_at_days.get("growth_30d", 0.0) * self.growth_weights[3]
+            )
+        result["score"] = round(score, 2)
+        result.update(self.calculate_up_down_stats(df_sorted, breakthrough_date_str))
+        result.update(self.calculate_nh_break_events(df_sorted, breakthrough_date_str))
+        recent_5d_growth = self.calculate_recent_5d_growth(df_sorted, current_price)
+        result["recent_5d_growth"] = (
+            recent_5d_growth if recent_5d_growth is not None else 0.0
+        )
+
+        if debug:
+            print(
+                f"[DEBUG] {stock_code} 入选，突破日 {start_date_breakthrough}，"
+                f"累计涨幅 {growth_rate:.2f}%"
+                + (f"，as_of={as_of}" if as_of else "")
+            )
+        return result, None
+
+    def _analyze_stock_core(self, filepath, debug=False, as_of_date=None):
         """
         分析单个股票文件（支持调试模式，输出未入选原因）
         :param filepath: 文件路径
         :param debug: 是否输出调试日志
+        :param as_of_date: 可选截面日 YYYYMMDD，截断到该日再分析
         :return: (result, reason)，成功时 reason 为 None
         """
         try:
-            # 解析文件名
             parse_result = self.parse_filename(filepath)
             if parse_result is None:
                 reason = "文件名不符合约定格式，无法解析股票代码"
@@ -497,196 +744,143 @@ class Analyze120MA:
                 return None, reason
 
             ts_code, start_date, end_date = parse_result
-
-            # 去掉股票代码的后缀（.SZ、.SH、.HK、.US等）
-            stock_code = ts_code.split('.')[0] if '.' in ts_code else ts_code
-            if stock_code.startswith(('399', '000')):
+            stock_code = ts_code.split(".")[0] if "." in ts_code else ts_code
+            if stock_code.startswith(("399", "000")):
                 reason = f"代码 {stock_code} 以 399/000 开头，按非股票处理"
                 if debug:
                     print(f"[DEBUG] {stock_code} 未入选: {reason}")
                 return None, reason
 
-            # 读取CSV文件（尝试不同的编码）
-            try:
-                df = pd.read_csv(filepath, encoding='utf-8-sig')
-            except:
-                try:
-                    df = pd.read_csv(filepath, encoding='gbk')
-                except:
-                    df = pd.read_csv(filepath, encoding='utf-8')
-
-            if df.empty:
-                reason = "CSV 文件为空"
+            df = self._read_kline_df(filepath)
+            if df is None or df.empty:
+                reason = "CSV 文件为空或缺少必要字段"
                 if debug:
                     print(f"[DEBUG] {stock_code} 未入选: {reason}")
                 return None, reason
 
-            # 确保有date和close列
-            if 'date' in df.columns:
-                df = df.rename(columns={'date': 'trade_date'})
-
-            if 'trade_date' not in df.columns or 'close' not in df.columns:
-                reason = "缺少必要字段 trade_date/close"
-                if debug:
-                    print(f"[DEBUG] {stock_code} 未入选: {reason}")
-                return None, reason
-
-            # 计算120日均线
-            df_with_ma = self.calculate_120ma(df)
-            if df_with_ma is None:
-                reason = "120 日均线计算失败"
-                if debug:
-                    print(f"[DEBUG] {stock_code} 未入选: {reason}")
-                return None, reason
-
-            # 找出最后一次突破120日均线的信息
-            breakthrough_info = self.find_last_breakthrough(df_with_ma)
-            if breakthrough_info is None:
-                reason = "最后一天未站上 MA120 或有效数据不足"
-                if debug:
-                    print(f"[DEBUG] {stock_code} 未入选: {reason}")
-                return None, reason
-
-            start_date_breakthrough, start_price, current_price, growth_rate, days_diff = breakthrough_info
-
-            # 如果突破后持续天数小于10天，不需要继续计算
-            if days_diff < 5:
-                reason = f"突破后持续交易日不足 5 天（当前 {days_diff} 天）"
-                if debug:
-                    print(f"[DEBUG] {stock_code} 未入选: {reason}")
-                return None, reason
-
-            if growth_rate < 5:
-                reason = f"突破后累计涨幅不足 5%（当前 {growth_rate:.2f}%）"
-                if debug:
-                    print(f"[DEBUG] {stock_code} 未入选: {reason}")
-                return None, reason
-
-            # 过滤掉current_price小于5或大于1000的股票
-            if current_price < 5 or current_price > 2000:
-                reason = f"当前价不在范围 [5, 1000]（当前 {current_price:.2f}）"
-                if debug:
-                    print(f"[DEBUG] {stock_code} 未入选: {reason}")
-                return None, reason
-
-            # 如果设置了最小价格阈值，过滤掉start_price小于阈值的股票
-            if self.min_price is not None and start_price < self.min_price:
-                reason = f"突破起始价低于最小阈值 min_price={self.min_price}（当前 {start_price:.2f}）"
-                if debug:
-                    print(f"[DEBUG] {stock_code} 未入选: {reason}")
-                return None, reason
-
-            # 计算年初到当前的涨跌幅
-            # 确保数据按日期排序
-            df_sorted = df_with_ma.sort_values('trade_date').reset_index(drop=True)
-
-            # 确保trade_date列是字符串类型，以便进行比较
-            df_sorted['trade_date'] = df_sorted['trade_date'].astype(str)
-
-            # 计算年度增长率：使用当前年份第一个交易日的价格和当前价格（数据文件中最后一个交易日）
-            # 动态获取当前年份
-            from datetime import datetime
-            current_year = datetime.now().year
-            year_start_str = f"{current_year}0101"
-
-            # 获取数据文件中最后一个交易日的日期和价格
-            last_trade_date = str(df_sorted.iloc[-1]['trade_date'])
-            last_trade_price = df_sorted.iloc[-1]['close']
-
-            # 检查最后一个交易日是否是当前年份的
-            is_current_year_data = last_trade_date >= year_start_str
-
-            year_start_price = None
-            year_to_date_growth = None
-
-            if is_current_year_data:
-                # 找到当前年份第一个交易日的价格
-                year_start_records = df_sorted[df_sorted['trade_date'] >= year_start_str]
-                if not year_start_records.empty:
-                    year_start_price = year_start_records.iloc[0]['close']
-                    # 计算当前年份年初到当前（最后一个交易日）的涨幅
-                    if year_start_price > 0:
-                        year_to_date_growth = (last_trade_price - year_start_price) / year_start_price * 100
-                    else:
-                        year_to_date_growth = 0
-                else:
-                    # 如果找不到当前年份第一个交易日，无法计算
-                    year_start_price = None
-                    year_to_date_growth = None
-            else:
-                # 如果数据文件中最后一个交易日不是当前年份的，无法计算年收益率
-                year_start_price = None
-                year_to_date_growth = None
-
-            # 计算突破后5、10、20、30天的累计增长
-            # 确保突破日期是字符串格式
-            breakthrough_date_str = str(start_date_breakthrough)
-            growth_at_days = self.calculate_growth_at_days(
-                df_sorted,
-                breakthrough_date_str,
-                start_price,
-                days_list=[5, 10, 20, 30]
+            return self._analyze_prepared_df(
+                df,
+                stock_code,
+                start_date,
+                end_date,
+                as_of_date=as_of_date,
+                debug=debug,
             )
-
-            result = {
-                'ts_code': stock_code,
-                'start_date': start_date,
-                'end_date': end_date,
-                'breakthrough_date': start_date_breakthrough,
-                'start_price': round(start_price, 2),
-                'current_price': round(current_price, 2),
-                'growth_rate': round(growth_rate, 2),
-                # 与 growth_rate 相同：突破日收盘 -> 最新收盘 累计涨幅(%)
-                'ret_from_break_pct': round(growth_rate, 2),
-                'days': days_diff
-            }
-
-            # 添加年初价格和年初至今涨幅
-            if year_start_price is not None:
-                result['year_start_price'] = round(year_start_price, 2)
-                result['year_to_date_growth'] = round(year_to_date_growth, 2)
-            else:
-                result['year_start_price'] = 0
-                result['year_to_date_growth'] = 0
-
-            # 添加突破后不同天数的累计增长数据
-            result.update(growth_at_days)
-
-            # 计算积分：5、10、20、30日涨幅与比重相乘
-            score = 0.0
-            if len(self.growth_weights) >= 4:
-                growth_5d = growth_at_days.get('growth_5d', 0.0)
-                growth_10d = growth_at_days.get('growth_10d', 0.0)
-                growth_20d = growth_at_days.get('growth_20d', 0.0)
-                growth_30d = growth_at_days.get('growth_30d', 0.0)
-                score = (growth_5d * self.growth_weights[0] +
-                        growth_10d * self.growth_weights[1] +
-                        growth_20d * self.growth_weights[2] +
-                        growth_30d * self.growth_weights[3])
-            result['score'] = round(score, 2)
-
-            # 计算上涨/下跌天数统计
-            up_down_stats = self.calculate_up_down_stats(df_sorted, breakthrough_date_str)
-            result.update(up_down_stats)
-
-            # N 日新高突破事件次数（从突破日起，含突破日，可判定日从 max(突破索引, N) 起）
-            nh_stats = self.calculate_nh_break_events(df_sorted, breakthrough_date_str)
-            result.update(nh_stats)
-
-            # 计算最近5天的涨跌幅
-            recent_5d_growth = self.calculate_recent_5d_growth(df_sorted, current_price)
-            result['recent_5d_growth'] = recent_5d_growth if recent_5d_growth is not None else 0.0
-
-            if debug:
-                print(f"[DEBUG] {stock_code} 入选，突破日 {start_date_breakthrough}，累计涨幅 {growth_rate:.2f}%")
-
-            return result, None
 
         except Exception as e:
             reason = f"分析异常: {e}"
             if debug:
                 print(f"[DEBUG] 分析文件 {filepath} 出错: {e}")
             return None, reason
+
+    def analyze_stock(self, filepath, as_of_date=None):
+        """
+        分析单个股票文件
+        :param filepath: 文件路径
+        :param as_of_date: 可选截面日
+        :return: 分析结果字典或None
+        """
+        result, _ = self._analyze_stock_core(
+            filepath, debug=False, as_of_date=as_of_date
+        )
+        return result
+
+    def analyze_period(
+        self,
+        start_date,
+        freq="month",
+        end_date=None,
+        output_dir=None,
+        save=True,
+    ):
+        """
+        从 start_date 起按月/周生成多张截面表。
+        截面日：月末最后一天 / 每周五；个股取 <= 该日的最后交易日。
+        end_date 默认取本地文件名中的最大结束日。
+
+        :return: dict[snapshot_date -> DataFrame]
+        """
+        stock_files = self.get_stock_files()
+        if not stock_files:
+            print("未找到股票数据文件！")
+            return {}
+
+        data_end = end_date or self._infer_data_end_ymd(stock_files)
+        if data_end is None:
+            print("无法推断数据结束日期")
+            return {}
+
+        period_ends = self.build_period_ends(start_date, freq=freq, end_date=data_end)
+        # 去掉晚于数据上界的截面
+        period_ends = [pe for pe in period_ends if pe <= data_end]
+        if not period_ends:
+            print("指定区间内无有效截面日")
+            return {}
+
+        print("=" * 60)
+        print(
+            f"周期扫描 MA120 | freq={freq} | start={self._to_ymd(start_date)} "
+            f"| end={data_end} | 截面数={len(period_ends)}"
+        )
+        print("=" * 60)
+
+        buckets = {pe: [] for pe in period_ends}
+        total = len(stock_files)
+        for i, filepath in enumerate(stock_files):
+            parse_result = self.parse_filename(filepath)
+            if parse_result is None:
+                continue
+            ts_code, f_start, f_end = parse_result
+            stock_code = ts_code.split(".")[0] if "." in ts_code else ts_code
+            if stock_code.startswith(("399", "000")):
+                continue
+
+            df = self._read_kline_df(filepath)
+            if df is None or df.empty:
+                continue
+
+            for pe in period_ends:
+                result, _ = self._analyze_prepared_df(
+                    df, stock_code, f_start, f_end, as_of_date=pe, debug=False
+                )
+                if result is not None:
+                    buckets[pe].append(result)
+
+            if (i + 1) % 100 == 0:
+                print(f"已处理 {i + 1}/{total} 个文件...")
+
+        out_dir = output_dir or os.path.join(
+            _DEFAULT_OUTPUT_DIR,
+            f"ma120_period_{freq}_{self._to_ymd(start_date)}",
+        )
+        if save:
+            os.makedirs(out_dir, exist_ok=True)
+
+        result_map = {}
+        prefix = self.prefixes[0] if self.prefixes else "all"
+        for pe in period_ends:
+            rows = buckets[pe]
+            if not rows:
+                print(f"截面 {pe}: 0 只")
+                result_map[pe] = pd.DataFrame()
+                continue
+            df_out = self._normalize_export_dtypes(pd.DataFrame(rows))
+            if "breakthrough_date" in df_out.columns:
+                df_out = df_out.sort_values(
+                    "breakthrough_date", ascending=False, na_position="last"
+                )
+            result_map[pe] = df_out
+            print(f"截面 {pe}: {len(df_out)} 只")
+            if save:
+                fname = f"{prefix}_120ma_breakthrough_{pe}.csv"
+                path = os.path.join(out_dir, fname)
+                df_out.to_csv(path, index=False, encoding="utf-8-sig")
+                print(f"  -> {path}")
+
+        print("=" * 60)
+        if save:
+            print(f"周期结果目录: {out_dir}")
+        return result_map
 
     @staticmethod
     def _stock_input_to_file_prefix(raw: str):
@@ -712,11 +906,12 @@ class Analyze120MA:
             return f"sz{s}"
         return None
 
-    def debug_analyze_by_stock_code(self, stock_code, exclude_list=None):
+    def debug_analyze_by_stock_code(self, stock_code, exclude_list=None, as_of_date=None):
         """
         按股票代码调试分析，并输出未入选原因
         :param stock_code: 股票代码，支持 000001 / 000001.SZ / sz000001 / sh600000 等
         :param exclude_list: 排除列表，支持与 stock_code 相同格式，命中则直接跳过
+        :param as_of_date: 可选截面日
         :return: 分析结果字典或None
         """
         if not stock_code:
@@ -772,23 +967,16 @@ class Analyze120MA:
         filepath = matched_files[0]
         print(f"[DEBUG] 开始调试 {stock_code}，使用文件: {filepath}")
 
-        result, reason = self._analyze_stock_core(filepath, debug=True)
+        result, reason = self._analyze_stock_core(
+            filepath, debug=True, as_of_date=as_of_date
+        )
         if result is None:
             print(f"[DEBUG] 结论: {stock_code} 未入选，原因: {reason}")
             return None
 
         print(f"[DEBUG] 结论: {stock_code} 已入选")
         return result
-    
-    def analyze_stock(self, filepath):
-        """
-        分析单个股票文件
-        :param filepath: 文件路径
-        :return: 分析结果字典或None
-        """
-        result, _ = self._analyze_stock_core(filepath, debug=False)
-        return result
-    
+
     def analyze_all(self):
         """
         分析所有股票文件
@@ -911,7 +1099,7 @@ class Analyze120MA:
         if df is None or df.empty:
             return df
         out = df.copy()
-        for c in ('start_date', 'end_date', 'breakthrough_date'):
+        for c in ('start_date', 'end_date', 'breakthrough_date', 'snapshot_date', 'last_trade_date'):
             if c in out.columns:
                 out[c] = self._series_to_int_ymd(out[c])
         numeric_cols = [
@@ -964,15 +1152,28 @@ class Analyze120MA:
         print(result_df.head(20).to_string(index=False))
 
 
-def main(prefixes=None, min_price=1.0, growth_weights=None, input_csv=None, nh_lookback=60):
+def main(
+    prefixes=None,
+    min_price=1.0,
+    growth_weights=None,
+    input_csv=None,
+    nh_lookback=60,
+    start_date=None,
+    freq="month",
+    end_date=None,
+    output_dir=None,
+):
     """
     主函数
-    :param prefixes: 文件前缀列表，默认为 None（使用 ['sh', 'sz']）；也可传入字符串 'us'/'hk'/'cn'（与命令行一致）
-                     或列表如 ['sh', 'sz']、['hk'] 等
-    :param min_price: 最小价格阈值，过滤掉start_price小于此值的股票，默认为None（不过滤）
-    :param growth_weights: 涨幅比重参数，默认为None（使用默认的[0.2, 0.3, 0.3, 0.2]），分别对应5、10、20、30日涨幅的权重
-    :param input_csv: 输入的CSV文件路径，如果提供则只分析该文件中的股票，否则分析所有股票
-    :param nh_lookback: 新高统计前推交易日数，见 calculate_nh_break_events
+    :param prefixes: 文件前缀列表，默认为 None（使用 ['sh', 'sz']）；也可传入字符串 'us'/'hk'/'cn'
+    :param min_price: 最小价格阈值
+    :param growth_weights: 涨幅比重参数
+    :param input_csv: 输入的CSV文件路径
+    :param nh_lookback: 新高统计前推交易日数
+    :param start_date: 周期模式起始日 YYYYMMDD；None 则走默认「最新一张表」
+    :param freq: month / week
+    :param end_date: 周期模式结束日，默认本地数据最新日
+    :param output_dir: 周期结果输出目录
     """
     if isinstance(prefixes, str):
         key = prefixes.strip().lower()
@@ -991,16 +1192,20 @@ def main(prefixes=None, min_price=1.0, growth_weights=None, input_csv=None, nh_l
         nh_lookback=nh_lookback,
     )
 
-    # 测试流程
-    # result_df = analyzer.analyze_stock(filepath='~/abu/data/csv/hk09992_20220606_20250624')
+    # 周期模式：指定 start_date 后按月/周出多张表
+    if start_date:
+        return analyzer.analyze_period(
+            start_date=start_date,
+            freq=freq,
+            end_date=end_date,
+            output_dir=output_dir,
+            save=True,
+        )
 
-    # 分析所有股票（如果指定了input_csv，会追加到原始数据）
+    # 默认：最新截面一张表
     result_df = analyzer.analyze_all()
-
-    # 保存结果
     if not result_df.empty:
         analyzer.save_results(result_df)
-    
     return result_df
 
 
@@ -1008,7 +1213,9 @@ if __name__ == '__main__':
     import argparse
     import time
 
-    ap = argparse.ArgumentParser(description="120 日均线突破扫描（默认 A 股，可选 us / hk）")
+    ap = argparse.ArgumentParser(
+        description="120 日均线突破扫描（默认最新一张表；可选按月/周多截面）"
+    )
     ap.add_argument(
         "market",
         nargs="?",
@@ -1019,6 +1226,30 @@ if __name__ == '__main__':
     ap.add_argument("--min-price", type=float, default=1.0, help="过滤起始价低于该值的标的，默认 1.0")
     ap.add_argument("--nh-lookback", type=int, default=60, dest="nh_lookback", help="新高统计窗口交易日数")
     ap.add_argument("--input-csv", default=None, dest="input_csv", help="仅分析该表 ts_code 列中的股票")
+    ap.add_argument(
+        "--start-date",
+        default='2025-04-01',
+        dest="start_date",
+        help="周期模式起始日 YYYYMMDD；不传则默认只出最新一张表",
+    )
+    ap.add_argument(
+        "--freq",
+        default="month",
+        choices=("month", "week"),
+        help="周期：month=每月一张，week=每周一张（需配合 --start-date）",
+    )
+    ap.add_argument(
+        "--end-date",
+        default=None,
+        dest="end_date",
+        help="周期模式结束日 YYYYMMDD，默认本地数据最新日",
+    )
+    ap.add_argument(
+        "--output-dir",
+        default=None,
+        dest="output_dir",
+        help="周期结果输出目录（默认 cy_quant/output/ma120_period_{freq}_{start}）",
+    )
     args = ap.parse_args()
 
     start = time.time()
@@ -1027,6 +1258,10 @@ if __name__ == '__main__':
         min_price=args.min_price,
         input_csv=args.input_csv,
         nh_lookback=args.nh_lookback,
+        start_date=args.start_date,
+        freq=args.freq,
+        end_date=args.end_date,
+        output_dir=args.output_dir,
     )
     print("\n处理完成，耗时 %.2f 秒" % (time.time() - start,))
 

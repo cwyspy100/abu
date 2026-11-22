@@ -5,6 +5,8 @@ CSV 文件导入模块
 
 import os
 import logging
+import glob
+import re
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List
@@ -37,6 +39,7 @@ class CSVImporter:
         "name": "name",
         "industry": "industry",
         "breakthrough_date": "break_date",
+        "growth_rate": "up_percent",
         "market": "market",
     }
 
@@ -44,6 +47,9 @@ class CSVImporter:
     MA120_POOL_ALIAS = {
         "break_date": "breakthrough_date",
         "突破日期": "breakthrough_date",
+        "涨幅": "growth_rate",
+        "涨幅(%)": "growth_rate",
+        "growth": "growth_rate",
         "market_type": "market",
         "exchange": "market",
         "市场": "market",
@@ -59,6 +65,139 @@ class CSVImporter:
         """
         self.db = db
         self._rom_meta_cache = {}
+        self._price_file_cache = {}
+        self._price_df_cache = {}
+
+    def _kline_roots(self) -> List[str]:
+        base = os.path.expanduser("~/abu/data/csv")
+        return [os.path.join(base, "astock"), base]
+
+    def _latest_kline_file(self, ts_code: str, market: str) -> Optional[str]:
+        key = (str(ts_code or "").upper(), str(market or ""))
+        if key in self._price_file_cache:
+            return self._price_file_cache[key]
+
+        code = str(ts_code or "").upper()
+        mkt = self.infer_market(code, market)
+        digits = "".join(ch for ch in code if ch.isdigit())
+        if mkt == "A股":
+            pure = digits.zfill(6)
+            prefixes = [f"sh{pure}", f"sz{pure}"]
+        elif mkt == "港股":
+            pure = digits[-5:].zfill(5) if digits else code.split(".", 1)[0]
+            prefixes = [f"hk{pure}"]
+        else:
+            pure = code.split(".", 1)[0]
+            prefixes = [f"us{pure}"]
+
+        files = []
+        for root in self._kline_roots():
+            if not os.path.exists(root):
+                continue
+            for p in prefixes:
+                files.extend(glob.glob(os.path.join(root, f"{p}_*")))
+                files.extend(glob.glob(os.path.join(root, f"{p}_*.csv")))
+
+        latest = None
+        if files:
+            latest = sorted(set(files), key=lambda f: os.path.getmtime(f))[-1]
+        self._price_file_cache[key] = latest
+        return latest
+
+    def _read_kline_df(self, path: str) -> Optional[pd.DataFrame]:
+        if not path:
+            return None
+        if path in self._price_df_cache:
+            return self._price_df_cache[path]
+
+        for enc in ("utf-8-sig", "utf-8", "gbk"):
+            try:
+                df = pd.read_csv(path, encoding=enc)
+                if df is not None and not df.empty:
+                    date_col = "Unnamed: 0" if "Unnamed: 0" in df.columns else ("date" if "date" in df.columns else None)
+                    if date_col is None or "close" not in df.columns:
+                        continue
+                    df = df.copy()
+                    if date_col == "date":
+                        # 兼容 20240126 整数日期
+                        df["_trade_date"] = pd.to_datetime(df["date"].astype(str), errors="coerce")
+                    else:
+                        df["_trade_date"] = pd.to_datetime(df[date_col].astype(str), errors="coerce")
+                    df["_close"] = pd.to_numeric(df["close"], errors="coerce")
+                    df = df.dropna(subset=["_trade_date", "_close"]).sort_values("_trade_date").reset_index(drop=True)
+                    self._price_df_cache[path] = df
+                    return df
+            except Exception:
+                continue
+        return None
+
+    @staticmethod
+    def _parse_break_date_value(v):
+        """
+        解析 breakthrough_date / break_date，避免数字被误解析为1970-01-01。
+        支持：
+        - YYYY-MM-DD / YYYY/MM/DD
+        - YYYYMMDD（8位数字）
+        - Excel 序列日期（如 45401）
+        """
+        if pd.isnull(v):
+            return None
+        s = str(v).strip()
+        if not s or s.lower() in {"nan", "nat", "none"}:
+            return None
+
+        # 0 或 0.0 视为无效
+        if s in {"0", "0.0"}:
+            return None
+
+        # 纯8位数字按 YYYYMMDD
+        digits = "".join(ch for ch in s if ch.isdigit())
+        if len(digits) == 8:
+            dt = pd.to_datetime(digits, format="%Y%m%d", errors="coerce")
+            return dt.date() if pd.notnull(dt) else None
+
+        # Excel 序列日期（常见 3~5位整数）
+        if re.fullmatch(r"\d+(\.0+)?", s):
+            try:
+                iv = int(float(s))
+                if 20000 <= iv <= 80000:
+                    dt = pd.to_datetime(iv, unit="D", origin="1899-12-30", errors="coerce")
+                    return dt.date() if pd.notnull(dt) else None
+            except Exception:
+                pass
+
+        dt = pd.to_datetime(s, errors="coerce")
+        if pd.isnull(dt):
+            return None
+        # 明确过滤 epoch 起点误判
+        if dt.date().isoformat() == "1970-01-01":
+            return None
+        return dt.date()
+
+    def _calc_up_percent(self, ts_code: str, market: str, break_date) -> Optional[float]:
+        if pd.isnull(break_date):
+            return None
+        kline_path = self._latest_kline_file(ts_code, market)
+        if not kline_path:
+            return None
+        df = self._read_kline_df(kline_path)
+        if df is None or df.empty:
+            return None
+
+        bd = pd.to_datetime(break_date, errors="coerce")
+        if pd.isnull(bd):
+            return None
+        bd = bd.normalize()
+        t = df["_trade_date"].dt.normalize()
+        # break_date 非交易日时取之后最近交易日
+        pos = t.searchsorted(bd, side="left")
+        if pos >= len(df):
+            return None
+        break_px = float(df.iloc[pos]["_close"])
+        latest_px = float(df.iloc[-1]["_close"])
+        if break_px <= 0:
+            return None
+        return round((latest_px / break_px - 1.0) * 100.0, 4)
 
     @staticmethod
     def normalize_ts_code(ts_code) -> str:
@@ -602,6 +741,8 @@ class CSVImporter:
             axis=1,
         )
         df = df[df["ts_code"] != ""]
+        if "break_date" in df.columns:
+            df["break_date"] = df["break_date"].apply(self._parse_break_date_value)
 
         # name/industry 统一以 stock_basic 为准（所有市场）
         meta_map = self._get_basic_meta_map(df["ts_code"].tolist())
@@ -638,6 +779,12 @@ class CSVImporter:
                 axis=1,
             )
 
+        # up_percent 只使用导入CSV中的 growth_rate 映射值
+        if "up_percent" in df.columns:
+            df["up_percent"] = pd.to_numeric(df["up_percent"], errors="coerce")
+        else:
+            df["up_percent"] = None
+
         # 导入前，仅将“本次导入涉及的市场”标记为失效，避免覆盖其他市场
         target_markets = sorted({str(m).strip() for m in df["market"].tolist() if str(m).strip()})
         if target_markets:
@@ -649,9 +796,15 @@ class CSVImporter:
             self.db.commit()
             logger.info("导入前已将以下市场置失效: %s", ",".join(target_markets))
 
-        # 现有记录映射（按 ts_code + market）
-        existing_rows = self.db.query_all("SELECT ts_code, market FROM stock_pool_ma120")
+        # 现有记录映射（按 ts_code + market），同时读取旧 up_percent 以便计算 up_percent_week
+        existing_rows = self.db.query_all(
+            "SELECT ts_code, market, up_percent FROM stock_pool_ma120"
+        )
         existing_keys = {(str(r.get("ts_code", "")), str(r.get("market", ""))) for r in existing_rows}
+        existing_up_percent_map = {
+            (str(r.get("ts_code", "")), str(r.get("market", ""))): r.get("up_percent")
+            for r in existing_rows
+        }
 
         total = 0
         inserted = 0
@@ -665,8 +818,34 @@ class CSVImporter:
                 ts_code = row["ts_code"] if pd.notnull(row["ts_code"]) else ""
                 market = row["market"] if pd.notnull(row["market"]) else ""
                 key = (str(ts_code), str(market))
+                new_up_percent = (
+                    row.get("up_percent", None) if pd.notnull(row.get("up_percent", None)) else None
+                )
+
                 if key in existing_keys:
-                    reactivate_params_list.append((market, ts_code))
+                    # 计算 up_percent_week：本次涨幅 - 上次涨幅
+                    old_up_percent = existing_up_percent_map.get(key)
+                    if old_up_percent is not None and new_up_percent is not None:
+                        try:
+                            up_percent_week = round(
+                                float(new_up_percent) - float(old_up_percent), 4
+                            )
+                        except (TypeError, ValueError):
+                            up_percent_week = 0.0
+                    else:
+                        up_percent_week = 0.0
+
+                    reactivate_params_list.append(
+                        (
+                            row.get("name", None) if pd.notnull(row.get("name", None)) else None,
+                            row.get("industry", None) if pd.notnull(row.get("industry", None)) else None,
+                            row.get("break_date", None) if pd.notnull(row.get("break_date", None)) else None,
+                            new_up_percent,
+                            up_percent_week,
+                            market,
+                            ts_code,
+                        )
+                    )
                     reactivated += 1
                     continue
 
@@ -676,6 +855,8 @@ class CSVImporter:
                         row.get("name", None) if pd.notnull(row.get("name", None)) else None,
                         row.get("industry", None) if pd.notnull(row.get("industry", None)) else None,
                         row.get("break_date", None) if pd.notnull(row.get("break_date", None)) else None,
+                        new_up_percent,
+                        0.0,
                         market,
                         1,
                     )
@@ -690,8 +871,8 @@ class CSVImporter:
                         cursor.executemany(
                             """
                             INSERT INTO stock_pool_ma120
-                                (ts_code, name, industry, break_date, market, status)
-                            VALUES (%s, %s, %s, %s, %s, %s)
+                                (ts_code, name, industry, break_date, up_percent, up_percent_week, market, status)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                             """,
                             insert_params_list,
                         )
@@ -699,7 +880,14 @@ class CSVImporter:
                         cursor.executemany(
                             """
                             UPDATE stock_pool_ma120
-                            SET status = 1, updated_at = NOW(), market = %s
+                            SET status = 1,
+                                name = COALESCE(%s, name),
+                                industry = COALESCE(%s, industry),
+                                break_date = COALESCE(%s, break_date),
+                                up_percent = %s,
+                                up_percent_week = %s,
+                                updated_at = NOW(),
+                                market = %s
                             WHERE ts_code = %s
                             """,
                             reactivate_params_list,

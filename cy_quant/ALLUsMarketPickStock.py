@@ -83,5 +83,5 @@ if __name__ == '__main__':
     # pick_stock_in_us_stock()
     # 3、验证结果
     # check_stock_in_us_stock("usNVDA")
-    check_stock_in_us_stock("usGOOG")
+    # check_stock_in_us_stock("usGOOG")
     print("cost time {}".format(time.time() - start_time))

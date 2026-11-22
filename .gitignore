@@ -9,3 +9,12 @@ test.py
 /abupy/RomDataBu/df_kl.h5
 todolist/
 .gstack/
+.hermes-agent/
+.hermes-agent-src/
+.hermes-home/
+ma120_mvp/output/
+cy_quant/output/
+
+# Research artifacts (keep scripts/reports, ignore generated result files)
+cy_quant/output/**/*.csv
+cy_quant/output/**/*.json

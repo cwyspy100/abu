@@ -120,7 +120,7 @@ if __name__ == '__main__':
 
     # 2、使用本地数据进行选股
     # pick_stock_in_A_stock()
-    pick_stock_in_A_stock_mean()
+    # pick_stock_in_A_stock_mean()
 
     # 3、验证结果
     # check_stock_in_A_stock("sh601088")
